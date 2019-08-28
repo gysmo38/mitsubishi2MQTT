@@ -57,8 +57,8 @@ String html_setup = R"====(
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
       <h3>_UNIT_NAME_</h3>
     </div>
-  <p><form action='/mqtt' method='get'><button>MQTT Setup</button></form></p>
-  <p><form action='/wifi' method='get'><button>WIFI Setup</button></form></p>
+  <p><form action='/mqtt' method='get'><button>MQTT</button></form></p>
+  <p><form action='/wifi' method='get'><button>WIFI</button></form></p>
   <p><form><button type='submit' name='RESET' class='button bred'>Reset configuration</button></form></p>
   <p><form action='/' method='get'><button>Back</button></form></p>
 )====";
@@ -71,8 +71,12 @@ String html_reboot = R"====(
       <h3>_UNIT_NAME_</h3>
     </div>
 
-  <p>Rebooting... Refresh in 30s...</p>
-
+  <p>Rebooting... Refresh in 10s...</p>
+  <script>
+  setTimeout(function () {
+   window.location.href= '/';
+  }, 10000);
+</script>
 )====";
 
 String html_reset = R"====(
@@ -96,7 +100,12 @@ String html_save_reboot = R"====(
       <h3>_UNIT_NAME_</h3>
     </div>
 
-  <p>Saving configuration and rebooting... Refresh in 30s...</p>
+  <p>Saving configuration and rebooting... Refresh in 10s...</p>
+  <script>
+  setTimeout(function () {
+   window.location.href= '/';
+  }, 10000);
+</script>
 
 )====";
 
@@ -150,12 +159,12 @@ String html_wifi = R"====(
     <div id='l1' name='l1'></div>
       <fieldset>
     <legend><b>&nbsp;WIFI Parameters&nbsp;</b></legend>
-    <form method='get' action='save'>
+    <form method='get'>
       <p><b>Hostname</b><br/><input id='hn' name='hn' placeholder=' ' value='_UNIT_NAME_'></p>
       <p><b>SSID</b> ()<br/><input id='ssid' name='ssid' placeholder=' ' value='_SSID_'></p>
       <p><b>Password</b> ()<br/><input id='psk' name='psk' placeholder=' ' value='_PSK_'></p>
       <p><b>OTA Password</b><br/><input id='otapwd' name='otapwd' placeholder=' ' value='_OTA_PWD_'></p>
-    </p><br/><button name='submit' type='submit' class='button bgrn'>Save & Reboot</button>
+    </p><br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
     </form>
     <p><form action='/setup' method='get'><button>Back</button></form></p>
   </fieldset>

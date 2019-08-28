@@ -4,7 +4,7 @@
  */
 #define OTA
 
-String m2mqtt_version = "0.3";
+String m2mqtt_version = "0.3.1";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";

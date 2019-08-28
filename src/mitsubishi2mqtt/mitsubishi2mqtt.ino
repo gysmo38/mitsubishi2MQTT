@@ -619,6 +619,7 @@ void hpSettingsChanged() {
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
+ 
   // send room temp, operating info and all information
   heatpumpSettings currentSettings = hp.getSettings();
 
@@ -627,7 +628,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
-  rootInfo["hvac_action"]     = currentStatus.operating;;
+ // rootInfo["hvac_action"]     = currentStatus.operating;;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
