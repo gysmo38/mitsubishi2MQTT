@@ -73,11 +73,7 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-    //  Serial.println("Connection to MQTT server: " + String(mqtt_server) + ":" + String(mqtt_port));
-   //   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
-   //   mqtt_client.setCallback(mqttCallback);
-  
-   //   mqttConnect();
+      
       Serial.println("Connection to HVAC");
       logFile.println("Connection to HVAC");
       hp.setSettingsChangedCallback(hpSettingsChanged);
@@ -136,7 +132,7 @@ bool load_wifi() {
 void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
                  String mqttPwd, String mqttTopic) {
 
-  const size_t capacity = JSON_OBJECT_SIZE(50);
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   doc["mqtt_fn"]   = mqttFn;
   doc["mqtt_host"] = mqttHost;
@@ -159,7 +155,7 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
 
 void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
 
-  const size_t capacity = JSON_OBJECT_SIZE(4) + 110;
+  const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   doc["ap_ssid"] = apSsid;
   doc["ap_pwd"] = apPwd;
@@ -250,7 +246,7 @@ bool load_mqtt() {
   // buffer to be mutable. If you don't use ArduinoJson, you may as well
   // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(20) + 130;
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
 
@@ -628,7 +624,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
- // rootInfo["hvac_action"]     = currentStatus.operating;;
+  rootInfo["hvac_action"]     = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -771,7 +767,7 @@ void haConfig() {
 
   // send HA config packet
   // setup HA payload device
-  const size_t capacity = 3 * JSON_ARRAY_SIZE(5) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(23) + JSON_OBJECT_SIZE(100);
+  const size_t capacity = JSON_ARRAY_SIZE(5) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(24) + 2048;
   DynamicJsonDocument haConfig(capacity);
 
   haConfig["name"]                          = mqtt_fn;
@@ -823,6 +819,8 @@ void haConfig() {
   haConfig["swing_mode_cmd_t"]              = mqtt_topic + "/" + mqtt_fn + "/vane/set";
   haConfig["swing_mode_stat_t"]             = mqtt_topic + "/" + mqtt_fn + "/state";
   haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane }}";
+  haConfig["act_t"]                         = mqtt_topic  + "/" + mqtt_fn + "/state";
+  haConfig["act_tpl"]                       = "{% if value_json.power == 'off' %}'off'{% elif value_json.hvac_action == 'true' -%}{% if value_json.mode == 'heat' -%}{{'heating'}}{% elif value_json.mode == 'cool' -%}{{'cooling'}}{% elif value_json.mode == 'dry' -%}{{'drying'}}{% elif value_json.mode == 'fan' -%}{{'fan'}}{% else -%}{{'idle'}}{%- endif %}{% endif %}";
  
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
