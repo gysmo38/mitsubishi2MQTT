@@ -14,6 +14,17 @@
 #include <ArduinoOTA.h>
 #endif
 
+//for LED status (Using a Wemos D1-Mini)
+#include <Ticker.h>
+Ticker ticker;
+
+void tick()
+{
+  //toggle state
+  int state = digitalRead(blueLedPin);  // get the current state of GPIO2 pin
+  digitalWrite(blueLedPin, !state);     // set pin to the opposite state
+}
+
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
 PubSubClient mqtt_client(espClient);;
@@ -37,6 +48,10 @@ void setup() {
   Serial.println();
   logFile.println("Starting Mitsubishi2MQTT...");
   Serial.println("Starting Mitsubishi2MQTT...");
+  
+  //set led pin as output
+  pinMode(blueLedPin, OUTPUT);
+  ticker.attach(0.6, tick);
   
   //Define hostname
   hostname += String(ESP.getChipId(),HEX);
@@ -120,7 +135,7 @@ bool load_wifi() {
   ap_ssid  = doc["ap_ssid"].as<String>();
   ap_pwd   = doc["ap_pwd"].as<String>();
   ota_pwd  = doc["ota_pwd"].as<String>();
-  Serial.println("Hotname: "+hostname);
+  Serial.println("Hostname: "+hostname);
   Serial.println("SSID: "+ap_ssid);
   Serial.println("PSK: "+ap_pwd);
   Serial.println("OTA pwd: "+ota_pwd);
@@ -276,6 +291,7 @@ boolean init_wifi() {
     WiFi.softAP(hostname.c_str());
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
+    ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
     return false;
   }
   else {
@@ -298,6 +314,9 @@ boolean init_wifi() {
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+    ticker.detach(); // Stop blinking the LED because now we are connected:)
+    //keep LED on (For Wemos D1-Mini)
+    digitalWrite(blueLedPin, LOW);
     return true;
   }
 }
