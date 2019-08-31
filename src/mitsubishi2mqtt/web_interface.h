@@ -12,14 +12,14 @@ String html_header = R"====(
     select{width:100%;}
     textarea{resize:none;width:98%;height:318px;padding:5px;overflow:auto;}
     body{text-align:center;font-family:verdana;}
-    td{padding:0px;}button{border:0;border-radius:0.3rem;background-color:#1fa3ec;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;-webkit-transition-duration:0.4s;transition-duration:0.4s;cursor:pointer;}button:hover{background-color:#0e70a4;}.bred{background-color:#d43535;}.bred:hover{background-color:#931f1f;}.bgrn{background-color:#47c266;}.bgrn:hover{background-color:#5aaf6f;}a{text-decoration:none;}.p{float:left;text-align:left;}.q{float:right;text-align:right;}
+    td{padding:0px;}button{text-shadow: 2px 2px 5px black;box-shadow: 0 15px 6px -6px grey;border:0;border-radius:25px;background-color:#1fa3ec;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;-webkit-transition-duration:0.4s;transition-duration:0.8s;cursor:pointer;}button:hover{background-color:#0e70a4;}.bred{background-color:#d43535;}.bred:hover{background-color:#931f1f;}.bgrn{background-color:#47c266;}.bgrn:hover{background-color:#5aaf6f;}a{text-decoration:none;}.p{float:left;text-align:left;}.q{float:right;text-align:right;}
   </style>
   </head>
 )====";
 
 String html_footer = R"====(
   <br/>
-    <div style='text-align:right;font-size:11px;'>
+    <div style='text-align:right;font-size:10px;color: grey;'>
       <hr/>Mitsubishi2MQTT _VERSION_ by Gysmo</div></div></body></html>
 )====";
 
