@@ -32,12 +32,6 @@ HeatPump hp;
 unsigned long lastTempSend;
 
 void setup() {
-  File logFile = SPIFFS.open("/log.txt", "a");
-  Serial.begin(115200);
-  Serial.println();
-  logFile.println("Starting Mitsubishi2MQTT...");
-  Serial.println("Starting Mitsubishi2MQTT...");
-  
   //Define hostname
   hostname += String(ESP.getChipId(),HEX);
   mqtt_client_id = hostname;
@@ -45,6 +39,8 @@ void setup() {
   setDefaults();
   load_wifi();
   if (init_wifi()) {
+    SPIFFS.remove(console_file);  
+    write_log("Starting Mitsubishi2MQTT...");
     init_OTA();
     //Web interface
     server.on("/", handle_root);
@@ -57,8 +53,7 @@ void setup() {
     server.onNotFound(handleNotFound);
     server.begin();
     if(load_mqtt()) {
-      Serial.println("Starting MQTT");
-      logFile.println("Starting MQTT");
+      write_log("Starting MQTT");
       // startup mqtt connection
       init_MQTT();
   
@@ -73,22 +68,17 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-    //  Serial.println("Connection to MQTT server: " + String(mqtt_server) + ":" + String(mqtt_port));
-   //   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
-   //   mqtt_client.setCallback(mqttCallback);
-  
-   //   mqttConnect();
-      Serial.println("Connection to HVAC");
-      logFile.println("Connection to HVAC");
+
+      write_log("Connection to HVAC");
+
       hp.setSettingsChangedCallback(hpSettingsChanged);
       hp.setStatusChangedCallback(hpStatusChanged);
       hp.setPacketCallback(hpPacketDebug);
       hp.connect(&Serial);
-  
       lastTempSend = millis();
     }
     else {
-      Serial.println("Not found MQTT config go to configuration page");
+      write_log("Not found MQTT config go to configuration page");
     }
   }
   else {
@@ -194,27 +184,26 @@ void init_MQTT() {
   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
   mqtt_client.setCallback(mqttCallback);
   mqttConnect();
-  Serial.println("MQTT connected");
 }
 
 // Enable OTA only when connected as a client.
 void init_OTA() {
-  Serial.println("Start OTA Listener");
+  write_log("Start OTA Listener");
   ArduinoOTA.setHostname(hostname.c_str());
   if(ota_pwd.length()>0){
      ArduinoOTA.setPassword(ota_pwd.c_str());
   }
   ArduinoOTA.onStart([]() {
-    Serial.println("Start");
+    write_log("Start");
   });
   ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
+    write_log("\nEnd");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+//    write_log("Progress: %u%%\r", (progress / (total / 100)));
   });
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
+//    write_log("Error[%u]: ", error);
     if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
     else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
     else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
@@ -225,7 +214,7 @@ void init_OTA() {
 }
 
 bool load_mqtt() {
-  Serial.println("Loading MQTT configuration");
+  write_log("Loading MQTT configuration");
 
   if (!SPIFFS.begin()) {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -233,28 +222,21 @@ bool load_mqtt() {
   }
   File configFile = SPIFFS.open(mqtt_conf, "r");
   if (!configFile) {
-    Serial.println("Failed to open MQTT config file");
+    write_log("Failed to open MQTT config file");
     return false;
   }
 
   size_t size = configFile.size();
   if (size > 1024) {
-    Serial.println("Config file size is too large");
+    write_log("Config file size is too large");
     return false;
   }
-
-  // Allocate a buffer to store contents of the file.
   std::unique_ptr<char[]> buf(new char[size]);
 
-  // We don't use String here because ArduinoJson library requires the input
-  // buffer to be mutable. If you don't use ArduinoJson, you may as well
-  // use configFile.readString instead.
   configFile.readBytes(buf.get(), size);
   const size_t capacity = JSON_OBJECT_SIZE(20) + 130;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
-
-  //    JsonObject& json = jsonBuffer.parseObject(buf.get());
   mqtt_fn             = doc["mqtt_fn"].as<String>();
   mqtt_server         = doc["mqtt_host"].as<String>();
   mqtt_port           = doc["mqtt_port"].as<String>();
@@ -262,7 +244,15 @@ bool load_mqtt() {
   mqtt_password       = doc["mqtt_pwd"].as<String>();
   mqtt_topic          = doc["mqtt_topic"].as<String>();
 
-//  ha_discovery_topic  = doc["ha_discovery_topic"].as<String>();
+  write_log("=== START DEBUG MQTT ===");
+  write_log("Friendly Name" + mqtt_fn);
+  write_log("IP Server " + mqtt_server);
+  write_log("IP Port " + mqtt_port);
+  write_log("Username " + mqtt_username);
+  write_log("Password " + mqtt_password);
+  write_log("Topic " + mqtt_topic);
+  write_log("=== END DEBUG MQTT ===");
+  
   mqtt_config = true;
   return true;
 }
@@ -417,11 +407,25 @@ void handle_console() {
   String toSend = html_header + html_console + html_footer;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
-//  toSend.replace("_CONSOLE_", logFile);
+  File logFile = SPIFFS.open(console_file.c_str(),"r");
+  String logBuffer;
+  if(!logFile) {
+    toSend.replace("_CONSOLE_", "Open log file failed");
+  }
+  else {
+    while(logFile.available()) {
+      logBuffer += logFile.readString();
+    }
+    toSend.replace("_CONSOLE_",logBuffer.c_str());
+  }
+  logFile.close();
   server.send(200, "text/html", toSend);
 }
 
+
+
 void handle_control() {
+  write_log("Enter HVAC control");
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
   String toSend = html_control;
@@ -513,39 +517,19 @@ void handle_control() {
   }
   toSend.replace("_TEMP_", String(hp.getTemperature()));
   server.send(200, "text/html", toSend);
-  delay(100);
 }
 
+void write_log(String log) {
+  File logFile = SPIFFS.open(console_file.c_str(),"a");
+  logFile.println(log);
+  logFile.close();
+}
 heatpumpSettings change_states(heatpumpSettings settings) {
   if (server.hasArg("CONNECT")) {
     hp.connect(&Serial);
   }
   else {
     bool update = false;
-
-    if (server.hasArg("save")) {
-      if (server.hasArg("fn")) {
-        hostname = server.arg("fn").c_str();
-      }
-      if (server.hasArg("mh")) {
-        mqtt_server = server.arg("mh").c_str();
-      }
-      if (server.hasArg("ml")) {
-        mqtt_port = server.arg("ml").c_str();
-      }
-      if (server.hasArg("mu")) {
-        mqtt_username = server.arg("mu").c_str();
-      }
-      if (server.hasArg("mp")) {
-        mqtt_password = server.arg("mp").c_str();
-      }
-      if (server.hasArg("mt")) {
-        mqtt_topic = server.arg("mt");
-      }
-      mqtt_client.disconnect();
-      setup();
-      mqttConnect();
-    }
     if (server.hasArg("POWER")) {
       settings.power = server.arg("POWER").c_str();
       update = true;
@@ -832,7 +816,6 @@ void haConfig() {
   haConfigDevice["mdl"]   = "HVAC MITUBISHI";
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
 
-
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
@@ -841,12 +824,12 @@ void haConfig() {
 }
 
 void mqttConnect() {
-
   // Loop until we're reconnected
   int attempts = 0;
   while (!mqtt_client.connected()) {
     // Attempt to connect
     if (mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str())) {
+      write_log("MQTT connected");
       mqtt_client.subscribe(ha_debug_set_topic.c_str());
       mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
@@ -856,7 +839,7 @@ void mqttConnect() {
       haConfig();
     }
     else if(attempts == 5) {
-      Serial.println("MQTT Failed to connect, stop after 5 try");
+      write_log("MQTT disconnected. Failed to connect, stop after 5 try");
       mqtt_config = false;
       return;
     }
@@ -887,6 +870,4 @@ void loop() {
     }
     mqtt_client.loop();
   }
-
-
 }

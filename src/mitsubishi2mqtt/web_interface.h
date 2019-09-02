@@ -43,9 +43,9 @@ String html_root = R"====(
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
       <h3>_UNIT_NAME_</h3>
     </div>
-
   <p><form action='/control' method='get'><button>Control</button></form></p>
   <p><form action='/setup' method='get'><button>Setup</button></form></p>
+  <p><form action='/console' method='get'><button>Console</button></form></p>
   <p><form><button type='submit' name='REBOOT' class='button bred'>Reboot</button></form></p>
 )====";
 
@@ -143,7 +143,8 @@ String html_console = R"====(<!DOCTYPE html>
       <h3>_UNIT_NAME_</h3>
       <h2>Console</h2>
     </div>
-    <div id='l1' name='l1'>_CONSOLE_</div>
+    <div id='l1' name='l1'>
+    <textarea>_CONSOLE_</textarea></div>
      <div>
   </div>
   <p><form action='/' method='get'><button>Back</button></form></p>

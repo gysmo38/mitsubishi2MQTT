@@ -4,11 +4,12 @@
  */
 #define OTA
 
-String m2mqtt_version = "0.3.1";
+String m2mqtt_version = "0.4b";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
 String mqtt_conf = "mqtt.json";
+String console_file = "console.log";
 
 // Define global variables for network
 String hostname = "HVAC_";
