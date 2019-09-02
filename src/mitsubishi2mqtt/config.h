@@ -50,8 +50,7 @@ const char* max_temp                    = "31"; // Maximum temperature, check va
 const char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // pinouts
-const int redLedPin  = 0; // Onboard LED = digital pin 0 (red LED on adafruit ESP8266 huzzah)
-const int blueLedPin = 2; // Onboard LED = digital pin 0 (blue LED on adafruit ESP8266 huzzah)
+const int blueLedPin = 2; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
 
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;

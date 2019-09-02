@@ -14,6 +14,17 @@
 #include <ArduinoOTA.h>
 #endif
 
+//for LED status (Using a Wemos D1-Mini)
+#include <Ticker.h>
+Ticker ticker;
+
+void tick()
+{
+  //toggle state
+  int state = digitalRead(blueLedPin);  // get the current state of GPIO2 pin
+  digitalWrite(blueLedPin, !state);     // set pin to the opposite state
+}
+
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
 PubSubClient mqtt_client(espClient);;
@@ -32,6 +43,12 @@ HeatPump hp;
 unsigned long lastTempSend;
 
 void setup() {
+  Serial.begin(115200);
+ 
+  //set led pin as output
+  pinMode(blueLedPin, OUTPUT);
+  ticker.attach(0.6, tick);
+  
   //Define hostname
   hostname += String(ESP.getChipId(),HEX);
   mqtt_client_id = hostname;
@@ -68,9 +85,9 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-
-      write_log("Connection to HVAC");
-
+      
+      Serial.println("Connection to HVAC");
+      logFile.println("Connection to HVAC");
       hp.setSettingsChangedCallback(hpSettingsChanged);
       hp.setStatusChangedCallback(hpStatusChanged);
       hp.setPacketCallback(hpPacketDebug);
@@ -114,7 +131,7 @@ bool load_wifi() {
   ap_ssid  = doc["ap_ssid"].as<String>();
   ap_pwd   = doc["ap_pwd"].as<String>();
   ota_pwd  = doc["ota_pwd"].as<String>();
-  Serial.println("Hotname: "+hostname);
+  Serial.println("Hostname: "+hostname);
   Serial.println("SSID: "+ap_ssid);
   Serial.println("PSK: "+ap_pwd);
   Serial.println("OTA pwd: "+ota_pwd);
@@ -126,7 +143,7 @@ bool load_wifi() {
 void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
                  String mqttPwd, String mqttTopic) {
 
-  const size_t capacity = JSON_OBJECT_SIZE(50);
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   doc["mqtt_fn"]   = mqttFn;
   doc["mqtt_host"] = mqttHost;
@@ -149,7 +166,7 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
 
 void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
 
-  const size_t capacity = JSON_OBJECT_SIZE(4) + 110;
+  const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   doc["ap_ssid"] = apSsid;
   doc["ap_pwd"] = apPwd;
@@ -234,7 +251,7 @@ bool load_mqtt() {
   std::unique_ptr<char[]> buf(new char[size]);
 
   configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(20) + 130;
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
   mqtt_fn             = doc["mqtt_fn"].as<String>();
@@ -270,6 +287,7 @@ boolean init_wifi() {
     WiFi.softAP(hostname.c_str());
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
+    ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
     return false;
   }
   else {
@@ -292,6 +310,9 @@ boolean init_wifi() {
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+    ticker.detach(); // Stop blinking the LED because now we are connected:)
+    //keep LED on (For Wemos D1-Mini)
+    digitalWrite(blueLedPin, LOW);
     return true;
   }
 }
@@ -612,7 +633,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
- // rootInfo["hvac_action"]     = currentStatus.operating;;
+  rootInfo["hvac_action"]     = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -755,7 +776,7 @@ void haConfig() {
 
   // send HA config packet
   // setup HA payload device
-  const size_t capacity = 3 * JSON_ARRAY_SIZE(5) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(23) + JSON_OBJECT_SIZE(100);
+  const size_t capacity = JSON_ARRAY_SIZE(5) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(24) + 2048;
   DynamicJsonDocument haConfig(capacity);
 
   haConfig["name"]                          = mqtt_fn;
@@ -807,6 +828,8 @@ void haConfig() {
   haConfig["swing_mode_cmd_t"]              = mqtt_topic + "/" + mqtt_fn + "/vane/set";
   haConfig["swing_mode_stat_t"]             = mqtt_topic + "/" + mqtt_fn + "/state";
   haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane }}";
+  haConfig["act_t"]                         = mqtt_topic  + "/" + mqtt_fn + "/state";
+  haConfig["act_tpl"]                       = "{% if value_json.power == 'off' %}'off'{% elif value_json.hvac_action == 'true' -%}{% if value_json.mode == 'heat' -%}{{'heating'}}{% elif value_json.mode == 'cool' -%}{{'cooling'}}{% elif value_json.mode == 'dry' -%}{{'drying'}}{% elif value_json.mode == 'fan' -%}{{'fan'}}{% else -%}{{'idle'}}{%- endif %}{% endif %}";
  
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
