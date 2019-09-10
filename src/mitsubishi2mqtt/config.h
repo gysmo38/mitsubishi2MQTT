@@ -2,14 +2,14 @@
  * mitsubishi2mqtt
  *
  */
-#define OTA
 
-String m2mqtt_version = "0.4b";
+String m2mqtt_version = "0.4.1b";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
 String mqtt_conf = "mqtt.json";
 String console_file = "console.log";
+String others_conf = "others.json";
 
 // Define global variables for network
 String hostname = "HVAC_";
@@ -25,6 +25,11 @@ String mqtt_username;
 String mqtt_password;
 String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
+
+//Define global variables for Others settings
+String others_debug;
+String others_haa;
+String others_haa_topic;
 
 // Define global variables for HA topics
 String ha_power_set_topic;
@@ -51,6 +56,6 @@ const char* temp_step                   = "1"; // Temperature setting step, chec
 
 // pinouts
 const int blueLedPin = 2; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-
+const int redLedPin = 0; 
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;

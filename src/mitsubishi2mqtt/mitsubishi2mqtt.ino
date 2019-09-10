@@ -1,29 +1,21 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266WebServer.h>
-#include <ArduinoJson.h>
-#include <PubSubClient.h>
-#include <HeatPump.h>
-#include <DNSServer.h>
-#include "FS.h"
+  #include <ESP8266WiFi.h>      // WIFI for ESP8266
+#include <ESP8266mDNS.h>      // mDNS for ESP8266
+#include <ESP8266WebServer.h> // webServer for ESP8266
+#include <ArduinoJson.h>      // json to process MQTT
+#include <PubSubClient.h>     // MQTT
+#include <DNSServer.h>        // DNS for captive portal
+#include "FS.h"               // SPIFFS for store config 
 
-#include "config.h"
-#include "web_interface.h"
+#include <ArduinoOTA.h>   // for OTA
+#include <HeatPump.h>     // Swiacago library
+//#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
+#include "config.h"       // config file
+#include "html_common.h"  // common code HTML (like header, footer)
+#include "html_init.h"    // code html for initial config
+#include "html_menu.h"    // code html for menu
+#include "html_pages.h"   // code html for pages
 
-#ifdef OTA
-#include <ArduinoOTA.h>
-#endif
-
-//for LED status (Using a Wemos D1-Mini)
-#include <Ticker.h>
-Ticker ticker;
-
-void tick()
-{
-  //toggle state
-  int state = digitalRead(blueLedPin);  // get the current state of GPIO2 pin
-  digitalWrite(blueLedPin, !state);     // set pin to the opposite state
-}
+//Ticker ticker;
 
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
@@ -43,21 +35,30 @@ HeatPump hp;
 unsigned long lastTempSend;
 
 void setup() {
+  // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
- 
-  //set led pin as output
+  Serial.println();
+  Serial.println("Starting Mitsubishi2MQTT");
+  // Mount SPIFFS filesystem
+  if (!SPIFFS.begin()) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+  }
+
+  /*//set led pin as output
   pinMode(blueLedPin, OUTPUT);
   ticker.attach(0.6, tick);
-  
+  */
+
   //Define hostname
   hostname += String(ESP.getChipId(),HEX);
   mqtt_client_id = hostname;
   WiFi.hostname(hostname);
   setDefaults();
+
   load_wifi();
   if (init_wifi()) {
-    SPIFFS.remove(console_file);  
-    write_log("Starting Mitsubishi2MQTT...");
+    SPIFFS.remove(console_file);
+    //write_log("Starting Mitsubishi2MQTT");
     init_OTA();
     //Web interface
     server.on("/", handle_root);
@@ -66,15 +67,14 @@ void setup() {
     server.on("/mqtt", handle_mqtt);
     server.on("/wifi", handle_wifi);
     server.on("/console", handle_console);
-    server.on("/generate_204", handle_root);
+    server.on("/others",handle_others);
     server.onNotFound(handleNotFound);
     server.begin();
     if(load_mqtt()) {
-      write_log("Starting MQTT");
+      //write_log("Starting MQTT");
       // startup mqtt connection
       init_MQTT();
-  
-      // setup HA topics
+        // setup HA topics
       ha_power_set_topic    = mqtt_topic + "/" + mqtt_fn + "/power/set";
       ha_mode_set_topic     = mqtt_topic + "/" + mqtt_fn + "/mode/set";
       ha_temp_set_topic     = mqtt_topic + "/" + mqtt_fn + "/temp/set";
@@ -85,9 +85,8 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-      
-      Serial.println("Connection to HVAC");
-      logFile.println("Connection to HVAC");
+      Serial.println("Connection to HVAC. Stop serial log.");
+      //write_log("Connection to HVAC");
       hp.setSettingsChangedCallback(hpSettingsChanged);
       hp.setStatusChangedCallback(hpStatusChanged);
       hp.setPacketCallback(hpPacketDebug);
@@ -95,7 +94,7 @@ void setup() {
       lastTempSend = millis();
     }
     else {
-      write_log("Not found MQTT config go to configuration page");
+      //write_log("Not found MQTT config go to configuration page");
     }
   }
   else {
@@ -104,12 +103,17 @@ void setup() {
   }
 }
 
+/*
+void tick()
+{
+  //toggle state
+  int state = digitalRead(blueLedPin);  // get the current state of GPIO2 pin
+  digitalWrite(blueLedPin, !state);     // set pin to the opposite state
+}*/
+
 bool load_wifi() {
-  Serial.println("Loading wifi configuration");
-  if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return false;
-  }
+  ap_ssid = "";
+  ap_pwd  = "";
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
     Serial.println("Failed to open wifi config file");
@@ -131,11 +135,6 @@ bool load_wifi() {
   ap_ssid  = doc["ap_ssid"].as<String>();
   ap_pwd   = doc["ap_pwd"].as<String>();
   ota_pwd  = doc["ota_pwd"].as<String>();
-  Serial.println("Hostname: "+hostname);
-  Serial.println("SSID: "+ap_ssid);
-  Serial.println("PSK: "+ap_pwd);
-  Serial.println("OTA pwd: "+ota_pwd);
-
   return true;
 }
 
@@ -151,10 +150,6 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_user"] = mqttUser;
   doc["mqtt_pwd"] = mqttPwd;
   doc["mqtt_topic"] = mqttTopic;
-  if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
     Serial.println("failed to open config file for writing");
@@ -165,23 +160,32 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
 }
 
 void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
-
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   doc["ap_ssid"] = apSsid;
   doc["ap_pwd"] = apPwd;
   doc["hostname"] = hostName;
   doc["ota_pwd"] = otaPwd;
-  if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return;
-  }
-  SPIFFS.format();
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
     Serial.println("failed to open wifi file for writing");
   }
   serializeJson(doc, Serial);
+  serializeJson(doc, configFile);
+  delay(10);
+  configFile.close();
+}
+
+void save_others(String haa, String haat, String debug) {
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 130;
+  DynamicJsonDocument doc(capacity);
+  doc["haa"] = haa;
+  doc["haat"] = haat;
+  doc["debug"] = debug;
+  File configFile = SPIFFS.open(others_conf, "w");
+  if (!configFile) {
+    Serial.println("failed to open wifi file for writing");
+  }
   serializeJson(doc, configFile);
   delay(10);
   configFile.close();
@@ -205,16 +209,16 @@ void init_MQTT() {
 
 // Enable OTA only when connected as a client.
 void init_OTA() {
-  write_log("Start OTA Listener");
+  //write_log("Start OTA Listener");
   ArduinoOTA.setHostname(hostname.c_str());
   if(ota_pwd.length()>0){
      ArduinoOTA.setPassword(ota_pwd.c_str());
   }
   ArduinoOTA.onStart([]() {
-    write_log("Start");
+    //write_log("Start");
   });
   ArduinoOTA.onEnd([]() {
-    write_log("\nEnd");
+    //write_log("\nEnd");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
 //    write_log("Progress: %u%%\r", (progress / (total / 100)));
@@ -231,21 +235,16 @@ void init_OTA() {
 }
 
 bool load_mqtt() {
-  write_log("Loading MQTT configuration");
-
-  if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    return false;
-  }
+  //write_log("Loading MQTT configuration");
   File configFile = SPIFFS.open(mqtt_conf, "r");
   if (!configFile) {
-    write_log("Failed to open MQTT config file");
+    //write_log("Failed to open MQTT config file");
     return false;
   }
 
   size_t size = configFile.size();
   if (size > 1024) {
-    write_log("Config file size is too large");
+    //write_log("Config file size is too large");
     return false;
   }
   std::unique_ptr<char[]> buf(new char[size]);
@@ -261,14 +260,14 @@ bool load_mqtt() {
   mqtt_password       = doc["mqtt_pwd"].as<String>();
   mqtt_topic          = doc["mqtt_topic"].as<String>();
 
-  write_log("=== START DEBUG MQTT ===");
-  write_log("Friendly Name" + mqtt_fn);
-  write_log("IP Server " + mqtt_server);
-  write_log("IP Port " + mqtt_port);
-  write_log("Username " + mqtt_username);
-  write_log("Password " + mqtt_password);
-  write_log("Topic " + mqtt_topic);
-  write_log("=== END DEBUG MQTT ===");
+  //write_log("=== START DEBUG MQTT ===");
+  //write_log("Friendly Name" + mqtt_fn);
+  //write_log("IP Server " + mqtt_server);
+  //write_log("IP Port " + mqtt_port);
+  //write_log("Username " + mqtt_username);
+  //write_log("Password " + mqtt_password);
+  //write_log("Topic " + mqtt_topic);
+  //write_log("=== END DEBUG MQTT ===");
   
   mqtt_config = true;
   return true;
@@ -277,6 +276,10 @@ bool load_mqtt() {
 void setDefaults() {
   ap_ssid = "";
   ap_pwd  = "";
+  others_haa = "ON";
+  others_haa_topic = "homeassistant";
+  others_debug = "OFF";
+
 }
 
 boolean init_wifi() {
@@ -287,7 +290,7 @@ boolean init_wifi() {
     WiFi.softAP(hostname.c_str());
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
-    ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
+    //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
     return false;
   }
   else {
@@ -297,7 +300,7 @@ boolean init_wifi() {
       delay(10);
     }
     WiFi.begin(ap_ssid, ap_pwd);
-    Serial.println("\n\r \n\rConnecting to "+ ap_ssid);
+    Serial.println("Connecting to "+ ap_ssid);
     unsigned long startTime = millis();
       while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
       Serial.write('.');
@@ -310,7 +313,7 @@ boolean init_wifi() {
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-    ticker.detach(); // Stop blinking the LED because now we are connected:)
+    //ticker.detach(); // Stop blinking the LED because now we are connected:)
     //keep LED on (For Wemos D1-Mini)
     digitalWrite(blueLedPin, LOW);
     return true;
@@ -320,7 +323,11 @@ boolean init_wifi() {
 // Handler webserver response
 
 void handleNotFound() {
-  server.send(200, "text/html", html_init_setup);
+  if(captive) {server.send(200, "text/html", html_init_setup);}
+  else {
+      String toSend = html_common_header + html_menu_root + html_common_footer;
+      server.send(200, "text/html", toSend);
+  }
 }
 
 void handle_save_wifi() {
@@ -328,7 +335,7 @@ void handle_save_wifi() {
   if (server.hasArg("submit")) {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"),server.arg("otapwd"));
   }
-  String toSend = html_header + html_init_save + html_footer;
+  String toSend = html_common_header + html_init_save + html_common_footer;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
@@ -338,7 +345,7 @@ void handle_save_wifi() {
 
 void handle_root() {
   if (server.hasArg("REBOOT")) {
-    String toSend = html_header + html_reboot + html_footer;
+    String toSend = html_common_header + html_page_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200,"text/html",toSend);
@@ -346,7 +353,7 @@ void handle_root() {
     ESP.reset();
   }
   else {
-    String toSend = html_header + html_root + html_footer;  
+    String toSend = html_common_header + html_menu_root + html_common_footer;  
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -354,7 +361,7 @@ void handle_root() {
 }
 
 void handle_init_setup() {
-  String toSend = html_header + html_init_setup + html_footer;
+  String toSend = html_common_header + html_init_setup + html_common_footer;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
@@ -362,7 +369,7 @@ void handle_init_setup() {
 
 void handle_setup() {
     if (server.hasArg("RESET")) {
-      String toSend = html_header + html_reset + html_footer;
+      String toSend = html_common_header + html_page_reset + html_common_footer;
       toSend.replace("_UNIT_NAME_", hostname);
       toSend.replace("_VERSION_", m2mqtt_version);
       server.send(200,"text/html",toSend);
@@ -371,7 +378,7 @@ void handle_setup() {
       ESP.reset();
   }
   else {
-    String toSend = html_header + html_setup + html_footer;
+    String toSend = html_common_header + html_menu_setup + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -379,10 +386,36 @@ void handle_setup() {
 
 }
 
+void handle_others() {
+  if(server.hasArg("save")) {
+
+  }
+  else {
+    String toSend = html_common_header + html_page_others + html_common_footer;
+    toSend.replace("_UNIT_NAME_", mqtt_fn);
+    toSend.replace("_VERSION_", m2mqtt_version);
+    toSend.replace("_HAA_TOPIC_",others_haa_topic);
+     if (strcmp(others_haa.c_str(), "ON") == 0) {
+       toSend.replace("_HAA_ON_", "selected");
+     }
+     else {
+       toSend.replace("_HAA_OFF_", "selected");
+     }
+     if (strcmp(others_debug.c_str(), "ON") == 0) {
+       toSend.replace("_DEBUG_ON_", "selected");
+     }
+     else {
+       toSend.replace("_DEBUG_OFF_", "selected");
+     }
+     server.send(200, "text/html", toSend);
+  }
+    
+}
+
 void handle_mqtt() {
   if (server.hasArg("save")) {
     save_mqtt(server.arg("fn"),server.arg("mh"),server.arg("ml"),server.arg("mu"),server.arg("mp"),server.arg("mt"));
-    String toSend = html_header + html_save_reboot + html_footer;
+    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -390,7 +423,7 @@ void handle_mqtt() {
     ESP.reset();
   }
   else {
-    String toSend = html_header + html_mqtt + html_footer;
+    String toSend = html_common_header + html_page_mqtt + html_common_footer;
     toSend.replace("_UNIT_NAME_", mqtt_fn);
     toSend.replace("_MQTT_HOST_", mqtt_server);
     toSend.replace("_MQTT_PORT_", String(mqtt_port));
@@ -405,7 +438,7 @@ void handle_mqtt() {
 void handle_wifi() {
   if (server.hasArg("save")) {
     save_wifi(server.arg("ssid"),server.arg("psk"),server.arg("hn"),server.arg("otapwd"));
-    String toSend = html_header + html_save_reboot + html_footer;
+    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -413,7 +446,7 @@ void handle_wifi() {
     ESP.reset();
   }
   else {
-    String toSend = html_header + html_wifi + html_footer;
+    String toSend = html_common_header + html_page_wifi + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_SSID_", ap_ssid);
     toSend.replace("_PSK_", ap_pwd);
@@ -425,7 +458,7 @@ void handle_wifi() {
 }
 
 void handle_console() {
-  String toSend = html_header + html_console + html_footer;
+  String toSend = html_common_header + html_page_console + html_common_footer;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   File logFile = SPIFFS.open(console_file.c_str(),"r");
@@ -446,14 +479,16 @@ void handle_console() {
 
 
 void handle_control() {
-  write_log("Enter HVAC control");
+  
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
-  String toSend = html_control;
+  String toSend = html_common_header + html_page_control + html_common_footer;
+  //write_log("Enter HVAC control");
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   toSend.replace("_RATE_", "60");
   toSend.replace("_ROOMTEMP_", String(hp.getRoomTemperature()));
+  
   if (strcmp(settings.power, "ON") == 0) {
     toSend.replace("_POWER_ON_", "selected");
   }
@@ -538,6 +573,7 @@ void handle_control() {
   }
   toSend.replace("_TEMP_", String(hp.getTemperature()));
   server.send(200, "text/html", toSend);
+  delay(100);
 }
 
 void write_log(String log) {
@@ -633,7 +669,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
-  rootInfo["hvac_action"]     = currentStatus.operating;
+  //rootInfo["hvac_action"]     = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -852,7 +888,7 @@ void mqttConnect() {
   while (!mqtt_client.connected()) {
     // Attempt to connect
     if (mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str())) {
-      write_log("MQTT connected");
+      //write_log(String("MQTT connected ( ")+attempts+String(" )"));
       mqtt_client.subscribe(ha_debug_set_topic.c_str());
       mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
@@ -862,12 +898,13 @@ void mqttConnect() {
       haConfig();
     }
     else if(attempts == 5) {
-      write_log("MQTT disconnected. Failed to connect, stop after 5 try");
+      //write_log("MQTT disconnected. Failed to connect, stop after 5 try");
       mqtt_config = false;
       return;
     }
     else {
       // Wait 5 seconds before retrying
+      //write_log("MQTT disconnected. Retrying in 5s.");
       delay(5000);
       attempts++;
     }
@@ -875,15 +912,14 @@ void mqttConnect() {
 }
 
 void loop() {
-  server.handleClient();
   if(captive) {
     dnsServer.processNextRequest();
   }
-  #ifdef OTA
-    ArduinoOTA.handle();
-  #endif
+  server.handleClient();
+  ArduinoOTA.handle();
   if(!captive and mqtt_config) {
     if (!mqtt_client.connected()) {
+//      write_log("MQTT disconnected");
       mqttConnect();
     }
     hp.sync();
