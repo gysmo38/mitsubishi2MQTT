@@ -149,28 +149,6 @@ function $_GET(param) {
     }
   );
 
-  if ( param ) {
-    return vars[param] ? vars[param] : null;  
-  }
-  return vars;
-}
-
-function setTemp(b)
-{
-  var t = document.getElementById('TEMP');
-  if(b && t.value < 31)
-   { t.value++; }
-  else if(!b && t.value > 16)
-   { t.value--; }
-  document.getElementById("FTEMP_").submit();
-}
-
-window.onload=function(){
-    if($_GET('TEMP')) {
-    document.getElementById('TEMP').value=$_GET('TEMP');
-  }
-}
-</script>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
