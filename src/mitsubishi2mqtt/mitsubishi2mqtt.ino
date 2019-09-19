@@ -814,7 +814,7 @@ void haConfig() {
   DynamicJsonDocument haConfig(capacity);
 
   haConfig["name"]                          = mqtt_fn;
-  haConfig["unique_id"]                     = "testtest" + String(ESP.getChipId(),HEX);
+  haConfig["unique_id"]                     = String(ESP.getChipId(),HEX);
   
   JsonArray haConfigModes = haConfig.createNestedArray("modes");
   haConfigModes.add("heat_cool"); //native AUTO mode
