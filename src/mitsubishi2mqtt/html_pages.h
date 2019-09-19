@@ -149,6 +149,29 @@ function $_GET(param) {
     }
   );
 
+  if ( param ) {
+    return vars[param] ? vars[param] : null;  
+  }
+  return vars;
+}
+
+function setTemp(b)
+{
+  var t = document.getElementById('TEMP');
+  if(b && t.value < 31)
+   { t.value++; }
+  else if(!b && t.value > 16)
+   { t.value--; }
+  document.getElementById("FTEMP_").submit();
+}
+
+window.onload=function(){
+    if($_GET('TEMP')) {
+    document.getElementById('TEMP').value=$_GET('TEMP');
+  }
+}
+</script>
+
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
@@ -159,7 +182,7 @@ function $_GET(param) {
    <p style="display: inline;"><b>Temp</b>(celsius)<br/>
          
          <button onclick="setTemp(0)" class='temp bgrn' style="text-align:center;width:30px;margin-left: 5px;margin-right: 2px;">-</button>
-          <form id="FTEMP_" style="display:inline"><input name="TEMP" id="TEMP" type="text" value="24.00" style="text-align:center;width:60px;margin-left: 5px;margin-right: 2px;"/></form> 
+          <form id="FTEMP_" style="display:inline"><input name="TEMP" id="TEMP" type="text" value="_TEMP_" style="text-align:center;width:60px;margin-left: 5px;margin-right: 2px;"/></form> 
           <button onclick="setTemp(1)" class='temp bgrn' style="text-align:center;width:30px;margin-left: 5px;margin-right: 2px;">+</button>
       </p>
       <p>
