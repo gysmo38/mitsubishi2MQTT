@@ -1,4 +1,4 @@
-  #include <ESP8266WiFi.h>      // WIFI for ESP8266
+#include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
 #include <ArduinoJson.h>      // json to process MQTT
@@ -625,8 +625,7 @@ void hpSettingsChanged() {
 
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(6);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
-
-  rootInfo["roomTemperature"] = hp.getRoomTemperature();
+  
   rootInfo["temperature"]     = currentSettings.temperature;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
@@ -669,7 +668,6 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
-  //rootInfo["hvac_action"]     = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -829,12 +827,12 @@ void haConfig() {
   
   haConfig["mode_cmd_t"]                    = mqtt_topic + "/" + mqtt_fn + "/mode/set";
   haConfig["mode_stat_t"]                   = mqtt_topic  + "/" + mqtt_fn + "/state";
-  haConfig["mode_stat_tpl"]                 = "{{ value_json.mode }}";
+  haConfig["mode_stat_tpl"]                 = "{{ value_json.mode if value_json.mode is defined else 'off' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = mqtt_topic + "/" + mqtt_fn + "/temp/set";
   haConfig["temp_stat_t"]                   = mqtt_topic + "/" + mqtt_fn + "/state";
-  haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature }}";
+  haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if value_json.temperature is defined else '26' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_t"]                   = mqtt_topic  + "/" + mqtt_fn + "/state";
-  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature }}";
+  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if value_json.roomTemperature is defined else '26' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["min_temp"]                      = min_temp;
   haConfig["max_temp"]                      = max_temp;
   haConfig["temp_step"]                     = temp_step;
@@ -850,7 +848,7 @@ void haConfig() {
   
   haConfig["fan_mode_cmd_t"]                = mqtt_topic + "/" + mqtt_fn + "/fan/set";
   haConfig["fan_mode_stat_t"]               = mqtt_topic + "/" + mqtt_fn + "/state";
-  haConfig["fan_mode_stat_tpl"]             = "{{ value_json.fan }}";
+  haConfig["fan_mode_stat_tpl"]             = "{{ value_json.fan if value_json.fan is defined else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
   
   JsonArray haConfigSwing_modes = haConfig.createNestedArray("swing_modes");
   haConfigSwing_modes.add("AUTO");
@@ -863,10 +861,10 @@ void haConfig() {
   
   haConfig["swing_mode_cmd_t"]              = mqtt_topic + "/" + mqtt_fn + "/vane/set";
   haConfig["swing_mode_stat_t"]             = mqtt_topic + "/" + mqtt_fn + "/state";
-  haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane }}";
-  haConfig["act_t"]                         = mqtt_topic  + "/" + mqtt_fn + "/state";
-  haConfig["act_tpl"]                       = "{% if value_json.power == 'off' %}'off'{% elif value_json.hvac_action == 'true' -%}{% if value_json.mode == 'heat' -%}{{'heating'}}{% elif value_json.mode == 'cool' -%}{{'cooling'}}{% elif value_json.mode == 'dry' -%}{{'drying'}}{% elif value_json.mode == 'fan' -%}{{'fan'}}{% else -%}{{'idle'}}{%- endif %}{% endif %}";
- 
+  haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane if value_json.vane is defined else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["action_topic"]                  = mqtt_topic  + "/" + mqtt_fn + "/state";
+  haConfig["action_template"]               = "{% set values = {'off':'off', 'heat':'heating', 'cool':'cooling', 'dry':'drying', 'fan_only':'fan', 'idle':'idle'} %}{{ values[value_json.mode] if value_json.mode in values.keys() else 'idle'}}";
+
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
   haConfigDevice["ids"]   = mqtt_fn;
