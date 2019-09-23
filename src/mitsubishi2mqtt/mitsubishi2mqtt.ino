@@ -800,7 +800,7 @@ void haConfig() {
   DynamicJsonDocument haConfig(capacity);
 
   haConfig["name"]                          = mqtt_fn;
-  haConfig["unique_id"]                     = "testtest" + String(ESP.getChipId(), HEX);
+  haConfig["unique_id"]                     = String(ESP.getChipId(), HEX);
 
   JsonArray haConfigModes = haConfig.createNestedArray("modes");
   haConfigModes.add("heat_cool"); //native AUTO mode
@@ -922,8 +922,8 @@ void connectWifi() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   //ticker.detach(); // Stop blinking the LED because now we are connected:)
-  //keep LED on (For Wemos D1-Mini)
-  digitalWrite(blueLedPin, LOW);
+  //keep LED off (For Wemos D1-Mini)
+  digitalWrite(blueLedPin, HIGH);
 }
 
 void hpLoop() {
