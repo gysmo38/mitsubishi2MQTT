@@ -857,7 +857,7 @@ void haConfig() {
   haConfigDevice["ids"]   = mqtt_fn;
   haConfigDevice["name"]  = mqtt_fn;
   haConfigDevice["sw"]    = "Mitsubishi2MQTT " + m2mqtt_version;
-  haConfigDevice["mdl"]   = "HVAC MITUBISHI";
+  haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
 
   String mqttOutput;
