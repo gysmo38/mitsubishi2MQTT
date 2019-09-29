@@ -78,6 +78,7 @@ void setup() {
       ha_power_set_topic    = mqtt_topic + "/" + mqtt_fn + "/power/set";
       ha_mode_set_topic     = mqtt_topic + "/" + mqtt_fn + "/mode/set";
       ha_temp_set_topic     = mqtt_topic + "/" + mqtt_fn + "/temp/set";
+      ha_remote_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/remote_temp/set";
       ha_fan_set_topic      = mqtt_topic + "/" + mqtt_fn + "/fan/set";
       ha_vane_set_topic     = mqtt_topic + "/" + mqtt_fn + "/vane/set";
       ha_wideVane_set_topic = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
@@ -778,6 +779,12 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str());
     hp.setVaneSetting(message);
     hp.update();
+  }
+  else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
+    float temperature = strtof(message, NULL);
+    hp.setRemoteTemperature(temperature);
+    hp.update();
+
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {

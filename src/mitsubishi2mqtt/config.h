@@ -35,6 +35,7 @@ String others_haa_topic;
 String ha_power_set_topic;
 String ha_mode_set_topic;
 String ha_temp_set_topic;
+String ha_remote_temp_set_topic;
 String ha_fan_set_topic;
 String ha_vane_set_topic;
 String ha_wideVane_set_topic;
