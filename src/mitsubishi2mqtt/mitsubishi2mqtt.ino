@@ -85,19 +85,19 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-            // startup mqtt connection
+      // startup mqtt connection
       init_MQTT();
-      Serial.println("Connection to HVAC. Stop serial log.");
-      //write_log("Connection to HVAC");
-      hp.setSettingsChangedCallback(hpSettingsChanged);
-      hp.setStatusChangedCallback(hpStatusChanged);
-      hp.setPacketCallback(hpPacketDebug);
-      hp.connect(&Serial);
-      lastTempSend = millis();
     }
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
+    Serial.println("Connection to HVAC. Stop serial log.");
+    //write_log("Connection to HVAC");
+    hp.setSettingsChangedCallback(hpSettingsChanged);
+    hp.setStatusChangedCallback(hpStatusChanged);
+    hp.setPacketCallback(hpPacketDebug);
+    hp.connect(&Serial);
+    lastTempSend = millis();
   }
   else {
     dnsServer.start(DNS_PORT, "*", apIP);
@@ -293,6 +293,7 @@ boolean init_wifi() {
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
     //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
+    wifi_config = false;
     return false;
   }
   else {
