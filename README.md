@@ -21,3 +21,9 @@ Control page
 
 Config page
 ![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/config_page.png)
+
+***
+How to use:
+Flash the sketch with flash size include SPIFFS option.
+After flash, connect to device AP with name HVAC_XXXX (XXXX last 4 character MAC address), enter 192.168.1.1 and set Wifi information, save & reboot
+Set MQTT information for use with Home Assistant (Optinal), find the device IP with last 4 character MAC address in your router

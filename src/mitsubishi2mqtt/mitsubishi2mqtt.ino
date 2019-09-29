@@ -1,13 +1,13 @@
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
-#include <ArduinoJson.h>      // json to process MQTT
-#include <PubSubClient.h>     // MQTT
+#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
+#include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
 #include "FS.h"               // SPIFFS for store config 
 
 #include <ArduinoOTA.h>   // for OTA
-#include <HeatPump.h>     // Swiacago library
+#include <HeatPump.h>     // Swiacago library: https://github.com/SwiCago/HeatPump
 //#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
