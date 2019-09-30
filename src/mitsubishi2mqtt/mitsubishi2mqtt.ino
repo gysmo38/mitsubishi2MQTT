@@ -1,13 +1,13 @@
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
-#include <ArduinoJson.h>      // json to process MQTT
-#include <PubSubClient.h>     // MQTT
+#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
+#include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
 #include "FS.h"               // SPIFFS for store config 
 
 #include <ArduinoOTA.h>   // for OTA
-#include <HeatPump.h>     // Swiacago library
+#include <HeatPump.h>     // Swiacago library: https://github.com/SwiCago/HeatPump
 //#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
@@ -85,19 +85,19 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
-            // startup mqtt connection
+      // startup mqtt connection
       init_MQTT();
-      Serial.println("Connection to HVAC. Stop serial log.");
-      //write_log("Connection to HVAC");
-      hp.setSettingsChangedCallback(hpSettingsChanged);
-      hp.setStatusChangedCallback(hpStatusChanged);
-      hp.setPacketCallback(hpPacketDebug);
-      hp.connect(&Serial);
-      lastTempSend = millis();
     }
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
+    Serial.println("Connection to HVAC. Stop serial log.");
+    //write_log("Connection to HVAC");
+    hp.setSettingsChangedCallback(hpSettingsChanged);
+    hp.setStatusChangedCallback(hpStatusChanged);
+    hp.setPacketCallback(hpPacketDebug);
+    hp.connect(&Serial);
+    lastTempSend = millis();
   }
   else {
     dnsServer.start(DNS_PORT, "*", apIP);
@@ -293,6 +293,7 @@ boolean init_wifi() {
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
     //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
+    wifi_config = false;
     return false;
   }
   else {
@@ -856,7 +857,7 @@ void haConfig() {
   haConfigDevice["ids"]   = mqtt_fn;
   haConfigDevice["name"]  = mqtt_fn;
   haConfigDevice["sw"]    = "Mitsubishi2MQTT " + m2mqtt_version;
-  haConfigDevice["mdl"]   = "HVAC MITUBISHI";
+  haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
 
   String mqttOutput;
