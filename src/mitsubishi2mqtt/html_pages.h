@@ -100,16 +100,18 @@ String html_page_others = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_console = R"====(
+String html_page_status = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
       <h3>_UNIT_NAME_</h3>
-      <h2>Console</h2>
+      <h2>Status</h2>
     </div>
     <div id='l1' name='l1'>
-    <textarea>_CONSOLE_</textarea></div>
+    HVAC Status => _HVAC_STATUS_ <br />
+    MQTT Status => _MQTT_STATUS_ ( _MQTT_REASON_ )<br />
+    
      <div>
   </div>
   <p><form action='/' method='get'><button>Back</button></form></p>

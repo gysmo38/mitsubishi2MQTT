@@ -68,7 +68,7 @@ void setup() {
     server.on("/setup", handle_setup);
     server.on("/mqtt", handle_mqtt);
     server.on("/wifi", handle_wifi);
-    server.on("/console", handle_console);
+    server.on("/status", handle_status);
     server.on("/others", handle_others);
     server.onNotFound(handleNotFound);
     server.begin();
@@ -443,22 +443,18 @@ void handle_wifi() {
 
 }
 
-void handle_console() {
-  String toSend = html_common_header + html_page_console + html_common_footer;
+void handle_status() {
+  String toSend = html_common_header + html_page_status + html_common_footer;
+  if(server.hasArg("mrconn")) mqttConnect();
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
-  File logFile = SPIFFS.open(console_file.c_str(), "r");
-  String logBuffer;
-  if (!logFile) {
-    toSend.replace("_CONSOLE_", "Open log file failed");
-  }
-  else {
-    while (logFile.available()) {
-      logBuffer += logFile.readString();
-    }
-    toSend.replace("_CONSOLE_", logBuffer.c_str());
-  }
-  logFile.close();
+  String connected = "<font color='green'><b>CONNECTED</b></font>";
+  String disconnected = "<font color='red'><b>DISCONNECTED</b></font>";
+  if(Serial)   toSend.replace("_HVAC_STATUS_", connected);
+  else  toSend.replace("_HVAC_STATUS_", disconnected);
+  if(mqtt_client.connected()) toSend.replace("_MQTT_STATUS_", connected);
+  else toSend.replace("_MQTT_STATUS_", disconnected);
+  toSend.replace("_MQTT_REASON_", String(mqtt_client.state()));
   server.send(200, "text/html", toSend);
 }
 
@@ -879,8 +875,25 @@ void mqttConnect() {
   int attempts = 0;
   while (!mqtt_client.connected()) {
     // Attempt to connect
-    if (mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str())) {
-      //write_log(String("MQTT connected ( ")+attempts+String(" )"));
+    mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str());
+    // If state < 0 => network problem we retry 5 times
+    if (mqtt_client.state() < 0) {
+      if(attempts == 5) {
+         return;
+      }
+      else {
+        delay(10);
+        attempts++;
+      }
+    }
+    // If state > 0 => config or server problem we stop retry
+    else if(mqtt_client.state() > 0) {
+       mqtt_config = false;
+      return;
+    }
+    // We are connected
+    else    {
+      mqtt_config = true;
       mqtt_client.subscribe(ha_debug_set_topic.c_str());
       mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
@@ -888,19 +901,6 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
       haConfig();
-    }
-    else if (attempts == 180) { //extend to 15 minutes to prevent mqtt offline when HA reboot or update
-      //write_log("MQTT disconnected. Failed to connect, stop after 12 try: 15 minutes");
-      //After first 15 minutes if device could not connect to mqtt server, it will work as standalone mode. Only reboot make it retry connect to mqtt server.
-      //During this time, web interface may not responds if mqtt could not connect
-      mqtt_config = false;
-      return;
-    }
-    else {
-      // Wait 5 seconds before retrying
-      //write_log("MQTT disconnected. Retrying in 5s.");
-      delay(5000);
-      attempts++;
     }
   }
 }
@@ -934,34 +934,26 @@ void connectWifi() {
   digitalWrite(blueLedPin, HIGH);
 }
 
-void hpLoop() {
-  hp.sync();
-  if ((millis() > (lastTempSend + SEND_ROOM_TEMP_INTERVAL_MS)) and mqtt_client.connected()) { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS and when mqtt connect
-    hpStatusChanged(hp.getStatus());
-    lastTempSend = millis();
-  }
-}
-
 void loop() {
-  if (!captive and wifi_config) {
-    hpLoop();
-    if (WiFi.status() == WL_CONNECTED) {
-      if (mqtt_config) {
-        if (!mqtt_client.connected()) {
-          //      write_log("MQTT disconnected");
-          mqttConnect();
-        }
-        mqtt_client.loop();
-      }
-    }
-    else {
-      connectWifi();
-    }
-
-  } else {
-    dnsServer.processNextRequest();
-  }
   server.handleClient();
   ArduinoOTA.handle();
-
+  if(!captive and mqtt_config) {
+    // Sync HVAC UNIT
+    hp.sync();
+    //MQTT failed retry to connect
+    if (mqtt_client.state() < 0)  mqttConnect();  
+    //MQTT config problem on MQTT do nothing
+    else if (mqtt_client.state() > 0 ) return;
+    //MQTT connected send status
+    else {
+      if (millis() > (lastTempSend + SEND_ROOM_TEMP_INTERVAL_MS)) { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS
+        hpStatusChanged(hp.getStatus());
+        lastTempSend = millis();
+      }
+      mqtt_client.loop();
+    }
+  }
+  else {
+    dnsServer.processNextRequest();
+  }
 }
