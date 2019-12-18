@@ -637,7 +637,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str(), true)) {
-    mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status");
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status");
   }
 }
 
@@ -651,7 +651,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = hp.getRoomTemperature();
   rootInfo["temperature"]     = currentSettings.temperature;
-  rootInfo["operating"]       = currentStatus.operating;
+  //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -679,7 +679,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str())) {
-    mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status change");
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status change");
   }
 
 }
