@@ -652,7 +652,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["roomTemp"] = currentStatus.roomTemperature;
+  rootInfo["roomTemperature"] = currentStatus.roomTemperature;
   rootInfo["temperature"]     = currentSettings.temperature;
   //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
@@ -711,8 +711,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
 
-  if (!mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str())) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), ("len: " + String(mqttOutput.length())).c_str());
+  if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status change");
   }
 
@@ -844,7 +843,7 @@ void haConfig() {
   haConfig["temp_stat_t"]                   = ha_state_topic;
   haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > 16) else '26' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_t"]                   = ha_state_topic;
-  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemp if (value_json is defined and value_json.roomTemp is defined and value_json.roomTemp|int > 16) else '26' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > 16) else '26' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["min_temp"]                      = min_temp;
   haConfig["max_temp"]                      = max_temp;
   haConfig["temp_step"]                     = temp_step;
