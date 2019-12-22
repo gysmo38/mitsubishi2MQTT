@@ -674,8 +674,38 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     rootInfo["mode"] = hpmode.c_str();
   }
 
+  rootInfo["action"] = "idle";
   if (hppower == "off") {
     rootInfo["mode"] = "off";
+    rootInfo["action"] = "off";
+  }
+  else {
+    if (currentStatus.operating) {
+      if (hpmode == "auto") {
+        if (currentStatus.roomTemperature > currentSettings.temperature) {
+          rootInfo["action"] = "cooling";
+        }
+        else
+        {
+          rootInfo["action"] = "heating";
+        }        
+      }
+      else if (hpmode == "cool") {
+        rootInfo["action"] = "cooling";
+      }
+      else if (hpmode == "heat") {
+        rootInfo["action"] = "heating";
+      }
+      else if (hpmode == "dry") {
+        rootInfo["action"] = "drying";
+      }
+      else if (hpmode == "fan") {
+        rootInfo["action"] = "idle";
+      }            
+    }
+    else {
+      rootInfo["action"] = "idle";
+    }
   }
 
   String mqttOutput;
@@ -845,7 +875,7 @@ void haConfig() {
   haConfig["swing_mode_stat_t"]             = ha_state_topic;
   haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["action_topic"]                  = ha_state_topic;
-  haConfig["action_template"]               = "{% set values = {'off':'off', 'heat':'heating', 'cool':'cooling', 'dry':'drying', 'fan_only':'fan'} %}{% if value_json is defined and value_json.mode|length %}{% if value_json.mode == 'off' %}{{'off'}}{% else %}{% if value_json.operating is sameas true %}{{ values[value_json.mode] if value_json.mode in values.keys() else 'idle'}}{% else %}{{'idle'}}{% endif %}{% endif %}{% else %}{{'idle'}}{% endif %}";
+  haConfig["action_template"]               = "{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"; //Set default value for fix "Could not parse data for HA"
 
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
