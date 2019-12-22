@@ -3,7 +3,7 @@
  *
  */
 
-String m2mqtt_version = "0.4.2";
+String m2mqtt_version = "0.4.4";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
