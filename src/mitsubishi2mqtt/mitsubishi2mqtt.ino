@@ -82,6 +82,7 @@ void setup() {
       ha_fan_set_topic      = mqtt_topic + "/" + mqtt_fn + "/fan/set";
       ha_vane_set_topic     = mqtt_topic + "/" + mqtt_fn + "/vane/set";
       ha_wideVane_set_topic = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
+      ha_settings_topic     = mqtt_topic  + "/" + mqtt_fn + "/settings";
       ha_state_topic        = mqtt_topic  + "/" + mqtt_fn + "/state";
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
@@ -636,9 +637,11 @@ void hpSettingsChanged() {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
 
-  if (!mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str(), true)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status");
+  if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp settings");
   }
+
+  hpStatusChanged(hp.getStatus());
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
@@ -649,7 +652,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["roomTemperature"] = hp.getRoomTemperature();
+  rootInfo["roomTemperature"] = currentStatus.roomTemperature;
   rootInfo["temperature"]     = currentSettings.temperature;
   //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
@@ -671,14 +674,44 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     rootInfo["mode"] = hpmode.c_str();
   }
 
+  rootInfo["action"] = "idle";
   if (hppower == "off") {
     rootInfo["mode"] = "off";
+    rootInfo["action"] = "off";
+  }
+  else {
+    if (currentStatus.operating) {
+      if (hpmode == "auto") {
+        if (currentStatus.roomTemperature > currentSettings.temperature) {
+          rootInfo["action"] = "cooling";
+        }
+        else
+        {
+          rootInfo["action"] = "heating";
+        }        
+      }
+      else if (hpmode == "cool") {
+        rootInfo["action"] = "cooling";
+      }
+      else if (hpmode == "heat") {
+        rootInfo["action"] = "heating";
+      }
+      else if (hpmode == "dry") {
+        rootInfo["action"] = "drying";
+      }
+      else if (hpmode == "fan") {
+        rootInfo["action"] = "idle";
+      }            
+    }
+    else {
+      rootInfo["action"] = "idle";
+    }
   }
 
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
 
-  if (!mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str())) {
+  if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status change");
   }
 
@@ -727,9 +760,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["mode"] = message;
-    String mqttOutput;
-    serializeJson(root, mqttOutput);
-    mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str());
+
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "HEAT_COOL") {
@@ -742,8 +773,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       hp.setPowerSetting("OFF");
     } else {
       hp.setPowerSetting("ON");
-    }
-    hp.setModeSetting(modeUpper.c_str());
+      hp.setModeSetting(modeUpper.c_str());
+    }    
     hp.update();
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
@@ -751,9 +782,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
-    String mqttOutput;
-    serializeJson(root, mqttOutput);
-    mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str());
     hp.setTemperature(temperature);
     hp.update();
   }
@@ -761,9 +789,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["fan"] = message;
-    String mqttOutput;
-    serializeJson(root, mqttOutput);
-    mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str());
     hp.setFanSpeed(message);
     hp.update();
   }
@@ -771,9 +796,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["vane"] = message;
-    String mqttOutput;
-    serializeJson(root, mqttOutput);
-    mqtt_client.publish(ha_state_topic.c_str(), mqttOutput.c_str());
     hp.setVaneSetting(message);
     hp.update();
   }
@@ -781,7 +803,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     float temperature = strtof(message, NULL);
     hp.setRemoteTemperature(temperature);
     hp.update();
-
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
@@ -853,7 +874,7 @@ void haConfig() {
   haConfig["swing_mode_stat_t"]             = ha_state_topic;
   haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["action_topic"]                  = ha_state_topic;
-  haConfig["action_template"]               = "{% set values = {'off':'off', 'heat':'heating', 'cool':'cooling', 'dry':'drying', 'fan_only':'fan'} %}{% if value_json is defined and value_json.mode|length %}{% if value_json.mode == 'off' %}{{'off'}}{% else %}{% if value_json.operating is sameas true %}{{ values[value_json.mode] if value_json.mode in values.keys() else 'idle'}}{% else %}{{'idle'}}{% endif %}{% endif %}{% else %}{{'idle'}}{% endif %}";
+  haConfig["action_template"]               = "{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"; //Set default value for fix "Could not parse data for HA"
 
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
