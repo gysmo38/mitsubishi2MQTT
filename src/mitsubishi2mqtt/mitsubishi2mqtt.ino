@@ -148,6 +148,8 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
 
   const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
+  // if mqtt port is empty, we use default port
+  if(mqttPort[0] == '\0') mqttPort="1883";
   doc["mqtt_fn"]   = mqttFn;
   doc["mqtt_host"] = mqttHost;
   doc["mqtt_port"] = mqttPort;

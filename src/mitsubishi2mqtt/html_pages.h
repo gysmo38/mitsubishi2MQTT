@@ -57,7 +57,7 @@ String html_page_mqtt = R"====(
     <form method='get'>
       <p><b>Friendly name</b><br/><input id='fn' name='fn' placeholder=' ' value='_UNIT_NAME_'></p>
       <p><b>Host</b> ()<br/><input id='mh' name='mh' placeholder=' ' value='_MQTT_HOST_'></p>
-      <p><b>Port</b> (1883)<br/><input id='ml' name='ml' placeholder='1883' value='_MQTT_PORT_'></p>
+      <p><b>Port</b> (default 1883)<br/><input id='ml' name='ml' placeholder='1883' value='_MQTT_PORT_'></p>
       <p><b>User</b> <br/><input id='mu' name='mu' placeholder='DVES_USER' value='_MQTT_USER_'></p>
       <p><b>Password</b><br/><input id='mp' name='mp' type='password' placeholder='Password' value='_MQTT_PASSWORD_'></p>
       <p><b>Topic</b><br/><input id='mt' name='mt' placeholder='topic' value='_MQTT_TOPIC_'></p>
