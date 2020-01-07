@@ -19,7 +19,7 @@
 
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
-PubSubClient mqtt_client(espClient);;
+PubSubClient mqtt_client(espClient);
 
 //Captive portal variables, only used for config page
 const byte DNS_PORT = 53;
@@ -56,12 +56,10 @@ void setup() {
   mqtt_client_id = hostname;
   WiFi.hostname(hostname);
   setDefaults();
-
   load_wifi();
   if (init_wifi()) {
     SPIFFS.remove(console_file);
     //write_log("Starting Mitsubishi2MQTT");
-    init_OTA();
     //Web interface
     server.on("/", handle_root);
     server.on("/control", handle_control);
@@ -103,6 +101,7 @@ void setup() {
     dnsServer.start(DNS_PORT, "*", apIP);
     init_captivePortal();
   }
+  init_OTA();
 }
 
 /*
