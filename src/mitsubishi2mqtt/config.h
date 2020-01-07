@@ -3,7 +3,7 @@
  *
  */
 
-String m2mqtt_version = "0.4.5";
+String m2mqtt_version = "0.4.6";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
@@ -61,3 +61,4 @@ const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LE
 const int redLedPin = 0; 
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
+const unsigned int MQTT_RETRY_INTERVAL_MS = 900000; //15 minutes
