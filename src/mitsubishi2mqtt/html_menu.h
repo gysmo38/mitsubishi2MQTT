@@ -7,7 +7,7 @@ String html_menu_root = R"====(
     </div>
   <p><form action='/control' method='get'><button>Control</button></form></p>
   <p><form action='/setup' method='get'><button>Setup</button></form></p>
-<!--  <p><form action='/console' method='get'><button>Console</button></form></p> -->
+  <p><form action='/status' method='get'><button>Status</button></form></p>
   <p><form><button type='submit' name='REBOOT' class='button bred'>Reboot</button></form></p>
 )====";
 

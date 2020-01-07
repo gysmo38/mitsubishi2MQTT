@@ -3,7 +3,7 @@
  *
  */
 
-String m2mqtt_version = "0.4.1b";
+String m2mqtt_version = "0.4.5";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
@@ -35,9 +35,11 @@ String others_haa_topic;
 String ha_power_set_topic;
 String ha_mode_set_topic;
 String ha_temp_set_topic;
+String ha_remote_temp_set_topic;
 String ha_fan_set_topic;
 String ha_vane_set_topic;
 String ha_wideVane_set_topic;
+String ha_settings_topic;
 String ha_state_topic;
 String ha_debug_topic;
 String ha_debug_set_topic;

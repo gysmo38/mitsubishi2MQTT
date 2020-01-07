@@ -57,7 +57,7 @@ String html_page_mqtt = R"====(
     <form method='get'>
       <p><b>Friendly name</b><br/><input id='fn' name='fn' placeholder=' ' value='_UNIT_NAME_'></p>
       <p><b>Host</b> ()<br/><input id='mh' name='mh' placeholder=' ' value='_MQTT_HOST_'></p>
-      <p><b>Port</b> (1883)<br/><input id='ml' name='ml' placeholder='1883' value='_MQTT_PORT_'></p>
+      <p><b>Port</b> (default 1883)<br/><input id='ml' name='ml' placeholder='1883' value='_MQTT_PORT_'></p>
       <p><b>User</b> <br/><input id='mu' name='mu' placeholder='DVES_USER' value='_MQTT_USER_'></p>
       <p><b>Password</b><br/><input id='mp' name='mp' type='password' placeholder='Password' value='_MQTT_PASSWORD_'></p>
       <p><b>Topic</b><br/><input id='mt' name='mt' placeholder='topic' value='_MQTT_TOPIC_'></p>
@@ -100,16 +100,18 @@ String html_page_others = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_console = R"====(
+String html_page_status = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
       <h3>_UNIT_NAME_</h3>
-      <h2>Console</h2>
+      <h2>Status</h2>
     </div>
     <div id='l1' name='l1'>
-    <textarea>_CONSOLE_</textarea></div>
+    HVAC Status => _HVAC_STATUS_ <br />
+    MQTT Status => _MQTT_STATUS_ ( _MQTT_REASON_ )<br />
+    
      <div>
   </div>
   <p><form action='/' method='get'><button>Back</button></form></p>
