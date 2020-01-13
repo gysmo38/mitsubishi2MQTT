@@ -19,7 +19,7 @@
 
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
-PubSubClient mqtt_client(espClient);;
+PubSubClient mqtt_client(espClient);
 
 //Captive portal variables, only used for config page
 const byte DNS_PORT = 53;
@@ -34,6 +34,7 @@ boolean wifi_config = false;
 //HVAC
 HeatPump hp;
 unsigned long lastTempSend;
+unsigned long lastMqttRetry;
 
 void setup() {
   // Start serial for debug before HVAC connect to serial
@@ -56,12 +57,10 @@ void setup() {
   mqtt_client_id = hostname;
   WiFi.hostname(hostname);
   setDefaults();
-
   load_wifi();
   if (init_wifi()) {
     SPIFFS.remove(console_file);
     //write_log("Starting Mitsubishi2MQTT");
-    init_OTA();
     //Web interface
     server.on("/", handle_root);
     server.on("/control", handle_control);
@@ -72,6 +71,7 @@ void setup() {
     server.on("/others", handle_others);
     server.onNotFound(handleNotFound);
     server.begin();
+    lastMqttRetry = 0;
     if (load_mqtt()) {
       //write_log("Starting MQTT");
       // setup HA topics
@@ -105,6 +105,7 @@ void setup() {
     dnsServer.start(DNS_PORT, "*", apIP);
     init_captivePortal();
   }
+  init_OTA();
 }
 
 /*
@@ -453,11 +454,12 @@ void handle_status() {
   toSend.replace("_VERSION_", m2mqtt_version);
   String connected = "<font color='green'><b>CONNECTED</b></font>";
   String disconnected = "<font color='red'><b>DISCONNECTED</b></font>";
-  if(Serial)   toSend.replace("_HVAC_STATUS_", connected);
+  if((Serial) and hp.isConnected()) toSend.replace("_HVAC_STATUS_", connected);
   else  toSend.replace("_HVAC_STATUS_", disconnected);
   if(mqtt_client.connected()) toSend.replace("_MQTT_STATUS_", connected);
   else toSend.replace("_MQTT_STATUS_", disconnected);
   toSend.replace("_MQTT_REASON_", String(mqtt_client.state()));
+  toSend.replace("_WIFI_STATUS_", String(WiFi.RSSI()));
   server.send(200, "text/html", toSend);
 }
 
@@ -899,9 +901,10 @@ void mqttConnect() {
   while (!mqtt_client.connected()) {
     // Attempt to connect
     mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str());
-    // If state < 0 => network problem we retry 5 times
-    if (mqtt_client.state() < 0) {
+    // If state < 0 (MQTT_CONNECTED) => network problem we retry 5 times and then waiting for MQTT_RETRY_INTERVAL_MS and retry reapeatly
+    if (mqtt_client.state() < MQTT_CONNECTED) {
       if(attempts == 5) {
+         lastMqttRetry = millis();
          return;
       }
       else {
@@ -909,14 +912,12 @@ void mqttConnect() {
         attempts++;
       }
     }
-    // If state > 0 => config or server problem we stop retry
-    else if(mqtt_client.state() > 0) {
-       mqtt_config = false;
+    // If state > 0 (MQTT_CONNECTED) => config or server problem we stop retry
+    else if(mqtt_client.state() > MQTT_CONNECTED) {
       return;
     }
     // We are connected
     else    {
-      mqtt_config = true;
       mqtt_client.subscribe(ha_debug_set_topic.c_str());
       mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
@@ -964,9 +965,14 @@ void loop() {
     // Sync HVAC UNIT
     hp.sync();
     //MQTT failed retry to connect
-    if (mqtt_client.state() < 0)  mqttConnect();  
+    if (mqtt_client.state() < MQTT_CONNECTED)
+    {
+      if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry==0){
+        mqttConnect();  
+      }
+    }  
     //MQTT config problem on MQTT do nothing
-    else if (mqtt_client.state() > 0 ) return;
+    else if (mqtt_client.state() > MQTT_CONNECTED ) return;
     //MQTT connected send status
     else {
       if (millis() > (lastTempSend + SEND_ROOM_TEMP_INTERVAL_MS)) { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS
