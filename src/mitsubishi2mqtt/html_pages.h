@@ -111,7 +111,7 @@ String html_page_status = R"====(
     <div id='l1' name='l1'>
     HVAC Status => _HVAC_STATUS_ <br />
     MQTT Status => _MQTT_STATUS_ ( _MQTT_REASON_ )<br />
-    
+    WIFI Rssi => _WIFI_STATUS_ dBm <br /> 
      <div>
   </div>
   <p><form action='/' method='get'><button>Back</button></form></p>

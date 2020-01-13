@@ -3,7 +3,7 @@
  *
  */
 
-String m2mqtt_version = "0.4.5";
+String m2mqtt_version = "0.4.6";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
@@ -58,9 +58,10 @@ const char* temp_step                   = "1"; // Temperature setting step, chec
 
 // pinouts
 const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-const int redLedPin = 0; 
+const int redLedPin = 0;
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
+const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
 
 // temp settings
 bool useFahrenheit = false; //to use Fahrenheit change to true
