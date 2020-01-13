@@ -52,8 +52,8 @@ String hvac_name;
 bool _debugMode = false;
 
 // Customization
-const char* min_temp                    = "16"; // Minimum temperature, check value from heatpump remote control
-const char* max_temp                    = "31"; // Maximum temperature, check value from heatpump remote control
+float min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+float max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
 const char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // pinouts
@@ -61,3 +61,6 @@ const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LE
 const int redLedPin = 0; 
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
+
+// temp settings
+bool useFahrenheit = false; //to use Fahrenheit change to true
