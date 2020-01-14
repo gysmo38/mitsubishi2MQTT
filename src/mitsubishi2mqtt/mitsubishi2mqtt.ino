@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
-#include "FS.h"               // SPIFFS for store config
+#include "FS.h"               // SPIFFS for store config 
 #include <math.h>             // for rounding to Fahrenheit values
 
 #include <ArduinoOTA.h>   // for OTA
@@ -696,7 +696,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
         else
         {
           rootInfo["action"] = "heating";
-        }
+        }        
       }
       else if (hpmode == "cool") {
         rootInfo["action"] = "cooling";
@@ -709,7 +709,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
       }
       else if (hpmode == "fan") {
         rootInfo["action"] = "idle";
-      }
+      }            
     }
     else {
       rootInfo["action"] = "idle";
@@ -782,11 +782,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     } else {
       hp.setPowerSetting("ON");
       hp.setModeSetting(modeUpper.c_str());
-    }
+    }    
     hp.update();
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
-    float temperature = getTemperature(strtof(message, NULL), useFahrenheit);
+    float temperature = strtof(message, NULL);
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
@@ -808,7 +808,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.update();
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
-    float temperature = getTemperature(strtof(message, NULL), useFahrenheit);
+    float temperature = strtof(message, NULL);
     hp.setRemoteTemperature(setTemperature(temperature, useFahrenheit));
     hp.update();
   }
@@ -851,7 +851,7 @@ void haConfig() {
   haConfig["temp_stat_t"]                   = ha_state_topic;
   haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > " + (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_t"]                   = ha_state_topic;
-  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > " + (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > " + (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["min_temp"]                      = (String)getTemperature(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = (String)getTemperature(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
@@ -972,9 +972,9 @@ void loop() {
     if (mqtt_client.state() < MQTT_CONNECTED)
     {
       if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry==0){
-        mqttConnect();
+        mqttConnect();  
       }
-    }
+    }  
     //MQTT config problem on MQTT do nothing
     else if (mqtt_client.state() > MQTT_CONNECTED ) return;
     //MQTT connected send status
@@ -992,12 +992,12 @@ void loop() {
 }
 
 // temperature helper functions
-float toFahrenheit(float fromCelcius) {
-  return round(1.8 * fromCelcius + 32.0);
+float toFahrenheit(float fromCelcius) { 
+  return round(1.8 * fromCelcius + 32.0); 
 }
 
-float toCelsius(float fromFahrenheit) {
-  return (fromFahrenheit - 32.0) / 1.8;
+float toCelsius(float fromFahrenheit) { 
+  return (fromFahrenheit - 32.0) / 1.8; 
 }
 
 float getTemperature(float temperature, bool isFahrenheit) {
