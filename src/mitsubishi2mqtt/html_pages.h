@@ -157,13 +157,23 @@ function $_GET(param) {
   return vars;
 }
 
+var useF = _USE_FAHRENHEIT_;
+
 function setTemp(b)
 {
   var t = document.getElementById('TEMP');
-  if(b && t.value < 31)
-   { t.value++; }
-  else if(!b && t.value > 16)
-   { t.value--; }
+  if (useF) {
+   if (b && t.value < 88) {
+    t.value++; 
+   } else if (!b && t.value > 61) {
+    t.value--;
+   }
+  } else {
+    if(b && t.value < 31)
+    { t.value++; }
+    else if(!b && t.value > 16)
+    { t.value--; }
+  }
   document.getElementById("FTEMP_").submit();
 }
 
@@ -178,10 +188,10 @@ window.onload=function(){
     <div style='text-align:center;'>
       <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
       <h3>_UNIT_NAME_</h3>
-      <h2>Current temp _ROOMTEMP_</h2>
+      <h2>Current temp _ROOMTEMP_&#176;</h2>
       <fieldset>
     <legend><b>&nbsp;Control Unit&nbsp;</b></legend>
-   <p style="display: inline;"><b>Temp</b>(celsius)<br/>
+   <p style="display: inline;"><b>Temp</b>(<span id="tempScale">&#176;_TEMP_SCALE_</span>)<br/>
          
          <button onclick="setTemp(0)" class='temp bgrn' style="text-align:center;width:30px;margin-left: 5px;margin-right: 2px;">-</button>
           <form id="FTEMP_" style="display:inline"><input name="TEMP" id="TEMP" type="text" value="_TEMP_" style="text-align:center;width:60px;margin-left: 5px;margin-right: 2px;"/></form> 

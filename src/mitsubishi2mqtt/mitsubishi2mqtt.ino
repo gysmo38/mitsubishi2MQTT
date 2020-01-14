@@ -5,10 +5,12 @@
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
 #include "FS.h"               // SPIFFS for store config 
+#include <math.h>             // for rounding to Fahrenheit values
 
 #include <ArduinoOTA.h>   // for OTA
 #include <HeatPump.h>     // Swiacago library: https://github.com/SwiCago/HeatPump
 //#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
+
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
 #include "html_init.h"    // code html for initial config
@@ -474,7 +476,9 @@ void handle_control() {
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   toSend.replace("_RATE_", "60");
-  toSend.replace("_ROOMTEMP_", String(hp.getRoomTemperature()));
+  toSend.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
+  toSend.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
+  toSend.replace("_TEMP_SCALE_", getTemperatureScale());
 
   if (strcmp(settings.power, "ON") == 0) {
     toSend.replace("_POWER_ON_", "selected");
@@ -558,7 +562,7 @@ void handle_control() {
   else if (strcmp(settings.wideVane, "SWING") == 0) {
     toSend.replace("_WVANE_S_", "selected");
   }
-  toSend.replace("_TEMP_", String(hp.getTemperature()));
+  toSend.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
   server.send(200, "text/html", toSend);
   delay(100);
 }
@@ -584,7 +588,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = server.arg("TEMP").toInt();
+      settings.temperature = setTemperature(server.arg("TEMP").toInt(), useFahrenheit);
       update = true;
     }
     if (server.hasArg("FAN")) {
@@ -614,7 +618,7 @@ void hpSettingsChanged() {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(6);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["temperature"]     = currentSettings.temperature;
+  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -656,8 +660,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["roomTemperature"] = currentStatus.roomTemperature;
-  rootInfo["temperature"]     = currentSettings.temperature;
+  rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);
+  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
   //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
@@ -786,7 +790,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
-    hp.setTemperature(temperature);
+    hp.setTemperature(setTemperature(temperature, useFahrenheit));
     hp.update();
   }
   else if (strcmp(topic, ha_fan_set_topic.c_str()) == 0) {
@@ -805,7 +809,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
-    hp.setRemoteTemperature(temperature);
+    hp.setRemoteTemperature(setTemperature(temperature, useFahrenheit));
     hp.update();
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
@@ -845,11 +849,11 @@ void haConfig() {
   haConfig["mode_stat_tpl"]                 = "{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
   haConfig["temp_stat_t"]                   = ha_state_topic;
-  haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > 16) else '26' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > " + (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_t"]                   = ha_state_topic;
-  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > 16) else '26' }}"; //Set default value for fix "Could not parse data for HA"
-  haConfig["min_temp"]                      = min_temp;
-  haConfig["max_temp"]                      = max_temp;
+  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > " + (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["min_temp"]                      = (String)getTemperature(min_temp, useFahrenheit);
+  haConfig["max_temp"]                      = (String)getTemperature(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
   haConfig["pow_cmd_t"]                     = ha_power_set_topic;
 
@@ -984,5 +988,38 @@ void loop() {
   }
   else {
     dnsServer.processNextRequest();
+  }
+}
+
+// temperature helper functions
+float toFahrenheit(float fromCelcius) { 
+  return round(1.8 * fromCelcius + 32.0); 
+}
+
+float toCelsius(float fromFahrenheit) { 
+  return (fromFahrenheit - 32.0) / 1.8; 
+}
+
+float getTemperature(float temperature, bool isFahrenheit) {
+  if (isFahrenheit) {
+    return toFahrenheit(temperature);
+  } else {
+    return temperature;
+  }
+}
+
+float setTemperature(float temperature, bool isFahrenheit) {
+  if (isFahrenheit) {
+    return toCelsius(temperature);
+  } else {
+    return temperature;
+  }
+}
+
+String getTemperatureScale() {
+  if (useFahrenheit) {
+    return "F";
+  } else {
+    return "C";
   }
 }

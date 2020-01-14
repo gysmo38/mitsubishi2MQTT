@@ -52,13 +52,16 @@ String hvac_name;
 bool _debugMode = false;
 
 // Customization
-const char* min_temp                    = "16"; // Minimum temperature, check value from heatpump remote control
-const char* max_temp                    = "31"; // Maximum temperature, check value from heatpump remote control
+float min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+float max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
 const char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // pinouts
 const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-const int redLedPin = 0; 
+const int redLedPin = 0;
 // sketch settings
 const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
 const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
+
+// temp settings
+bool useFahrenheit = false; //to use Fahrenheit change to true
