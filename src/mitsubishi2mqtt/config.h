@@ -64,4 +64,4 @@ const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
 const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
 
 // temp settings
-bool useFahrenheit = true; //to use Fahrenheit change to true
+bool useFahrenheit = false; //to use Fahrenheit change to true
