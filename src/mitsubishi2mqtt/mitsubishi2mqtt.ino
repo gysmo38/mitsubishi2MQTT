@@ -5,6 +5,7 @@
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
 #include "FS.h"               // SPIFFS for store config 
+#include <math.h>             // for rounding to Fahrenheit values
 
 #include <ArduinoOTA.h>   // for OTA
 #include <HeatPump.h>     // Swiacago library: https://github.com/SwiCago/HeatPump
@@ -474,7 +475,9 @@ void handle_control() {
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   toSend.replace("_RATE_", "60");
-  toSend.replace("_ROOMTEMP_", String(hp.getRoomTemperature()));
+  toSend.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));	  toSend.replace("_ROOMTEMP_", String(hp.getRoomTemperature()));
+  toSend.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);	
+  toSend.replace("_TEMP_SCALE_", getTemperatureScale());
 
   if (strcmp(settings.power, "ON") == 0) {
     toSend.replace("_POWER_ON_", "selected");
@@ -558,7 +561,7 @@ void handle_control() {
   else if (strcmp(settings.wideVane, "SWING") == 0) {
     toSend.replace("_WVANE_S_", "selected");
   }
-  toSend.replace("_TEMP_", String(hp.getTemperature()));
+  toSend.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
   server.send(200, "text/html", toSend);
   delay(100);
 }
@@ -584,7 +587,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = server.arg("TEMP").toInt();
+      settings.temperature = setTemperature(server.arg("TEMP").toInt(), useFahrenheit);
       update = true;
     }
     if (server.hasArg("FAN")) {
@@ -614,7 +617,7 @@ void hpSettingsChanged() {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(6);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["temperature"]     = currentSettings.temperature;
+  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
 
@@ -692,8 +695,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["roomTemperature"] = currentStatus.roomTemperature;
-  rootInfo["temperature"]     = currentSettings.temperature;
+  rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);	
+  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
   //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
@@ -732,13 +735,14 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
 
 // Used to send a dummy packet in state topic to validate action in HA interface
 void hpSendDummy(char* name,char* value,char* name2, char* value2) {
+  
   //For sending dummy state packet
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(12);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
   heatpumpStatus currentStatus = hp.getStatus();
   heatpumpSettings currentSettings = hp.getSettings();
-  rootInfo["roomTemperature"] = currentStatus.roomTemperature;
-  rootInfo["temperature"]     = currentSettings.temperature;
+  rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);	
+  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["action"]          = hpGetAction();
@@ -751,12 +755,13 @@ void hpSendDummy(char* name,char* value,char* name2, char* value2) {
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish dummy hp status change");
   }
+  // Restart counter for waiting enought time for the unit to update before sending a state packet
+  lastTempSend = millis();
 }
 
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  // Restart counter for waiting enought time for the unit to update before sending a state packet
-  lastTempSend = millis();
+
   // Copy payload into message buffer
   char message[length + 1];
   for (int i = 0; i < length; i++) {
@@ -814,7 +819,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
     hpSendDummy("temperature",message,"","");
-    hp.setTemperature(temperature);
+    hp.setTemperature(setTemperature(temperature, useFahrenheit));
     hp.update();
   }
   else if (strcmp(topic, ha_fan_set_topic.c_str()) == 0) {
@@ -986,6 +991,39 @@ void connectWifi() {
   //ticker.detach(); // Stop blinking the LED because now we are connected:)
   //keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
+}
+
+// temperature helper functions	
+float toFahrenheit(float fromCelcius) { 	
+  return round(1.8 * fromCelcius + 32.0); 	
+}	
+
+float toCelsius(float fromFahrenheit) { 	
+  return (fromFahrenheit - 32.0) / 1.8; 	
+}	
+
+float getTemperature(float temperature, bool isFahrenheit) {	
+  if (isFahrenheit) {	
+    return toFahrenheit(temperature);	
+  } else {	
+    return temperature;	
+  }	
+}	
+
+float setTemperature(float temperature, bool isFahrenheit) {	
+  if (isFahrenheit) {	
+    return toCelsius(temperature);	
+  } else {	
+    return temperature;	
+  }	
+}	
+
+String getTemperatureScale() {	
+  if (useFahrenheit) {	
+    return "F";	
+  } else {	
+    return "C";	
+  }	
 }
 
 void loop() {
