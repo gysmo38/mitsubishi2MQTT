@@ -4,11 +4,9 @@ It use SwiCago librairies: https://github.com/SwiCago/HeatPump
 
 ***
 Features:
-Initial config with WIFI AP mode and portal
-Control unit with webinterface
-Configuration MQTT
-Control with MQTT
-Homeassistant autodiscovery with MQTT
+ - Initial config:  WIFI AP mode and web portal
+ - Webinterface for configuration, status and control
+ - Homeassistant autodiscovery and control with MQTT
 
 ***
 Screenshots:
@@ -24,6 +22,9 @@ Config page
 
 ***
 How to use:
-Flash the sketch with flash size include SPIFFS option.
-After flash, connect to device AP with name HVAC_XXXX (XXXX last 4 character MAC address), enter 192.168.1.1 and set Wifi information, save & reboot
-Set MQTT information for use with Home Assistant (Optinal), find the device IP with last 4 character MAC address in your router
+ - Step 1: flash the sketch with flash size include SPIFFS option.
+ - Step 2: connect to device AP with name HVAC_XXXX (XXXX last 4 character MAC address)
+ - Step 3: You should be automatically redirected to the web portal or go to 192.168.1.1
+ - Step 4: set Wifi information, save & reboot
+ - Step 5: find the device IP with last 4 character MAC address in your router
+ - Step 6: (optional): Set MQTT information for use with Home Assistant
