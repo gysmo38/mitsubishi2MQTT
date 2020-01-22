@@ -21,7 +21,7 @@ String html_menu_setup = R"====(
     </div>
   <p><form action='/mqtt' method='get'><button>MQTT</button></form></p>
   <p><form action='/wifi' method='get'><button>WIFI</button></form></p>
- <!-- <p><form action='/others' method='get'><button>Others</button></form></p> -->
+  <p><form action='/unit' method='get'><button>UNIT</button></form></p>
   <p><form><button type='submit' name='RESET' class='button bred'>Reset configuration</button></form></p>
   <p><form action='/' method='get'><button>Back</button></form></p>
 )====";
