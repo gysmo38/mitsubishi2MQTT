@@ -251,8 +251,35 @@ window.onload=function(){
           <option value="<>" _WVANE_6_><> POS 6</option>
         </select></form></p>
     </p>
+    <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
     </form>
   </fieldset>
   <p><form action='/' method='get'><button class="back">Back</button></form></p>
+
+)====";
+
+String html_page_unit = R"====(
+<body>
+
+
+  <div style='text-align:left;display:inline-block;min-width:340px;'>
+    <div style='text-align:center;'>
+      <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
+      <h3>_UNIT_NAME_</h3>
+      
+      <fieldset>
+    <legend><b>&nbsp;Unit configuration&nbsp;</b></legend>
+       <form method='get'>
+      <p>
+        <b>Temperature Unit</b>
+        <select name="tu">
+          <option value="cel" _TU_CEL_>celsius</option>
+          <option value="fah" _TU_FAH_>fahrenheit</option>
+        </select>
+      </p>
+  <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
+         </form>
+  </fieldset>
+  <p><form action='/setup' method='get'><button class="back">Back</button></form></p>
 
 )====";

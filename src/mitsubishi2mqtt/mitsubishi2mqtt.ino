@@ -68,6 +68,7 @@ void setup() {
     server.on("/setup", handle_setup);
     server.on("/mqtt", handle_mqtt);
     server.on("/wifi", handle_wifi);
+    server.on("/unit",handle_unit);
     server.on("/status", handle_status);
     server.on("/others", handle_others);
     server.onNotFound(handleNotFound);
@@ -94,6 +95,7 @@ void setup() {
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
+    load_unit();
     Serial.println("Connection to HVAC. Stop serial log.");
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
@@ -166,6 +168,21 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   serializeJson(doc, configFile);
   configFile.close();
 }
+
+void save_unit(String tempUnit) {
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
+  DynamicJsonDocument doc(capacity);
+  // if mqtt port is empty, we use default port
+  doc["unit_tempUnit"]   = tempUnit;
+  File configFile = SPIFFS.open(unit_conf, "w");
+  if (!configFile) {
+    Serial.println("failed to open config file for writing");
+  }
+  serializeJson(doc, Serial);
+  serializeJson(doc, configFile);
+  configFile.close();
+}
+
 
 void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
@@ -278,6 +295,27 @@ bool load_mqtt() {
   //write_log("=== END DEBUG MQTT ===");
 
   mqtt_config = true;
+  return true;
+}
+
+bool load_unit() {
+  File configFile = SPIFFS.open(unit_conf, "r");
+  if (!configFile) {
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    return false;
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  configFile.readBytes(buf.get(), size);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
+  DynamicJsonDocument doc(capacity);
+  deserializeJson(doc, buf.get());
+  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
+  if(unit_tempUnit == "fah") useFahrenheit = true;
   return true;
 }
 
@@ -422,6 +460,26 @@ void handle_mqtt() {
     toSend.replace("_MQTT_PASSWORD_", mqtt_password);
     toSend.replace("_MQTT_TOPIC_", mqtt_topic);
     toSend.replace("_VERSION_", m2mqtt_version);
+    server.send(200, "text/html", toSend);
+  }
+}
+
+void handle_unit() {
+  if (server.hasArg("save")) {
+    save_unit(server.arg("tu"));
+    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
+    toSend.replace("_UNIT_NAME_", hostname);
+    toSend.replace("_VERSION_", m2mqtt_version);
+    server.send(200, "text/html", toSend);
+    delay(10);
+    ESP.reset();
+  }
+  else {
+    String toSend = html_common_header + html_page_unit + html_common_footer;
+    toSend.replace("_UNIT_NAME_", mqtt_fn);
+    toSend.replace("_VERSION_", m2mqtt_version);
+    if(useFahrenheit) toSend.replace("_TU_FAH_", "selected");
+    else toSend.replace("_TU_CEL_", "selected");
     server.send(200, "text/html", toSend);
   }
 }
