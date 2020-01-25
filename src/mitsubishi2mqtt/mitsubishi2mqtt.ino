@@ -333,7 +333,7 @@ boolean init_wifi() {
     Serial.println("\n\r \n\rStarting in AP mode");
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, netMsk);
-    WiFi.softAP(hostname.c_str());
+    WiFi.softAP(hostname.c_str(), String(ESP.getChipId(), HEX).c_str());
     Serial.print("IP address: ");
     Serial.println(WiFi.softAPIP());
     //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).

@@ -23,7 +23,7 @@ Config page
 ***
 How to use:
  - Step 1: flash the sketch with flash size include SPIFFS option.
- - Step 2: connect to device AP with name HVAC_XXXX (XXXX last 4 character MAC address)
+ - Step 2: connect to device AP with name HVAC_XXXX using password: XXXX (XXXX last 4 character MAC address)
  - Step 3: You should be automatically redirected to the web portal or go to 192.168.1.1
  - Step 4: set Wifi information, save & reboot
  - Step 5: find the device IP with last 4 character MAC address in your router
