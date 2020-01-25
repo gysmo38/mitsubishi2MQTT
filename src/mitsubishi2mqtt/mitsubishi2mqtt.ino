@@ -222,6 +222,7 @@ void init_captivePortal() {
   Serial.println("Starting captive portal");
   server.on("/", handle_init_setup);
   server.on("/save", handle_save_wifi);
+  server.on("/reboot", handle_reboot);
   server.onNotFound(handleNotFound);
   server.begin();
   captive = true;
@@ -372,6 +373,16 @@ void handle_save_wifi() {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
   String toSend = html_common_header + html_init_save + html_common_footer;
+  toSend.replace("_UNIT_NAME_", hostname);
+  toSend.replace("_VERSION_", m2mqtt_version);
+  server.send(200, "text/html", toSend);
+  delay(100);
+  ESP.restart();
+}
+
+void handle_reboot() {
+  Serial.println("Rebooting");
+  String toSend = html_common_header + html_init_reboot + html_common_footer;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
