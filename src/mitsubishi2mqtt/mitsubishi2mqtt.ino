@@ -331,9 +331,10 @@ void setDefaults() {
 }
 
 boolean init_wifi() {
+  bool connectWifiSuccess = true;
   if (ap_ssid[0] != '\0') {
-    wifi_config = connectWifi();
-    if (wifi_config) {
+    connectWifiSuccess = wifi_config = connectWifi();
+    if (connectWifiSuccess) {
       return true;
     }
     else
@@ -347,7 +348,12 @@ boolean init_wifi() {
   Serial.println("\n\r \n\rStarting in AP mode");
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, netMsk);
-  WiFi.softAP(hostname.c_str());
+  if (!connectWifiSuccess)
+    // Set AP password when falling back to AP on fail
+    WiFi.softAP(hostname.c_str(), hostname.c_str());
+  else
+    // First time setup does not require password
+    WiFi.softAP(hostname.c_str());
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
