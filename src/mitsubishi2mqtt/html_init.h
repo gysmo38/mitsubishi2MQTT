@@ -15,6 +15,11 @@ String html_init_setup = R"====(
       <p><b>OTA Password</b><br/><input id='otapwd' name='otapwd' placeholder=' '></p>
     </p><br/><button name='submit' type='submit' class='button bgrn'>Save & Reboot</button>
     </form>
+    </fieldset>
+    <fieldset>
+    <form method='get' action='reboot'>
+      <br/><button name='reboot' type='submit' class='button bgrn'>Reboot</button>
+    </form>
   </fieldset>
 )====";
 
@@ -27,5 +32,17 @@ String html_init_save =  R"====(
     </div>
 
   <p>Rebooting and connecting to your WiFi network! You should see it listed in on your access point.</p>
+
+)====";
+
+String html_init_reboot =  R"====(
+  <body>
+  <div style='text-align:left;display:inline-block;min-width:340px;'>
+    <div style='text-align:center;'>
+      <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
+      <h3>_UNIT_NAME_</h3>
+    </div>
+
+  <p>Rebooting</p>
 
 )====";
