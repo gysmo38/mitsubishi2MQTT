@@ -13,7 +13,8 @@ String console_file = "console.log";
 String others_conf = "others.json";
 
 // Define global variables for network
-String hostname = "HVAC_";
+String hostnamePrefix = "HVAC_";
+String hostname = "";
 String ap_ssid;
 String ap_pwd;
 String ota_pwd;
