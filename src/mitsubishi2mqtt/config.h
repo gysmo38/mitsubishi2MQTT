@@ -3,7 +3,7 @@
  *
  */
 
-String m2mqtt_version = "0.4.8";
+String m2mqtt_version = "0.4.9";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
@@ -66,4 +66,4 @@ const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
 const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
 
 // temp settings
-bool useFahrenheit = false; 
+bool useFahrenheit = false;

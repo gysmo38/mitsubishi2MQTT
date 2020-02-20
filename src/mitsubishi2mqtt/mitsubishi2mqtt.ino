@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
-#include "FS.h"               // SPIFFS for store config 
+#include "FS.h"               // SPIFFS for store config
 #include <math.h>             // for rounding to Fahrenheit values
 
 #include <ArduinoOTA.h>   // for OTA
@@ -553,11 +553,11 @@ void handle_control() {
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
   String toSend = html_common_header + html_page_control + html_common_footer;
-  //write_log("Enter HVAC control");
+  //write_log("Enter HVAC control");x
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   toSend.replace("_RATE_", "60");
-  toSend.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));	  toSend.replace("_ROOMTEMP_", String(hp.getRoomTemperature()));
+  toSend.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
   toSend.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   toSend.replace("_TEMP_SCALE_", getTemperatureScale());
 
@@ -645,7 +645,7 @@ void handle_control() {
   }
   toSend.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
   server.send(200, "text/html", toSend);
-  delay(100);
+  //delay(100);
 }
 
 void write_log(String log) {
