@@ -60,6 +60,7 @@ void setup() {
   WiFi.hostname(hostname);
   setDefaults();
   load_wifi();
+  load_unit();
   if (init_wifi()) {
     SPIFFS.remove(console_file);
     //write_log("Starting Mitsubishi2MQTT");
@@ -96,7 +97,6 @@ void setup() {
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
-    load_unit();
     Serial.println("Connection to HVAC. Stop serial log.");
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
@@ -552,100 +552,115 @@ void handle_control() {
 
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
-  String toSend = html_common_header + html_page_control + html_common_footer;
-  //write_log("Enter HVAC control");x
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  toSend.replace("_RATE_", "60");
-  toSend.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
-  toSend.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
-  toSend.replace("_TEMP_SCALE_", getTemperatureScale());
+  String controlPage =  html_page_control;
+  String headerContent = html_common_header;
+  String footerContent = html_common_footer;
+  //write_log("Enter HVAC control");
+  headerContent.replace("_UNIT_NAME_", hostname);
+  footerContent.replace("_VERSION_", m2mqtt_version);
+  controlPage.replace("_UNIT_NAME_", hostname);
+  controlPage.replace("_RATE_", "60");
+  controlPage.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
+  controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
+  controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
 
   if (strcmp(settings.power, "ON") == 0) {
-    toSend.replace("_POWER_ON_", "selected");
+    controlPage.replace("_POWER_ON_", "selected");
   }
   else if (strcmp(settings.power, "OFF") == 0) {
-    toSend.replace("_POWER_OFF_", "selected");
+    controlPage.replace("_POWER_OFF_", "selected");
   }
 
   if (strcmp(settings.mode, "HEAT") == 0) {
-    toSend.replace("_MODE_H_", "selected");
+    controlPage.replace("_MODE_H_", "selected");
   }
   else if (strcmp(settings.mode, "DRY") == 0) {
-    toSend.replace("_MODE_D_", "selected");
+    controlPage.replace("_MODE_D_", "selected");
   }
   else if (strcmp(settings.mode, "COOL") == 0) {
-    toSend.replace("_MODE_C_", "selected");
+    controlPage.replace("_MODE_C_", "selected");
   }
   else if (strcmp(settings.mode, "FAN") == 0) {
-    toSend.replace("_MODE_F_", "selected");
+    controlPage.replace("_MODE_F_", "selected");
   }
   else if (strcmp(settings.mode, "AUTO") == 0) {
-    toSend.replace("_MODE_A_", "selected");
-  }
-  if (strcmp(settings.fan, "AUTO") == 0) {
-    toSend.replace("_FAN_A_", "selected");
-  }
-  else if (strcmp(settings.fan, "QUIET") == 0) {
-    toSend.replace("_FAN_Q_", "selected");
-  }
-  else if (strcmp(settings.fan, "1") == 0) {
-    toSend.replace("_FAN_1_", "selected");
-  }
-  else if (strcmp(settings.fan, "2") == 0) {
-    toSend.replace("_FAN_2_", "selected");
-  }
-  else if (strcmp(settings.fan, "3") == 0) {
-    toSend.replace("_FAN_3_", "selected");
-  }
-  else if (strcmp(settings.fan, "4") == 0) {
-    toSend.replace("_FAN_4_", "selected");
+    controlPage.replace("_MODE_A_", "selected");
   }
 
-  toSend.replace("_VANE_V_", settings.vane);
+  if (strcmp(settings.fan, "AUTO") == 0) {
+    controlPage.replace("_FAN_A_", "selected");
+  }
+  else if (strcmp(settings.fan, "QUIET") == 0) {
+    controlPage.replace("_FAN_Q_", "selected");
+  }
+  else if (strcmp(settings.fan, "1") == 0) {
+    controlPage.replace("_FAN_1_", "selected");
+  }
+  else if (strcmp(settings.fan, "2") == 0) {
+    controlPage.replace("_FAN_2_", "selected");
+  }
+  else if (strcmp(settings.fan, "3") == 0) {
+    controlPage.replace("_FAN_3_", "selected");
+  }
+  else if (strcmp(settings.fan, "4") == 0) {
+    controlPage.replace("_FAN_4_", "selected");
+  }
+
+  controlPage.replace("_VANE_V_", settings.vane);
   if (strcmp(settings.vane, "AUTO") == 0) {
-    toSend.replace("_VANE_A_", "selected");
+    controlPage.replace("_VANE_A_", "selected");
   }
   else if (strcmp(settings.vane, "1") == 0) {
-    toSend.replace("_VANE_1_", "selected");
+    controlPage.replace("_VANE_1_", "selected");
   }
   else if (strcmp(settings.vane, "2") == 0) {
-    toSend.replace("_VANE_2_", "selected");
+    controlPage.replace("_VANE_2_", "selected");
   }
   else if (strcmp(settings.vane, "3") == 0) {
-    toSend.replace("_VANE_3_", "selected");
+    controlPage.replace("_VANE_3_", "selected");
   }
   else if (strcmp(settings.vane, "4") == 0) {
-    toSend.replace("_VANE_4_", "selected");
+    controlPage.replace("_VANE_4_", "selected");
   }
   else if (strcmp(settings.vane, "5") == 0) {
-    toSend.replace("_VANE_5_", "selected");
+    controlPage.replace("_VANE_5_", "selected");
   }
   else if (strcmp(settings.vane, "SWING") == 0) {
-    toSend.replace("_VANE_S_", "selected");
+    controlPage.replace("_VANE_S_", "selected");
   }
-  toSend.replace("_WIDEVANE_V_", settings.wideVane);
+
+  controlPage.replace("_WIDEVANE_V_", settings.wideVane);
   if (strcmp(settings.wideVane, "<<") == 0) {
-    toSend.replace("_WVANE_1_", "selected");
+    controlPage.replace("_WVANE_1_", "selected");
   }
   else if (strcmp(settings.wideVane, "<") == 0) {
-    toSend.replace("_WVANE_2_", "selected");
+    controlPage.replace("_WVANE_2_", "selected");
   }
   else if (strcmp(settings.wideVane, "|") == 0) {
-    toSend.replace("_WVANE_3_", "selected");
+    controlPage.replace("_WVANE_3_", "selected");
   }
   else if (strcmp(settings.wideVane, ">") == 0) {
-    toSend.replace("_WVANE_4_", "selected");
+    controlPage.replace("_WVANE_4_", "selected");
   }
   else if (strcmp(settings.wideVane, ">>") == 0) {
-    toSend.replace("_WVANE_5_", "selected");
+    controlPage.replace("_WVANE_5_", "selected");
   }
   else if (strcmp(settings.wideVane, "SWING") == 0) {
-    toSend.replace("_WVANE_S_", "selected");
+    controlPage.replace("_WVANE_S_", "selected");
   }
-  toSend.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
-  server.send(200, "text/html", toSend);
-  //delay(100);
+
+  controlPage.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
+
+  // We need to send the page content in chunks to overcome
+  // a limitation on the maximum size we can send at one
+  // time (approx 6k).
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "text/html", headerContent);
+  server.sendContent(controlPage);
+  server.sendContent(footerContent);
+  // Signal the end of the content
+  server.sendContent("");
+  delay(100);
 }
 
 void write_log(String log) {
@@ -965,8 +980,8 @@ void haConfig() {
   haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > " + (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_t"]                   = ha_state_topic;
   haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > " + (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
-  haConfig["min_temp"]                      = min_temp;
-  haConfig["max_temp"]                      = max_temp;
+  haConfig["min_temp"]                      = getTemperature(min_temp, useFahrenheit);
+  haConfig["max_temp"]                      = getTemperature(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
   haConfig["pow_cmd_t"]                     = ha_power_set_topic;
 
