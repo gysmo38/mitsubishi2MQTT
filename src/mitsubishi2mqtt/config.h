@@ -3,12 +3,12 @@
  *
  */
 
-String m2mqtt_version = "0.4.8.1";
+String m2mqtt_version = "0.4.9";
 
 //Define global variables for files
 String wifi_conf = "wifi.json";
 String mqtt_conf = "mqtt.json";
-String advance_conf = "unit.json"; //we can use advance.json but keep old name for backward comparity with version 0.4.8
+String advance_conf = "advance.json";
 String console_file = "console.log";
 String others_conf = "others.json";
 

@@ -1,4 +1,4 @@
-String html_common_header = R"====(<!DOCTYPE html>
+const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
     <html lang="fr" class="">
     <head><meta charset='utf-8'>
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
@@ -27,7 +27,7 @@ String html_common_header = R"====(<!DOCTYPE html>
   </head>
 )====";
 
-String html_common_footer = R"====(
+const char html_common_footer[] PROGMEM = R"====(
   <br/>
     <div style='text-align:right;font-size:10px;color: grey;'>
       <hr/>Mitsubishi2MQTT _VERSION_</div></div></body></html>

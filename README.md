@@ -28,3 +28,4 @@ How to use:
  - Step 4: set Wifi information, save & reboot. Fall back to AP mode if WiFi connection fails (AP password sets to default SSID name from step 2).
  - Step 5: find the device IP with last 4 character MAC address in your router
  - Step 6: (optional): Set MQTT information for use with Home Assistant
+ - Step 7: (optional): Set Login password to prevent unwanted access in SETUP->ADVANCE->Login Password

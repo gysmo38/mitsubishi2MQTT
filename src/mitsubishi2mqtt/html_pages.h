@@ -1,4 +1,4 @@
-String html_page_reboot = R"====(
+const char html_page_reboot[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -14,7 +14,7 @@ String html_page_reboot = R"====(
 </script>
 )====";
 
-String html_page_reset = R"====(
+const char html_page_reset[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -26,7 +26,7 @@ String html_page_reset = R"====(
 )====";
 
 
-String html_page_save_reboot = R"====(
+const char html_page_save_reboot[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -43,7 +43,7 @@ String html_page_save_reboot = R"====(
 
 )====";
 
-String html_page_mqtt = R"====(
+const char html_page_mqtt[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -69,7 +69,7 @@ String html_page_mqtt = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_others = R"====(
+const char html_page_others[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -100,7 +100,7 @@ String html_page_others = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_status = R"====(
+const char html_page_status[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -117,7 +117,7 @@ String html_page_status = R"====(
   <p><form action='/' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_wifi = R"====(
+const char html_page_wifi[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -139,7 +139,7 @@ String html_page_wifi = R"====(
 )====";
 
 
-String html_page_control = R"====(
+const char html_page_control[] PROGMEM = R"====(
 <body>
 <script>
 function $_GET(param) {
@@ -268,7 +268,7 @@ document.onreadystatechange = function(){
 
 )====";
 
-String html_page_advance = R"====(
+const char html_page_advance[] PROGMEM = R"====(
 <body>
 
 
@@ -295,13 +295,35 @@ String html_page_advance = R"====(
         </select>
       </p>
       <p>
-        <b>Login Password</b>
-        <p><b>Password</b><br/><input id='lpw' name='lpw' type='password' placeholder=' ' value='_LOGIN_PASSWORD_'></p>
-        <p>Default user is <b>admin</b></p>
+        <p><b>Login Password</b><br/><input id='lpw' name='lpw' type='password' placeholder=' ' value='_LOGIN_PASSWORD_'></p>
+        <p>Note: Default login user is <b>admin</b></p>
       </p>      
   <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
          </form>
   </fieldset>
   <p><form action='/setup' method='get'><button class="back">Back</button></form></p>
+
+)====";
+
+const char html_page_login[] PROGMEM = R"====(
+<body>
+
+
+  <div style='text-align:left;display:inline-block;min-width:340px;'>
+    <div style='text-align:center;'>
+      <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
+      <h3>_UNIT_NAME_</h3>
+      <fieldset>
+      <legend><b>&nbsp;LOGIN&nbsp;</b></legend>
+      <form action='/login' method='post'>
+      <p>To log in, please user : <b>admin</b> and password</p>
+      <p><b>User</b><input type='text' name='USERNAME' placeholder='user name'></p>
+      <p><b>Password</b><input type='password' name='PASSWORD' placeholder='password'></p>
+      <br/><button name='SUBMIT' type='submit' class='button bgrn'>SUBMIT</button>
+      </form><br>
+      You can go to <a href='/status'>status page</a><br>
+      <p>_LOGIN_MSG_</p>
+      
+  </fieldset>
 
 )====";

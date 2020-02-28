@@ -151,7 +151,12 @@ bool load_wifi() {
   hostname = doc["hostname"].as<String>();
   ap_ssid  = doc["ap_ssid"].as<String>();
   ap_pwd   = doc["ap_pwd"].as<String>();
-  ota_pwd  = doc["ota_pwd"].as<String>();
+  //prevent ota password is "null" if not exist key
+  if (doc.containsKey("ota_pwd")) {
+    ota_pwd  = doc["ota_pwd"].as<String>();
+  } else {
+    ota_pwd = "";
+  }
   return true;
 }
 
@@ -187,6 +192,8 @@ void save_advance(String tempUnit, String supportMode, String loginPassword) {
   // if support mode is empty, we use default all mode
   if (supportMode == '\0') supportMode = "all";
   doc["support_mode"]   = supportMode;
+  // if login password is empty, we use empty
+  if (loginPassword == '\0') loginPassword = "";
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(advance_conf, "w");
   if (!configFile) {
@@ -334,8 +341,12 @@ bool load_advance() {
   //mode
   String supportMode = doc["support_mode"].as<String>();
   if (supportMode == "nht") supportHeatMode = false;
-  //login password
-  login_password = doc["login_password"].as<String>();
+  //prevent login password is "null" if not exist key
+  if (doc.containsKey("login_password")) {
+    login_password = doc["login_password"].as<String>();
+  } else {
+    login_password = "";
+  }
   return true;
 }
 
@@ -383,10 +394,15 @@ boolean init_wifi() {
 
 void handleNotFound() {
   if (captive) {
-    server.send(200, "text/html", html_init_setup);
+    String initSetupContent = FPSTR(html_init_setup);
+    server.send(200, "text/html", initSetupContent);
   }
   else {
-    String toSend = html_common_header + html_menu_root + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String menuRootPage =  FPSTR(html_menu_root);
+    menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + menuRootPage + footerContent;
     server.send(200, "text/html", toSend);
   }
 }
@@ -397,7 +413,10 @@ void handle_save_wifi() {
   if (server.hasArg("submit")) {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
-  String toSend = html_common_header + html_init_save + html_common_footer;
+  String headerContent = FPSTR(html_common_header);
+  String initSavePage =  FPSTR(html_init_save);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + initSavePage + footerContent;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
@@ -407,7 +426,10 @@ void handle_save_wifi() {
 
 void handle_reboot() {
   Serial.println("Rebooting");
-  String toSend = html_common_header + html_init_reboot + html_common_footer;
+  String headerContent = FPSTR(html_common_header);
+  String initRebootPage =  FPSTR(html_init_reboot);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + initRebootPage + footerContent;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
@@ -418,7 +440,10 @@ void handle_reboot() {
 void handle_root() {
   checkLogin();
   if (server.hasArg("REBOOT")) {
-    String toSend = html_common_header + html_page_reboot + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String rebootPage =  FPSTR(html_page_reboot);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + rebootPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -426,7 +451,11 @@ void handle_root() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_menu_root + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String menuRootPage =  FPSTR(html_menu_root);
+    menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + menuRootPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -434,7 +463,10 @@ void handle_root() {
 }
 
 void handle_init_setup() {
-  String toSend = html_common_header + html_init_setup + html_common_footer;
+  String headerContent = FPSTR(html_common_header);
+  String initSetupPage =  FPSTR(html_init_setup);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + initSetupPage + footerContent;
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
@@ -443,7 +475,10 @@ void handle_init_setup() {
 void handle_setup() {
   checkLogin();
   if (server.hasArg("RESET")) {
-    String toSend = html_common_header + html_page_reset + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String resetPage =  FPSTR(html_page_reset);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + resetPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -452,7 +487,10 @@ void handle_setup() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_menu_setup + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String menuSetupPage =  FPSTR(html_menu_setup);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + menuSetupPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -466,7 +504,10 @@ void handle_others() {
 
   }
   else {
-    String toSend = html_common_header + html_page_others + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String othersPage =  FPSTR(html_page_others);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + othersPage + footerContent;
     toSend.replace("_UNIT_NAME_", mqtt_fn);
     toSend.replace("_VERSION_", m2mqtt_version);
     toSend.replace("_HAA_TOPIC_", others_haa_topic);
@@ -491,7 +532,10 @@ void handle_mqtt() {
   checkLogin();
   if (server.hasArg("save")) {
     save_mqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
-    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String saveRebootPage =  FPSTR(html_page_save_reboot);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + saveRebootPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -499,7 +543,10 @@ void handle_mqtt() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_page_mqtt + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String mqttPage =  FPSTR(html_page_mqtt);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + mqttPage + footerContent;
     toSend.replace("_UNIT_NAME_", mqtt_fn);
     toSend.replace("_MQTT_HOST_", mqtt_server);
     toSend.replace("_MQTT_PORT_", String(mqtt_port));
@@ -515,7 +562,10 @@ void handle_advance() {
   checkLogin();
   if (server.hasArg("save")) {
     save_advance(server.arg("tu"), server.arg("md"), server.arg("lpw"));
-    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String saveRebootPage =  FPSTR(html_page_save_reboot);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + saveRebootPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -523,7 +573,10 @@ void handle_advance() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_page_advance + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String advancePage =  FPSTR(html_page_advance);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + advancePage + footerContent;
     toSend.replace("_UNIT_NAME_", mqtt_fn);
     toSend.replace("_VERSION_", m2mqtt_version);
     //temp
@@ -541,7 +594,10 @@ void handle_wifi() {
   checkLogin();
   if (server.hasArg("save")) {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
-    String toSend = html_common_header + html_page_save_reboot + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String rebootPage =  FPSTR(html_page_save_reboot);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + rebootPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
     server.send(200, "text/html", toSend);
@@ -549,7 +605,10 @@ void handle_wifi() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_page_wifi + html_common_footer;
+    String headerContent = FPSTR(html_common_header);
+    String wifiPage =  FPSTR(html_page_wifi);
+    String footerContent = FPSTR(html_common_footer);
+    String toSend = headerContent + wifiPage + footerContent;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_SSID_", ap_ssid);
     toSend.replace("_PSK_", ap_pwd);
@@ -561,8 +620,10 @@ void handle_wifi() {
 }
 
 void handle_status() {
-  checkLogin();
-  String toSend = html_common_header + html_page_status + html_common_footer;
+  String headerContent = FPSTR(html_common_header);
+  String statusPage =  FPSTR(html_page_status);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + statusPage + footerContent;
   if (server.hasArg("mrconn")) mqttConnect();
   toSend.replace("_UNIT_NAME_", hostname);
   toSend.replace("_VERSION_", m2mqtt_version);
@@ -583,9 +644,9 @@ void handle_control() {
   checkLogin();
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
-  String controlPage =  html_page_control;
-  String headerContent = html_common_header;
-  String footerContent = html_common_footer;
+  String controlPage =  FPSTR(html_page_control);
+  String headerContent = FPSTR(html_common_header);
+  String footerContent = FPSTR(html_common_footer);
   //write_log("Enter HVAC control");
   headerContent.replace("_UNIT_NAME_", hostname);
   footerContent.replace("_VERSION_", m2mqtt_version);
@@ -1187,7 +1248,7 @@ bool is_authenticated() {
   return false;
 }
 
-void checkLogin(){
+void checkLogin() {
   if (!is_authenticated() and login_password.length() > 0) {
     server.sendHeader("Location", "/login");
     server.sendHeader("Cache-Control", "no-cache");
@@ -1223,12 +1284,14 @@ void handle_login() {
     msg = "Wrong username/password! try again.";
     //Log in Failed;
   }
-  String content = "<html><body><form action='/login' method='POST'>To log in, please user : admin and password<br>";
-  content += "User:<input type='text' name='USERNAME' placeholder='user name'><br>";
-  content += "Password:<input type='password' name='PASSWORD' placeholder='password'><br>";
-  content += "<input type='submit' name='SUBMIT' value='Submit'></form>" + msg + "<br>";
-  content += "You also can go <a href='/inline'>here</a></body></html>";
-  server.send(200, "text/html", content);
+  String headerContent = FPSTR(html_common_header);
+  String loginPage =  FPSTR(html_page_login);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + loginPage + footerContent;
+  toSend.replace("_UNIT_NAME_", hostname);
+  toSend.replace("_VERSION_", m2mqtt_version);
+  toSend.replace("_LOGIN_MSG_", msg);
+  server.send(200, "text/html", toSend);
 }
 
 void loop() {

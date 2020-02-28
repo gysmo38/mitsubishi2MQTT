@@ -1,4 +1,4 @@
-String html_init_setup = R"====(
+const char html_init_setup[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -23,7 +23,7 @@ String html_init_setup = R"====(
   </fieldset>
 )====";
 
-String html_init_save =  R"====(
+const char html_init_save[] PROGMEM =  R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -35,7 +35,7 @@ String html_init_save =  R"====(
 
 )====";
 
-String html_init_reboot =  R"====(
+const char html_init_reboot[] PROGMEM =  R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
