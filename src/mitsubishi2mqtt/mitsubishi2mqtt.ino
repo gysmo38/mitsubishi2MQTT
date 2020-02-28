@@ -60,7 +60,7 @@ void setup() {
   WiFi.hostname(hostname);
   setDefaults();
   load_wifi();
-  load_unit();
+  load_advance();
   if (init_wifi()) {
     SPIFFS.remove(console_file);
     //write_log("Starting Mitsubishi2MQTT");
@@ -70,7 +70,7 @@ void setup() {
     server.on("/setup", handle_setup);
     server.on("/mqtt", handle_mqtt);
     server.on("/wifi", handle_wifi);
-    server.on("/unit", handle_unit);
+    server.on("/advance", handle_advance);
     server.on("/status", handle_status);
     server.on("/others", handle_others);
     server.onNotFound(handleNotFound);
@@ -170,12 +170,16 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void save_unit(String tempUnit) {
+void save_advance(String tempUnit, String supportMode) {
   const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
   DynamicJsonDocument doc(capacity);
-  // if mqtt port is empty, we use default port
+  // if temp unit is empty, we use default celcius
+  if (tempUnit == '\0') tempUnit = "cel";
   doc["unit_tempUnit"]   = tempUnit;
-  File configFile = SPIFFS.open(unit_conf, "w");
+    // if support mode is empty, we use default all mode
+  if (supportMode == '\0') supportMode = "all";
+  doc["support_mode"]   = supportMode;
+  File configFile = SPIFFS.open(advance_conf, "w");
   if (!configFile) {
     Serial.println("failed to open config file for writing");
   }
@@ -183,7 +187,6 @@ void save_unit(String tempUnit) {
   serializeJson(doc, configFile);
   configFile.close();
 }
-
 
 void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
@@ -300,8 +303,8 @@ bool load_mqtt() {
   return true;
 }
 
-bool load_unit() {
-  File configFile = SPIFFS.open(unit_conf, "r");
+bool load_advance() {
+  File configFile = SPIFFS.open(advance_conf, "r");
   if (!configFile) {
     return false;
   }
@@ -316,8 +319,12 @@ bool load_unit() {
   const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
+  //unit
   String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
   if (unit_tempUnit == "fah") useFahrenheit = true;
+  //mode
+  String supportMode = doc["support_mode"].as<String>();
+  if (supportMode == "nht") supportHeatMode = false;
   return true;
 }
 
@@ -488,9 +495,9 @@ void handle_mqtt() {
   }
 }
 
-void handle_unit() {
+void handle_advance() {
   if (server.hasArg("save")) {
-    save_unit(server.arg("tu"));
+    save_advance(server.arg("tu"), server.arg("md"));
     String toSend = html_common_header + html_page_save_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
@@ -499,11 +506,15 @@ void handle_unit() {
     ESP.reset();
   }
   else {
-    String toSend = html_common_header + html_page_unit + html_common_footer;
+    String toSend = html_common_header + html_page_advance + html_common_footer;
     toSend.replace("_UNIT_NAME_", mqtt_fn);
     toSend.replace("_VERSION_", m2mqtt_version);
+    //temp
     if (useFahrenheit) toSend.replace("_TU_FAH_", "selected");
     else toSend.replace("_TU_CEL_", "selected");
+    //mode
+    if (supportHeatMode) toSend.replace("_MD_ALL_", "selected");
+    else toSend.replace("_MD_NONHEAT_", "selected");
     server.send(200, "text/html", toSend);
   }
 }
@@ -563,6 +574,7 @@ void handle_control() {
   controlPage.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
   controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
+  controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
 
   if (strcmp(settings.power, "ON") == 0) {
     controlPage.replace("_POWER_ON_", "selected");
@@ -967,7 +979,9 @@ void haConfig() {
   haConfigModes.add("heat_cool"); //native AUTO mode
   haConfigModes.add("cool");
   haConfigModes.add("dry");
-  haConfigModes.add("heat");
+  if(supportHeatMode){
+    haConfigModes.add("heat");
+  }
   haConfigModes.add("fan_only");  //native FAN mode
   haConfigModes.add("off");
 

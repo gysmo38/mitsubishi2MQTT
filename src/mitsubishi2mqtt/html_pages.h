@@ -182,6 +182,17 @@ window.onload=function(){
     document.getElementById('TEMP').value=$_GET('TEMP');
   }
 }
+
+var heatMode = _HEAT_MODE_SUPPORT_;
+
+document.onreadystatechange = function(){
+    if (document.readyState === "complete") {
+      if(heatMode==0){
+        var options = document.getElementById("MODE").options;
+        options[3].disabled = (options[3].value == "HEAT");
+      }
+    }
+}
 </script>
 
   <div style='text-align:left;display:inline-block;min-width:340px;'>
@@ -208,7 +219,7 @@ window.onload=function(){
 
       <p><b>Mode</b>
       <form onchange="this.submit()">    
-        <select name="MODE">
+        <select name="MODE" id="MODE">
           <option value="AUTO" _MODE_A_>&#9851; AUTO</option>
           <option value="DRY" _MODE_D_>&#128167; DRY</option>
           <option value="COOL" _MODE_C_>&#10052;&#65039; COOL</option>
@@ -251,14 +262,13 @@ window.onload=function(){
           <option value="<>" _WVANE_6_><> POS 6</option>
         </select></form></p>
     </p>
-    <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
     </form>
   </fieldset>
   <p><form action='/' method='get'><button class="back">Back</button></form></p>
 
 )====";
 
-String html_page_unit = R"====(
+String html_page_advance = R"====(
 <body>
 
 
@@ -268,13 +278,20 @@ String html_page_unit = R"====(
       <h3>_UNIT_NAME_</h3>
       
       <fieldset>
-    <legend><b>&nbsp;Unit configuration&nbsp;</b></legend>
+    <legend><b>&nbsp;Advance configuration&nbsp;</b></legend>
        <form method='get'>
       <p>
         <b>Temperature Unit</b>
         <select name="tu">
-          <option value="cel" _TU_CEL_>celsius</option>
-          <option value="fah" _TU_FAH_>fahrenheit</option>
+          <option value="cel" _TU_CEL_>Celsius</option>
+          <option value="fah" _TU_FAH_>Fahrenheit</option>
+        </select>
+      </p>
+      <p>
+        <b>Mode Support</b>
+        <select name="md">
+          <option value="all" _MD_ALL_>All mode</option>
+          <option value="nht" _MD_NONHEAT_>Not support heat mode</option>
         </select>
       </p>
   <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>

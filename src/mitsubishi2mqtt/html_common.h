@@ -30,5 +30,5 @@ String html_common_header = R"====(<!DOCTYPE html>
 String html_common_footer = R"====(
   <br/>
     <div style='text-align:right;font-size:10px;color: grey;'>
-      <hr/>Mitsubishi2MQTT _VERSION_ by Gysmo</div></div></body></html>
+      <hr/>Mitsubishi2MQTT _VERSION_</div></div></body></html>
 )====";
