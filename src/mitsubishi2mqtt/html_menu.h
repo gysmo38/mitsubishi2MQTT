@@ -8,6 +8,7 @@ String html_menu_root = R"====(
   <p><form action='/control' method='get'><button>Control</button></form></p>
   <p><form action='/setup' method='get'><button>Setup</button></form></p>
   <p><form action='/status' method='get'><button>Status</button></form></p>
+  <p><form action='/login?LOGOUT=YES' method='post'><button type='submit' name='Logout' class='button bred'>Logout</button></form></p>
   <p><form><button type='submit' name='REBOOT' class='button bred'>Reboot</button></form></p>
 )====";
 

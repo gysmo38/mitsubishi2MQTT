@@ -48,6 +48,9 @@ String ha_debug_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
 String hvac_name;
+//login
+String login_username = "admin";
+String login_password;
 
 // debug mode, when true, will send all packets received from the heatpump to topic heatpump_debug_topic
 // this can also be set by sending "on" to heatpump_debug_set_topic

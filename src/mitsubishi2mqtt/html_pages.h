@@ -294,6 +294,11 @@ String html_page_advance = R"====(
           <option value="nht" _MD_NONHEAT_>Not support heat mode</option>
         </select>
       </p>
+      <p>
+        <b>Login Password</b>
+        <p><b>Password</b><br/><input id='lpw' name='lpw' type='password' placeholder=' ' value='_LOGIN_PASSWORD_'></p>
+        <p>Default user is <b>admin</b></p>
+      </p>      
   <br/><button name='save' type='submit' class='button bgrn'>Save & Reboot</button>
          </form>
   </fieldset>

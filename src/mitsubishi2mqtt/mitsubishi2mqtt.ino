@@ -74,6 +74,14 @@ void setup() {
     server.on("/status", handle_status);
     server.on("/others", handle_others);
     server.onNotFound(handleNotFound);
+    if (login_password.length() > 0) {
+      server.on("/login", handle_login);
+      //here the list of headers to be recorded, use for authentication
+      const char * headerkeys[] = {"User-Agent", "Cookie"} ;
+      size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+      //ask server to track these headers
+      server.collectHeaders(headerkeys, headerkeyssize);
+    }
     server.begin();
     lastMqttRetry = 0;
     if (load_mqtt()) {
@@ -170,15 +178,16 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void save_advance(String tempUnit, String supportMode) {
-  const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
+void save_advance(String tempUnit, String supportMode, String loginPassword) {
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
   if (tempUnit == '\0') tempUnit = "cel";
   doc["unit_tempUnit"]   = tempUnit;
-    // if support mode is empty, we use default all mode
+  // if support mode is empty, we use default all mode
   if (supportMode == '\0') supportMode = "all";
   doc["support_mode"]   = supportMode;
+  doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(advance_conf, "w");
   if (!configFile) {
     Serial.println("failed to open config file for writing");
@@ -316,7 +325,7 @@ bool load_advance() {
   std::unique_ptr<char[]> buf(new char[size]);
 
   configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(2) + 400;
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
   //unit
@@ -325,6 +334,8 @@ bool load_advance() {
   //mode
   String supportMode = doc["support_mode"].as<String>();
   if (supportMode == "nht") supportHeatMode = false;
+  //login password
+  login_password = doc["login_password"].as<String>();
   return true;
 }
 
@@ -381,6 +392,7 @@ void handleNotFound() {
 }
 
 void handle_save_wifi() {
+  checkLogin();
   Serial.println("Saving wifi config");
   if (server.hasArg("submit")) {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
@@ -404,6 +416,7 @@ void handle_reboot() {
 }
 
 void handle_root() {
+  checkLogin();
   if (server.hasArg("REBOOT")) {
     String toSend = html_common_header + html_page_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
@@ -428,6 +441,7 @@ void handle_init_setup() {
 }
 
 void handle_setup() {
+  checkLogin();
   if (server.hasArg("RESET")) {
     String toSend = html_common_header + html_page_reset + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
@@ -447,6 +461,7 @@ void handle_setup() {
 }
 
 void handle_others() {
+  checkLogin();
   if (server.hasArg("save")) {
 
   }
@@ -473,6 +488,7 @@ void handle_others() {
 }
 
 void handle_mqtt() {
+  checkLogin();
   if (server.hasArg("save")) {
     save_mqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     String toSend = html_common_header + html_page_save_reboot + html_common_footer;
@@ -496,8 +512,9 @@ void handle_mqtt() {
 }
 
 void handle_advance() {
+  checkLogin();
   if (server.hasArg("save")) {
-    save_advance(server.arg("tu"), server.arg("md"));
+    save_advance(server.arg("tu"), server.arg("md"), server.arg("lpw"));
     String toSend = html_common_header + html_page_save_reboot + html_common_footer;
     toSend.replace("_UNIT_NAME_", hostname);
     toSend.replace("_VERSION_", m2mqtt_version);
@@ -515,11 +532,13 @@ void handle_advance() {
     //mode
     if (supportHeatMode) toSend.replace("_MD_ALL_", "selected");
     else toSend.replace("_MD_NONHEAT_", "selected");
+    toSend.replace("_LOGIN_PASSWORD_", login_password);
     server.send(200, "text/html", toSend);
   }
 }
 
 void handle_wifi() {
+  checkLogin();
   if (server.hasArg("save")) {
     save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     String toSend = html_common_header + html_page_save_reboot + html_common_footer;
@@ -542,6 +561,7 @@ void handle_wifi() {
 }
 
 void handle_status() {
+  checkLogin();
   String toSend = html_common_header + html_page_status + html_common_footer;
   if (server.hasArg("mrconn")) mqttConnect();
   toSend.replace("_UNIT_NAME_", hostname);
@@ -560,7 +580,7 @@ void handle_status() {
 
 
 void handle_control() {
-
+  checkLogin();
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
   String controlPage =  html_page_control;
@@ -979,7 +999,7 @@ void haConfig() {
   haConfigModes.add("heat_cool"); //native AUTO mode
   haConfigModes.add("cool");
   haConfigModes.add("dry");
-  if(supportHeatMode){
+  if (supportHeatMode) {
     haConfigModes.add("heat");
   }
   haConfigModes.add("fan_only");  //native FAN mode
@@ -1151,6 +1171,64 @@ String getTemperatureScale() {
   } else {
     return "C";
   }
+}
+
+//Check if header is present and correct
+bool is_authenticated() {
+  if (server.hasHeader("Cookie")) {
+    //Found cookie;
+    String cookie = server.header("Cookie");
+    if (cookie.indexOf("M2MSESSIONID=1") != -1) {
+      //Authentication Successful
+      return true;
+    }
+  }
+  //Authentication Failed
+  return false;
+}
+
+void checkLogin(){
+  if (!is_authenticated() and login_password.length() > 0) {
+    server.sendHeader("Location", "/login");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.send(301);
+    return;
+  }
+}
+
+//login page, also called for disconnect
+void handle_login() {
+  String msg;
+  if (server.hasHeader("Cookie")) {
+    //Found cookie;
+    String cookie = server.header("Cookie");
+  }
+  if (server.hasArg("LOGOUT")) {
+    //Disconnection
+    server.sendHeader("Location", "/login");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
+    server.send(301);
+    return;
+  }
+  if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
+    if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
+      server.sendHeader("Location", "/");
+      server.sendHeader("Cache-Control", "no-cache");
+      server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
+      server.send(301);
+      //Log in Successful;
+      return;
+    }
+    msg = "Wrong username/password! try again.";
+    //Log in Failed;
+  }
+  String content = "<html><body><form action='/login' method='POST'>To log in, please user : admin and password<br>";
+  content += "User:<input type='text' name='USERNAME' placeholder='user name'><br>";
+  content += "Password:<input type='password' name='PASSWORD' placeholder='password'><br>";
+  content += "<input type='submit' name='SUBMIT' value='Submit'></form>" + msg + "<br>";
+  content += "You also can go <a href='/inline'>here</a></body></html>";
+  server.send(200, "text/html", content);
 }
 
 void loop() {
