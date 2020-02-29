@@ -37,14 +37,17 @@ HeatPump hp;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
 
+//Web OTA
+int uploaderror = 0;
+
 void setup() {
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
   Serial.println();
-  Serial.println("Starting Mitsubishi2MQTT");
+  Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (!SPIFFS.begin()) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println(F("An Error has occurred while mounting SPIFFS"));
   }
 
   //set led pin as output
@@ -59,32 +62,35 @@ void setup() {
   mqtt_client_id = hostname;
   WiFi.hostname(hostname);
   setDefaults();
-  load_wifi();
-  load_advance();
-  if (init_wifi()) {
+  loadWifi();
+  loadAdvance();
+  if (initWifi()) {
     SPIFFS.remove(console_file);
     //write_log("Starting Mitsubishi2MQTT");
     //Web interface
-    server.on("/", handle_root);
-    server.on("/control", handle_control);
-    server.on("/setup", handle_setup);
-    server.on("/mqtt", handle_mqtt);
-    server.on("/wifi", handle_wifi);
-    server.on("/advance", handle_advance);
-    server.on("/status", handle_status);
-    server.on("/others", handle_others);
+    server.on("/", handleRoot);
+    server.on("/control", handleControl);
+    server.on("/setup", handleSetup);
+    server.on("/mqtt", handleMqtt);
+    server.on("/wifi", handleWifi);
+    server.on("/advance", handleAdvance);
+    server.on("/status", handleStatus);
+    server.on("/others", handleOthers);
     server.onNotFound(handleNotFound);
     if (login_password.length() > 0) {
-      server.on("/login", handle_login);
+      server.on("/login", handleLogin);
       //here the list of headers to be recorded, use for authentication
       const char * headerkeys[] = {"User-Agent", "Cookie"} ;
       size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
       //ask server to track these headers
       server.collectHeaders(headerkeys, headerkeyssize);
     }
+    server.on("/upgrade", handleUpgrade);
+    server.on("/upload", HTTP_POST, handleUploadDone, handleUploadLoop);
+
     server.begin();
     lastMqttRetry = 0;
-    if (load_mqtt()) {
+    if (loadMqtt()) {
       //write_log("Starting MQTT");
       // setup HA topics
       ha_power_set_topic    = mqtt_topic + "/" + mqtt_fn + "/power/set";
@@ -100,12 +106,12 @@ void setup() {
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
       // startup mqtt connection
-      init_MQTT();
+      initMqtt();
     }
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
-    Serial.println("Connection to HVAC. Stop serial log.");
+    Serial.println(F("Connection to HVAC. Stop serial log."));
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
@@ -115,9 +121,9 @@ void setup() {
   }
   else {
     dnsServer.start(DNS_PORT, "*", apIP);
-    init_captivePortal();
+    initCaptivePortal();
   }
-  init_OTA();
+  initOTA();
 }
 
 /*
@@ -128,17 +134,17 @@ void setup() {
   digitalWrite(blueLedPin, !state);     // set pin to the opposite state
   }*/
 
-bool load_wifi() {
+bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
-    Serial.println("Failed to open wifi config file");
+    Serial.println(F("Failed to open wifi config file"));
     return false;
   }
   size_t size = configFile.size();
   if (size > 1024) {
-    Serial.println("Wifi config file size is too large");
+    Serial.println(F("Wifi config file size is too large"));
     return false;
   }
 
@@ -161,8 +167,8 @@ bool load_wifi() {
 }
 
 
-void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
-               String mqttPwd, String mqttTopic) {
+void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
+              String mqttPwd, String mqttTopic) {
 
   const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
@@ -176,14 +182,14 @@ void save_mqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
-    Serial.println("failed to open config file for writing");
+    Serial.println(F("failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
   configFile.close();
 }
 
-void save_advance(String tempUnit, String supportMode, String loginPassword) {
+void saveAdvance(String tempUnit, String supportMode, String loginPassword) {
   const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
@@ -197,14 +203,14 @@ void save_advance(String tempUnit, String supportMode, String loginPassword) {
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(advance_conf, "w");
   if (!configFile) {
-    Serial.println("failed to open config file for writing");
+    Serial.println(F("failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
   configFile.close();
 }
 
-void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
+void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   doc["ap_ssid"] = apSsid;
@@ -213,7 +219,7 @@ void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
-    Serial.println("failed to open wifi file for writing");
+    Serial.println(F("failed to open wifi file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -221,7 +227,7 @@ void save_wifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   configFile.close();
 }
 
-void save_others(String haa, String haat, String debug) {
+void saveOthers(String haa, String haat, String debug) {
   const size_t capacity = JSON_OBJECT_SIZE(3) + 130;
   DynamicJsonDocument doc(capacity);
   doc["haa"] = haa;
@@ -229,7 +235,7 @@ void save_others(String haa, String haat, String debug) {
   doc["debug"] = debug;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
-    Serial.println("failed to open wifi file for writing");
+    Serial.println(F("failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -237,24 +243,24 @@ void save_others(String haa, String haat, String debug) {
 }
 
 // Initialize captive portal page
-void init_captivePortal() {
-  Serial.println("Starting captive portal");
-  server.on("/", handle_init_setup);
-  server.on("/save", handle_save_wifi);
-  server.on("/reboot", handle_reboot);
+void initCaptivePortal() {
+  Serial.println(F("Starting captive portal"));
+  server.on("/", handleInitSetup);
+  server.on("/save", handleSaveWifi);
+  server.on("/reboot", handleReboot);
   server.onNotFound(handleNotFound);
   server.begin();
   captive = true;
 }
 
-void init_MQTT() {
+void initMqtt() {
   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
   mqtt_client.setCallback(mqttCallback);
   mqttConnect();
 }
 
 // Enable OTA only when connected as a client.
-void init_OTA() {
+void initOTA() {
   //write_log("Start OTA Listener");
   ArduinoOTA.setHostname(hostname.c_str());
   if (ota_pwd.length() > 0) {
@@ -271,16 +277,16 @@ void init_OTA() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     //    write_log("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
+    else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
+    else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
+    else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
+    else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
   });
   ArduinoOTA.begin();
 }
 
-bool load_mqtt() {
+bool loadMqtt() {
   //write_log("Loading MQTT configuration");
   File configFile = SPIFFS.open(mqtt_conf, "r");
   if (!configFile) {
@@ -319,7 +325,7 @@ bool load_mqtt() {
   return true;
 }
 
-bool load_advance() {
+bool loadAdvance() {
   File configFile = SPIFFS.open(advance_conf, "r");
   if (!configFile) {
     return false;
@@ -359,7 +365,7 @@ void setDefaults() {
 
 }
 
-boolean init_wifi() {
+boolean initWifi() {
   bool connectWifiSuccess = true;
   if (ap_ssid[0] != '\0') {
     connectWifiSuccess = wifi_config = connectWifi();
@@ -407,46 +413,46 @@ void handleNotFound() {
   }
 }
 
-void handle_save_wifi() {
+void handleSaveWifi() {
   checkLogin();
   Serial.println("Saving wifi config");
   if (server.hasArg("submit")) {
-    save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
+    saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
   String headerContent = FPSTR(html_common_header);
   String initSavePage =  FPSTR(html_init_save);
   String footerContent = FPSTR(html_common_footer);
   String toSend = headerContent + initSavePage + footerContent;
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  server.send(200, "text/html", toSend);
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  server.send(200, F("text/html"), toSend);
   delay(100);
   ESP.restart();
 }
 
-void handle_reboot() {
+void handleReboot() {
   Serial.println("Rebooting");
   String headerContent = FPSTR(html_common_header);
   String initRebootPage =  FPSTR(html_init_reboot);
   String footerContent = FPSTR(html_common_footer);
   String toSend = headerContent + initRebootPage + footerContent;
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  server.send(200, "text/html", toSend);
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  server.send(200, F("text/html"), toSend);
   delay(100);
   ESP.restart();
 }
 
-void handle_root() {
+void handleRoot() {
   checkLogin();
   if (server.hasArg("REBOOT")) {
     String headerContent = FPSTR(html_common_header);
     String rebootPage =  FPSTR(html_page_reboot);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + rebootPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
     delay(10);
     ESP.reset();
   }
@@ -456,32 +462,32 @@ void handle_root() {
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + menuRootPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
   }
 }
 
-void handle_init_setup() {
+void handleInitSetup() {
   String headerContent = FPSTR(html_common_header);
   String initSetupPage =  FPSTR(html_init_setup);
   String footerContent = FPSTR(html_common_footer);
   String toSend = headerContent + initSetupPage + footerContent;
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  server.send(200, "text/html", toSend);
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  server.send(200, F("text/html"), toSend);
 }
 
-void handle_setup() {
+void handleSetup() {
   checkLogin();
   if (server.hasArg("RESET")) {
     String headerContent = FPSTR(html_common_header);
     String resetPage =  FPSTR(html_page_reset);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + resetPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
     SPIFFS.format();
     delay(10);
     ESP.reset();
@@ -491,14 +497,14 @@ void handle_setup() {
     String menuSetupPage =  FPSTR(html_menu_setup);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + menuSetupPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
   }
 
 }
 
-void handle_others() {
+void handleOthers() {
   checkLogin();
   if (server.hasArg("save")) {
 
@@ -525,20 +531,19 @@ void handle_others() {
     }
     server.send(200, "text/html", toSend);
   }
-
 }
 
-void handle_mqtt() {
+void handleMqtt() {
   checkLogin();
   if (server.hasArg("save")) {
-    save_mqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
+    saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + saveRebootPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
     delay(10);
     ESP.reset();
   }
@@ -547,28 +552,28 @@ void handle_mqtt() {
     String mqttPage =  FPSTR(html_page_mqtt);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + mqttPage + footerContent;
-    toSend.replace("_UNIT_NAME_", mqtt_fn);
-    toSend.replace("_MQTT_HOST_", mqtt_server);
-    toSend.replace("_MQTT_PORT_", String(mqtt_port));
-    toSend.replace("_MQTT_USER_", mqtt_username);
-    toSend.replace("_MQTT_PASSWORD_", mqtt_password);
-    toSend.replace("_MQTT_TOPIC_", mqtt_topic);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), mqtt_fn);
+    toSend.replace(F("_MQTT_HOST_"), mqtt_server);
+    toSend.replace(F("_MQTT_PORT_"), String(mqtt_port));
+    toSend.replace(F("_MQTT_USER_"), mqtt_username);
+    toSend.replace(F("_MQTT_PASSWORD_"), mqtt_password);
+    toSend.replace(F("_MQTT_TOPIC_"), mqtt_topic);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
   }
 }
 
-void handle_advance() {
+void handleAdvance() {
   checkLogin();
   if (server.hasArg("save")) {
-    save_advance(server.arg("tu"), server.arg("md"), server.arg("lpw"));
+    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"));
     String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + saveRebootPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
     delay(10);
     ESP.reset();
   }
@@ -577,30 +582,30 @@ void handle_advance() {
     String advancePage =  FPSTR(html_page_advance);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + advancePage + footerContent;
-    toSend.replace("_UNIT_NAME_", mqtt_fn);
-    toSend.replace("_VERSION_", m2mqtt_version);
+    toSend.replace(F("_UNIT_NAME_"), mqtt_fn);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
     //temp
-    if (useFahrenheit) toSend.replace("_TU_FAH_", "selected");
-    else toSend.replace("_TU_CEL_", "selected");
+    if (useFahrenheit) toSend.replace(F("_TU_FAH_"), F("selected"));
+    else toSend.replace(F("_TU_CEL_"), F("selected"));
     //mode
-    if (supportHeatMode) toSend.replace("_MD_ALL_", "selected");
-    else toSend.replace("_MD_NONHEAT_", "selected");
-    toSend.replace("_LOGIN_PASSWORD_", login_password);
-    server.send(200, "text/html", toSend);
+    if (supportHeatMode) toSend.replace(F("_MD_ALL_"), F("selected"));
+    else toSend.replace(F("_MD_NONHEAT_"), F("selected"));
+    toSend.replace(F("_LOGIN_PASSWORD_"), login_password);
+    server.send(200, F("text/html"), toSend);
   }
 }
 
-void handle_wifi() {
+void handleWifi() {
   checkLogin();
   if (server.hasArg("save")) {
-    save_wifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
+    saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     String headerContent = FPSTR(html_common_header);
     String rebootPage =  FPSTR(html_page_save_reboot);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + rebootPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
     delay(10);
     ESP.reset();
   }
@@ -609,38 +614,38 @@ void handle_wifi() {
     String wifiPage =  FPSTR(html_page_wifi);
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + wifiPage + footerContent;
-    toSend.replace("_UNIT_NAME_", hostname);
-    toSend.replace("_SSID_", ap_ssid);
-    toSend.replace("_PSK_", ap_pwd);
-    toSend.replace("_OTA_PWD_", ota_pwd);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    server.send(200, "text/html", toSend);
+    toSend.replace(F("_UNIT_NAME_"), hostname);
+    toSend.replace(F("_SSID_"), ap_ssid);
+    toSend.replace(F("_PSK_"), ap_pwd);
+    toSend.replace(F("_OTA_PWD_"), ota_pwd);
+    toSend.replace(F("_VERSION_"), m2mqtt_version);
+    server.send(200, F("text/html"), toSend);
   }
 
 }
 
-void handle_status() {
+void handleStatus() {
   String headerContent = FPSTR(html_common_header);
   String statusPage =  FPSTR(html_page_status);
   String footerContent = FPSTR(html_common_footer);
   String toSend = headerContent + statusPage + footerContent;
   if (server.hasArg("mrconn")) mqttConnect();
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  String connected = "<font color='green'><b>CONNECTED</b></font>";
-  String disconnected = "<font color='red'><b>DISCONNECTED</b></font>";
-  if ((Serial) and hp.isConnected()) toSend.replace("_HVAC_STATUS_", connected);
-  else  toSend.replace("_HVAC_STATUS_", disconnected);
-  if (mqtt_client.connected()) toSend.replace("_MQTT_STATUS_", connected);
-  else toSend.replace("_MQTT_STATUS_", disconnected);
-  toSend.replace("_MQTT_REASON_", String(mqtt_client.state()));
-  toSend.replace("_WIFI_STATUS_", String(WiFi.RSSI()));
-  server.send(200, "text/html", toSend);
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  String connected = F("<font color='green'><b>CONNECTED</b></font>");
+  String disconnected = F("<font color='red'><b>DISCONNECTED</b></font>");
+  if ((Serial) and hp.isConnected()) toSend.replace(F("_HVAC_STATUS_"), connected);
+  else  toSend.replace(F("_HVAC_STATUS_"), disconnected);
+  if (mqtt_client.connected()) toSend.replace(F("_MQTT_STATUS_"), connected);
+  else toSend.replace(F("_MQTT_STATUS_"), disconnected);
+  toSend.replace(F("_MQTT_REASON_"), String(mqtt_client.state()));
+  toSend.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
+  server.send(200, F("text/html"), toSend);
 }
 
 
 
-void handle_control() {
+void handleControl() {
   checkLogin();
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
@@ -754,6 +759,178 @@ void handle_control() {
   // Signal the end of the content
   server.sendContent("");
   delay(100);
+}
+
+//login page, also called for logout
+void handleLogin() {
+  String msg;
+  if (server.hasHeader("Cookie")) {
+    //Found cookie;
+    String cookie = server.header("Cookie");
+  }
+  if (server.hasArg("LOGOUT")) {
+    //Disconnection
+    server.sendHeader("Location", "/login");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
+    server.send(301);
+    return;
+  }
+  if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
+    if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
+      server.sendHeader("Location", "/");
+      server.sendHeader("Cache-Control", "no-cache");
+      server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
+      server.send(301);
+      //Log in Successful;
+      return;
+    }
+    msg = F("Wrong username/password! try again.");
+    //Log in Failed;
+  }
+  String headerContent = FPSTR(html_common_header);
+  String loginPage =  FPSTR(html_page_login);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + loginPage + footerContent;
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  toSend.replace(F("_LOGIN_MSG_"), msg);
+  server.send(200, F("text/html"), toSend);
+}
+
+void handleUpgrade()
+{
+  uploaderror = 0;
+  String headerContent = FPSTR(html_common_header);
+  String upgradePage =  FPSTR(html_page_upgrade);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + upgradePage + footerContent;
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  server.send(200, F("text/html"), toSend);
+}
+
+void handleUploadDone()
+{
+  //Serial.printl(PSTR("HTTP: Firmware upload done"));
+  bool restartflag = false;
+  String headerContent = FPSTR(html_common_header);
+  String uploadDonePage = FPSTR(html_page_upload);
+  String content = F("<div style='text-align:center;'><b>Upload ");
+  if (uploaderror) {
+    content += F("<font color='red'>failed</font></b>");
+    if (uploaderror == 1) {
+      content += F("<br/><br/>No file selected");
+    } else if (uploaderror == 2) {
+      content += F("<br/><br/>File size is larger than available free space");
+    } else if (uploaderror == 3) {
+      content += F("<br/><br/>File magic header does not start with 0xE9");
+    } else if (uploaderror == 4) {
+      content += F("<br/><br/>File flash size is larger than device flash size");
+    } else if (uploaderror == 5) {
+      content += F("<br/><br/>File upload buffer miscompare");
+    } else if (uploaderror == 6) {
+      content += F("<br/><br/>Upload failed. Enable logging option 3 for more information");
+    } else if (uploaderror == 7) {
+      content += F("<br/><br/>Upload aborted");
+    } else {
+      content += F("<br/><br/>Upload error code ");
+      content += String(uploaderror);
+    }
+    if (Update.hasError()) {
+      content += F("<br/><br/>Update error code (see Updater.cpp) ");
+      content += String(Update.getError());
+    }
+  } else {
+    content += F("<font color='green'>successful</font></b><br/><br/>Device will restart in a few seconds");
+    content += F("<script>");
+    content += F("setTimeout(function () {");
+    content += F("window.location.href= '/';");
+    content += F("}, 10000);");
+    content += F("</script>");
+    restartflag = true;
+  }
+  content += F("</div><br/>");
+  uploadDonePage.replace("_UPLOAD_MSG_", content);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + uploadDonePage + footerContent;
+  toSend.replace("_UNIT_NAME_", hostname);
+  toSend.replace("_VERSION_", m2mqtt_version);
+  server.send(200, "text/html", toSend);
+  if (restartflag) {
+    delay(10);
+    ESP.reset();
+  }
+}
+
+void handleUploadLoop()
+{
+  // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
+  //char log[200];
+  if (uploaderror) {
+    Update.end();
+    return;
+  }
+  HTTPUpload& upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    if (upload.filename.c_str()[0] == 0)
+    {
+      uploaderror = 1;
+      return;
+    }
+    //save cpu by disconnect/stop retry mqtt server
+    if (mqtt_client.state() == MQTT_CONNECTED) {
+      mqtt_client.disconnect();
+      lastMqttRetry = millis();
+    }
+    //snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
+    //Serial.printl(log);
+    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    if (!Update.begin(maxSketchSpace)) {         //start with max available size
+      //Update.printError(Serial);
+      uploaderror = 2;
+      return;
+    }
+  } else if (!uploaderror && (upload.status == UPLOAD_FILE_WRITE)) {
+    if (upload.totalSize == 0)
+    {
+      if (upload.buf[0] != 0xE9) {
+        //Serial.println(PSTR("Upload: File magic header does not start with 0xE9"));
+        uploaderror = 3;
+        return;
+      }
+      uint32_t bin_flash_size = ESP.magicFlashChipSize((upload.buf[3] & 0xf0) >> 4);
+      if (bin_flash_size > ESP.getFlashChipRealSize()) {
+        //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
+        uploaderror = 4;
+        return;
+      }
+      if (ESP.getFlashChipMode() == 3) {
+        upload.buf[2] = 3; // DOUT - ESP8285
+      } else {
+        upload.buf[2] = 2; // DIO - ESP8266
+      }
+    }
+    if (!uploaderror && (Update.write(upload.buf, upload.currentSize) != upload.currentSize)) {
+      //Update.printError(Serial);
+      uploaderror = 5;
+      return;
+    }
+  } else if (!uploaderror && (upload.status == UPLOAD_FILE_END)) {
+    if (Update.end(true)) { // true to set the size to the current progress
+      //snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
+      //Serial.printl(log)
+    } else {
+      //Update.printError(Serial);
+      uploaderror = 6;
+      return;
+    }
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    //Serial.println(PSTR("Upload: Update was aborted"));
+    uploaderror = 7;
+    Update.end();
+  }
+  delay(0);
 }
 
 void write_log(String log) {
@@ -948,7 +1125,6 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
 }
-
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
@@ -1255,43 +1431,6 @@ void checkLogin() {
     server.send(301);
     return;
   }
-}
-
-//login page, also called for disconnect
-void handle_login() {
-  String msg;
-  if (server.hasHeader("Cookie")) {
-    //Found cookie;
-    String cookie = server.header("Cookie");
-  }
-  if (server.hasArg("LOGOUT")) {
-    //Disconnection
-    server.sendHeader("Location", "/login");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
-    server.send(301);
-    return;
-  }
-  if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
-    if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
-      server.sendHeader("Location", "/");
-      server.sendHeader("Cache-Control", "no-cache");
-      server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
-      server.send(301);
-      //Log in Successful;
-      return;
-    }
-    msg = "Wrong username/password! try again.";
-    //Log in Failed;
-  }
-  String headerContent = FPSTR(html_common_header);
-  String loginPage =  FPSTR(html_page_login);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + loginPage + footerContent;
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  toSend.replace("_LOGIN_MSG_", msg);
-  server.send(200, "text/html", toSend);
 }
 
 void loop() {
