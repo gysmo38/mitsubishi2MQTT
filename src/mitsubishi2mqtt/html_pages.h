@@ -403,7 +403,7 @@ const char html_page_login[] PROGMEM = R"====(
             <fieldset>
                 <legend><b>&nbsp;LOGIN&nbsp;</b></legend>
                 <form action='/login' method='post'>
-                    <p>To log in, please user : <b>admin</b> and password</p>
+                    <p>To log in, enter user: <b>admin</b> and password</p>
                     <p><b>User</b>
                         <input type='text' name='USERNAME' placeholder='user name'>
                     </p>
