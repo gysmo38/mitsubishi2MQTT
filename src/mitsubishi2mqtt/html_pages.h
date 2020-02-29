@@ -1,4 +1,4 @@
-String html_page_reboot = R"====(
+const char html_page_reboot[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -14,7 +14,7 @@ String html_page_reboot = R"====(
 </script>
 )====";
 
-String html_page_reset = R"====(
+const char html_page_reset[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -26,7 +26,7 @@ String html_page_reset = R"====(
 )====";
 
 
-String html_page_save_reboot = R"====(
+const char html_page_save_reboot[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -43,7 +43,7 @@ String html_page_save_reboot = R"====(
 
 )====";
 
-String html_page_mqtt = R"====(
+const char html_page_mqtt[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -69,7 +69,7 @@ String html_page_mqtt = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_others = R"====(
+const char html_page_others[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -100,7 +100,7 @@ String html_page_others = R"====(
   <p><form action='/setup' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_status = R"====(
+const char html_page_status[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -117,7 +117,7 @@ String html_page_status = R"====(
   <p><form action='/' method='get'><button>Back</button></form></p>
 )====";
 
-String html_page_wifi = R"====(
+const char html_page_wifi[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -139,7 +139,7 @@ String html_page_wifi = R"====(
 )====";
 
 
-String html_page_control = R"====(
+const char html_page_control[] PROGMEM = R"====(
 <body>
 <script>
 function $_GET(param) {
@@ -258,7 +258,7 @@ window.onload=function(){
 
 )====";
 
-String html_page_unit = R"====(
+const char html_page_unit[] PROGMEM = R"====(
 <body>
 
 

@@ -1,4 +1,4 @@
-String html_menu_root = R"====(
+const char html_menu_root[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
@@ -12,7 +12,7 @@ String html_menu_root = R"====(
 )====";
 
 
-String html_menu_setup = R"====(
+const char html_menu_setup[] PROGMEM = R"====(
   <body>
   <div style='text-align:left;display:inline-block;min-width:340px;'>
     <div style='text-align:center;'>
