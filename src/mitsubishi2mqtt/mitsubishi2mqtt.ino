@@ -757,7 +757,7 @@ void handle_control() {
 }
 
 void write_log(String log) {
-  File logFile = SPIFFS.open(console_file.c_str(), "a");
+  File logFile = SPIFFS.open(console_file, "a");
   logFile.println(log);
   logFile.close();
 }
@@ -924,7 +924,7 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
 }
 
 // Used to send a dummy packet in state topic to validate action in HA interface
-void hpSendDummy(char* name, char* value, char* name2, char* value2) {
+void hpSendDummy(String name, String value, String name2, String value2) {
 
   //For sending dummy state packet
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(12);
@@ -1042,7 +1042,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       mqtt_client.publish(ha_debug_topic.c_str(), "debug mode disabled");
     }
   } else {
-    mqtt_client.publish(ha_debug_topic.c_str(), strcat("heatpump: wrong mqtt topic: ", topic));
+    mqtt_client.publish(ha_debug_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
   }
 }
 
@@ -1111,7 +1111,7 @@ void haConfig() {
 
   haConfigDevice["ids"]   = mqtt_fn;
   haConfigDevice["name"]  = mqtt_fn;
-  haConfigDevice["sw"]    = "Mitsubishi2MQTT " + m2mqtt_version;
+  haConfigDevice["sw"]    = "Mitsubishi2MQTT " + String(m2mqtt_version);
   haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
 

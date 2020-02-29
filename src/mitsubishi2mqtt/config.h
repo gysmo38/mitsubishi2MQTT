@@ -3,17 +3,17 @@
  *
  */
 
-String m2mqtt_version = "0.4.9";
+const PROGMEM char* m2mqtt_version = "0.4.9";
 
 //Define global variables for files
-String wifi_conf = "wifi.json";
-String mqtt_conf = "mqtt.json";
-String advance_conf = "advance.json";
-String console_file = "console.log";
-String others_conf = "others.json";
+const PROGMEM char* wifi_conf = "wifi.json";
+const PROGMEM char* mqtt_conf = "mqtt.json";
+const PROGMEM char* advance_conf = "advance.json";
+const PROGMEM char* console_file = "console.log";
+const PROGMEM char* others_conf = "others.json";
 
 // Define global variables for network
-String hostnamePrefix = "HVAC_";
+const PROGMEM char* hostnamePrefix = "HVAC_";
 String hostname = "";
 String ap_ssid;
 String ap_pwd;
@@ -57,16 +57,16 @@ String login_password;
 bool _debugMode = false;
 
 // Customization
-float min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
-float max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
-const char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
+const PROGMEM uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+const PROGMEM uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
+const PROGMEM char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // pinouts
-const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-const int redLedPin = 0;
+const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
+const PROGMEM  uint8_t redLedPin = 0;
 // sketch settings
-const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
-const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000;
+const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
 
 // temp settings
 bool useFahrenheit = false;
