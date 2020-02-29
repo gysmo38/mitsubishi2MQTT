@@ -2,10 +2,15 @@ const char html_menu_root[] PROGMEM = R"====(
 <body>
     <script>
         var showLogout = _SHOW_LOGOUT_;
+        var showControl = _SHOW_CONTROL_;
         document.onreadystatechange = function() {
             if (document.readyState === "complete") {
                 if (showLogout == 0) {
                     var element = document.getElementById("logout");
+                    element.parentNode.removeChild(element);
+                }
+                if (showControl == 0) {
+                    var element = document.getElementById("control");
                     element.parentNode.removeChild(element);
                 }
             }
@@ -18,7 +23,7 @@ const char html_menu_root[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <div>
+        <div id="control">
             <form action='/control' method='get'>
                 <button>Control</button>
             </form>

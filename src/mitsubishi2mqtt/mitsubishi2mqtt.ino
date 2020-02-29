@@ -407,6 +407,8 @@ void handleNotFound() {
     String headerContent = FPSTR(html_common_header);
     String menuRootPage =  FPSTR(html_menu_root);
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
+    //not show control button if hp not connected
+    menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + menuRootPage + footerContent;
     server.send(200, "text/html", toSend);
@@ -460,6 +462,8 @@ void handleRoot() {
     String headerContent = FPSTR(html_common_header);
     String menuRootPage =  FPSTR(html_menu_root);
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
+    //not show control button if hp not connected
+    menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
     String footerContent = FPSTR(html_common_footer);
     String toSend = headerContent + menuRootPage + footerContent;
     toSend.replace(F("_UNIT_NAME_"), hostname);
@@ -647,6 +651,13 @@ void handleStatus() {
 
 void handleControl() {
   checkLogin();
+  //not connected to hp, redirect to status page
+  if (!hp.isConnected()) {
+    server.sendHeader("Location", "/status");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.send(301);
+    return;
+  }
   heatpumpSettings settings = hp.getSettings();
   settings = change_states(settings);
   String controlPage =  FPSTR(html_page_control);
@@ -1245,12 +1256,16 @@ void haConfig() {
 
   haConfig["mode_cmd_t"]                    = ha_mode_set_topic;
   haConfig["mode_stat_t"]                   = ha_state_topic;
-  haConfig["mode_stat_tpl"]                 = "{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
   haConfig["temp_stat_t"]                   = ha_state_topic;
-  haConfig["temp_stat_tpl"]                 = "{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > " + (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  String temp_stat_tpl_str                  = F("{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > ");
+  temp_stat_tpl_str                        += (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
-  haConfig["curr_temp_tpl"]                 = "{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > " + (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
+  curr_temp_tpl_str                        += (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
   haConfig["min_temp"]                      = getTemperature(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = getTemperature(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
@@ -1266,7 +1281,7 @@ void haConfig() {
 
   haConfig["fan_mode_cmd_t"]                = ha_fan_set_topic;
   haConfig["fan_mode_stat_t"]               = ha_state_topic;
-  haConfig["fan_mode_stat_tpl"]             = "{{ value_json.fan if (value_json is defined and value_json.fan is defined and value_json.fan|length) else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["fan_mode_stat_tpl"]             = F("{{ value_json.fan if (value_json is defined and value_json.fan is defined and value_json.fan|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
 
   JsonArray haConfigSwing_modes = haConfig.createNestedArray("swing_modes");
   haConfigSwing_modes.add("AUTO");
@@ -1279,9 +1294,9 @@ void haConfig() {
 
   haConfig["swing_mode_cmd_t"]              = ha_vane_set_topic;
   haConfig["swing_mode_stat_t"]             = ha_state_topic;
-  haConfig["swing_mode_stat_tpl"]           = "{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["swing_mode_stat_tpl"]           = F("{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["action_topic"]                  = ha_state_topic;
-  haConfig["action_template"]               = "{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"; //Set default value for fix "Could not parse data for HA"
+  haConfig["action_template"]               = F("{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"); //Set default value for fix "Could not parse data for HA"
 
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
