@@ -392,6 +392,17 @@ const char html_page_advance[] PROGMEM = R"====(
 
 const char html_page_login[] PROGMEM = R"====(
 <body>
+    <script>
+        var loginSucess = _LOGIN_SUCCESS_;
+        document.onreadystatechange = function() {
+            if (document.readyState === "complete") {
+                if (loginSucess == 1) {
+                    var element = document.getElementById("login_form");
+                    element.parentNode.removeChild(element);
+                }
+            }
+        }
+    </script>
     <div style='text-align:left;display:inline-block;min-width:340px;'>
         <div style='text-align:center;'>
             <noscript>To user Mitsubishi2MQTT, you need to activate Javascript
@@ -399,7 +410,7 @@ const char html_page_login[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <div id='l1' name='l1'>
+        <div id='login_form' name='login_form'>
             <fieldset>
                 <legend><b>&nbsp;LOGIN&nbsp;</b></legend>
                 <form action='/login' method='post'>
@@ -415,8 +426,10 @@ const char html_page_login[] PROGMEM = R"====(
                 </form>
                 <br> You can go to <a href='/status'>status page</a>
                 <br>
-                <p>_LOGIN_MSG_</p>
             </fieldset>
+        </div>
+        <div
+        _LOGIN_MSG_
         </div>
 )====";
 

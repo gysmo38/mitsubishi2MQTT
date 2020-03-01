@@ -774,37 +774,60 @@ void handleControl() {
 
 //login page, also called for logout
 void handleLogin() {
+  bool loginSuccess = false;
   String msg;
+  String loginPage =  FPSTR(html_page_login);
   if (server.hasHeader("Cookie")) {
     //Found cookie;
     String cookie = server.header("Cookie");
   }
-  if (server.hasArg("LOGOUT")) {
-    //Disconnection
-    server.sendHeader("Location", "/login");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
-    server.send(301);
-    return;
+  if (server.hasArg("USERNAME") || server.hasArg("PASSWORD") || server.hasArg("LOGOUT")) {
+    if (server.hasArg("LOGOUT")) {
+      //logout
+      server.sendHeader("Cache-Control", "no-cache");
+      server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
+      loginSuccess = false;
+    }
+    if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
+      if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
+        server.sendHeader("Cache-Control", "no-cache");
+        server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
+        loginSuccess = true;
+        msg = F("<b><font color='red'>Login successful, you will be redirect in few seconds.</font></b>");
+        loginPage += F("<script>");
+        loginPage += F("setTimeout(function () {");
+        loginPage += F("window.location.href= '/';");
+        loginPage += F("}, 3000);");
+        loginPage += F("</script>");
+        //Log in Successful;
+      } else {
+        msg = F("<b><font color='red'>Wrong username/password! try again.</font></b>");
+        //Log in Failed;
+      }
+    }
   }
-  if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
-    if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
+  else {
+    if (is_authenticated() or login_password.length() == 0) {
       server.sendHeader("Location", "/");
       server.sendHeader("Cache-Control", "no-cache");
-      server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
-      server.send(301);
-      //Log in Successful;
+      //use javascript in the case browser disable redirect
+      String redirectPage = F("<html lang=\"en\" class=\"\"><head><meta charset='utf-8'>");
+      redirectPage += F("<script>");
+      redirectPage += F("setTimeout(function () {");
+      redirectPage += F("window.location.href= '/';");
+      redirectPage += F("}, 1000);");
+      redirectPage += F("</script>");
+      redirectPage += F("</body></html>");
+      server.send(301, F("text/html"), redirectPage);
       return;
     }
-    msg = F("Wrong username/password! try again.");
-    //Log in Failed;
   }
   String headerContent = FPSTR(html_common_header);
-  String loginPage =  FPSTR(html_page_login);
   String footerContent = FPSTR(html_common_footer);
   String toSend = headerContent + loginPage + footerContent;
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
+  toSend.replace(F("_LOGIN_SUCCESS_"), (String) loginSuccess);
   toSend.replace(F("_LOGIN_MSG_"), msg);
   server.send(200, F("text/html"), toSend);
 }
@@ -853,7 +876,7 @@ void handleUploadDone()
       content += String(Update.getError());
     }
   } else {
-    content += F("<font color='green'>successful</font></b><br/><br/>Device will restart in a few seconds");
+    content += F("<b><font color='green'>successful</font></b><br/><br/>Device will restart in a few seconds");
     content += F("<script>");
     content += F("setTimeout(function () {");
     content += F("window.location.href= '/';");
@@ -1443,7 +1466,15 @@ void checkLogin() {
   if (!is_authenticated() and login_password.length() > 0) {
     server.sendHeader("Location", "/login");
     server.sendHeader("Cache-Control", "no-cache");
-    server.send(301);
+    //use javascript in the case browser disable redirect
+    String redirectPage = F("<html lang=\"en\" class=\"\"><head><meta charset='utf-8'>");
+    redirectPage += F("<script>");
+    redirectPage += F("setTimeout(function () {");
+    redirectPage += F("window.location.href= '/login';");
+    redirectPage += F("}, 1000);");
+    redirectPage += F("</script>");
+    redirectPage += F("</body></html>");
+    server.send(301, F("text/html"), redirectPage);
     return;
   }
 }
