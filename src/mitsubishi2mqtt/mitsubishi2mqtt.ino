@@ -182,7 +182,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
-    Serial.println(F("failed to open config file for writing"));
+    Serial.println(F("Failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -203,7 +203,7 @@ void saveAdvance(String tempUnit, String supportMode, String loginPassword) {
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(advance_conf, "w");
   if (!configFile) {
-    Serial.println(F("failed to open config file for writing"));
+    Serial.println(F("Failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -219,7 +219,7 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
-    Serial.println(F("failed to open wifi file for writing"));
+    Serial.println(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -235,7 +235,7 @@ void saveOthers(String haa, String haat, String debug) {
   doc["debug"] = debug;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
-    Serial.println(F("failed to open wifi file for writing"));
+    Serial.println(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -380,7 +380,7 @@ boolean initWifi() {
     }
   }
 
-  Serial.println("\n\r \n\rStarting in AP mode");
+  Serial.println(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(apIP, apIP, netMsk);
   if (!connectWifiSuccess)
@@ -389,7 +389,7 @@ boolean initWifi() {
   else
     // First time setup does not require password
     WiFi.softAP(hostname.c_str());
-  Serial.print("IP address: ");
+  Serial.print(F("IP address: "));
   Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
   wifi_config = false;
@@ -417,7 +417,7 @@ void handleNotFound() {
 
 void handleSaveWifi() {
   checkLogin();
-  Serial.println("Saving wifi config");
+  Serial.println(F("Saving wifi config"));
   if (server.hasArg("submit")) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
@@ -433,7 +433,7 @@ void handleSaveWifi() {
 }
 
 void handleReboot() {
-  Serial.println("Rebooting");
+  Serial.println(F("Rebooting"));
   String headerContent = FPSTR(html_common_header);
   String initRebootPage =  FPSTR(html_init_reboot);
   String footerContent = FPSTR(html_common_footer);
@@ -1046,7 +1046,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp settings");
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp settings")));
   }
 
   hpStatusChanged(hp.getStatus());
@@ -1107,7 +1107,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish hp status change");
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp status change")));
   }
 
 }
@@ -1129,7 +1129,7 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
     String mqttOutput;
     serializeJson(root, mqttOutput);
     if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
-      mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish to heatpump/debug topic");
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish to heatpump/debug topic")));
     }
   }
 }
@@ -1154,7 +1154,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), "failed to publish dummy hp status change");
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish dummy hp status change")));
   }
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
@@ -1246,10 +1246,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
       _debugMode = true;
-      mqtt_client.publish(ha_debug_topic.c_str(), "debug mode enabled");
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode enabled")));
     } else if (strcmp(message, "off") == 0) {
       _debugMode = false;
-      mqtt_client.publish(ha_debug_topic.c_str(), "debug mode disabled");
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode disabled")));
     }
   } else {
     mqtt_client.publish(ha_debug_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
@@ -1389,14 +1389,12 @@ bool connectWifi() {
     delay(250);
   }
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("");
-    Serial.print("Failed to connect to wifi");
+    Serial.println(F("Failed to connect to wifi"));
     return false;
   }
-  Serial.println("");
-  Serial.print("Connected to ");
+  Serial.println(F("Connected to "));
   Serial.println(ap_ssid);
-  Serial.println("Ready");
+  Serial.println(F("Ready"));
   Serial.print("IP address: ");
   unsigned long dhcpStartTime = millis();
   while ((WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") && millis() - dhcpStartTime < 5000) {
@@ -1404,8 +1402,7 @@ bool connectWifi() {
     delay(500);
   }
   if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
-    Serial.println("");
-    Serial.print("Failed to get IP address");
+    Serial.println(F("Failed to get IP address"));
     return false;
   }
   Serial.println(WiFi.localIP());
