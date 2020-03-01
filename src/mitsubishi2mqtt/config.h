@@ -3,17 +3,17 @@
  *
  */
 
-const char* m2mqtt_version = "0.4.8";
+const PROGMEM char* m2mqtt_version = "0.5.0";
 
-// Define global variables for files
-const char* wifi_conf = "wifi.json";
-const char* mqtt_conf = "mqtt.json";
-const char* unit_conf = "unit.json";
-const char* console_file = "console.log";
-const char* others_conf = "others.json";
+//Define global variables for files
+const PROGMEM char* wifi_conf = "wifi.json";
+const PROGMEM char* mqtt_conf = "mqtt.json";
+const PROGMEM char* advance_conf = "advance.json";
+const PROGMEM char* console_file = "console.log";
+const PROGMEM char* others_conf = "others.json";
 
 // Define global variables for network
-String hostnamePrefix = "HVAC_";
+const PROGMEM char* hostnamePrefix = "HVAC_";
 String hostname = "";
 String ap_ssid;
 String ap_pwd;
@@ -28,7 +28,7 @@ String mqtt_password;
 String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
 
-// Define global variables for Others settings
+//Define global variables for Others settings
 String others_debug;
 String others_haa;
 String others_haa_topic;
@@ -48,23 +48,27 @@ String ha_debug_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
 String hvac_name;
+//login
+String login_username = "admin";
+String login_password;
 
-// Debug mode, when true, will send all packets received from the heatpump to topic heatpump_debug_topic
-// This can also be set by sending "on" to heatpump_debug_set_topic
+// debug mode, when true, will send all packets received from the heatpump to topic heatpump_debug_topic
+// this can also be set by sending "on" to heatpump_debug_set_topic
 bool _debugMode = false;
 
 // Customization
-const float min_temp  = 16;  // Minimum temperature, check value from heatpump remote control
-const float max_temp  = 31;  // Maximum temperature, check value from heatpump remote control
-const char* temp_step = "1"; // Temperature setting step, check value from heatpump remote control
+const PROGMEM uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+const PROGMEM uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
+const PROGMEM char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
-// Pinouts
-const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-const int redLedPin = 0;
+// pinouts
+const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
+const PROGMEM  uint8_t redLedPin = 0;
+// sketch settings
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000;
+const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
 
-// Sketch settings
-const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 30 seconds
-const unsigned int MQTT_RETRY_INTERVAL_MS = 1000;      // 1 second
-
-// Temp settings
-bool useFahrenheit = false; 
+// temp settings
+bool useFahrenheit = false;
+// support heat mode settings, some model do not support heat mode 
+bool supportHeatMode = true;
