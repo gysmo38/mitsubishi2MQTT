@@ -5,7 +5,7 @@ It use SwiCago librairies: https://github.com/SwiCago/HeatPump
 ***
 Features:
  - Initial config:  WIFI AP mode and web portal
- - Webinterface for configuration, status and control
+ - Web interface for configuration, status and control, firmware upgrade
  - Homeassistant autodiscovery and control with MQTT
 
 ***

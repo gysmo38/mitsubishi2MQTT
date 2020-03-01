@@ -769,7 +769,7 @@ void handleControl() {
   server.sendContent(footerContent);
   // Signal the end of the content
   server.sendContent("");
-  delay(100);
+  //delay(100);
 }
 
 //login page, also called for logout
