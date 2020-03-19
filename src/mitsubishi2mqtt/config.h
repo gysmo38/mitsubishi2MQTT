@@ -1,9 +1,20 @@
 /*
- * mitsubishi2mqtt
- *
- */
+  mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
+  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 
-const PROGMEM char* m2mqtt_version = "0.5.0";
+const PROGMEM char* m2mqtt_version = "0.6.0";
 
 //Define global variables for files
 const PROGMEM char* wifi_conf = "wifi.json";
@@ -62,7 +73,12 @@ const PROGMEM uint8_t max_temp                    = 31; // Maximum temperature, 
 const PROGMEM char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // pinouts
+#ifdef ESP32
+const PROGMEM  uint8_t blueLedPin = 2;            // The ESP32 has an internal blue LED at D2 (GPIO 02)
+#else
 const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
+#endif
+
 const PROGMEM  uint8_t redLedPin = 0;
 // sketch settings
 const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000;
