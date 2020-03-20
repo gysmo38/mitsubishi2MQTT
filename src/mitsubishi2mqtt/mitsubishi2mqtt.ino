@@ -16,13 +16,16 @@
 #include "FS.h"               // SPIFFS for store config 
 #ifdef ESP32
 #include <WiFi.h>             // WIFI for ESP32
+#include <WiFiUdp.h>
 #include <ESPmDNS.h>          // mDNS for ESP32
 #include <WebServer.h>        // webServer for ESP32
-#include "SPIFFS.h"           // ESP32 SPIFFS for store config 
+#include "SPIFFS.h"           // ESP32 SPIFFS for store config
+WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
+ESP8266WebServer server(80);  // ESP8266 web
 #endif
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
@@ -50,12 +53,6 @@ IPAddress apIP(192, 168, 1, 1);
 IPAddress netMsk(255, 255, 255, 0);
 DNSServer dnsServer;
 
-#ifdef ESP32
-WebServer server(80);
-#else
-ESP8266WebServer server(80);
-#endif
-
 boolean captive = false;
 boolean mqtt_config = false;
 boolean wifi_config = false;
@@ -73,10 +70,17 @@ void setup() {
   Serial.begin(115200);
   Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
-  if (!SPIFFS.begin()) {
-    Serial.println(F("An Error has occurred while mounting SPIFFS"));
+  if (SPIFFS.begin())
+  {
+    Serial.println(F("Mounted file system"));
   }
-
+  else
+  {
+    Serial.println(F("Failed to mount FS -> formating"));
+    SPIFFS.format();
+    if (SPIFFS.begin())
+      Serial.println(F("Mounted file system after formating"));
+  }
   //set led pin as output
   pinMode(blueLedPin, OUTPUT);
   /*
@@ -96,7 +100,9 @@ void setup() {
   loadWifi();
   loadAdvance();
   if (initWifi()) {
-    SPIFFS.remove(console_file);
+    if (SPIFFS.exists(console_file)) {
+      SPIFFS.remove(console_file);
+    }
     //write_log("Starting Mitsubishi2MQTT");
     //Web interface
     server.on("/", handleRoot);
@@ -168,6 +174,10 @@ void setup() {
 bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
+  if (!SPIFFS.exists(wifi_conf)) {
+    Serial.println(F("Wifi config file not exist!"));
+    return false;
+  }
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
     Serial.println(F("Failed to open wifi config file"));
@@ -318,6 +328,10 @@ void initOTA() {
 }
 
 bool loadMqtt() {
+  if (!SPIFFS.exists(mqtt_conf)) {
+    Serial.println(F("MQTT config file not exist!"));
+    return false;
+  }
   //write_log("Loading MQTT configuration");
   File configFile = SPIFFS.open(mqtt_conf, "r");
   if (!configFile) {
@@ -357,6 +371,10 @@ bool loadMqtt() {
 }
 
 bool loadAdvance() {
+  if (!SPIFFS.exists(advance_conf)) {
+    Serial.println(F("Advance config file not exist!"));
+    return false;
+  }
   File configFile = SPIFFS.open(advance_conf, "r");
   if (!configFile) {
     return false;
@@ -413,13 +431,17 @@ boolean initWifi() {
 
   Serial.println(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(apIP, apIP, netMsk);
-  if (!connectWifiSuccess)
+  WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
+  if (!connectWifiSuccess) {
     // Set AP password when falling back to AP on fail
     WiFi.softAP(hostname.c_str(), hostname.c_str());
-  else
+  }
+  else {
     // First time setup does not require password
     WiFi.softAP(hostname.c_str());
+  }
+  delay(2000); // VERY IMPORTANT
+  WiFi.softAPConfig(apIP, apIP, netMsk);
   Serial.print(F("IP address: "));
   Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
