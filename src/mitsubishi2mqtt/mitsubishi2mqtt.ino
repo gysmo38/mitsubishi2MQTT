@@ -654,7 +654,7 @@ void handleWifi() {
     ESP.restart();
 #else
     ESP.reset();
-#endi
+#endif
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -984,7 +984,7 @@ void handleUploadLoop()
 #ifdef ESP32
       if (bin_flash_size > ESP.getFlashChipSize()) {
 #else
-      if (bin_flash_size > ESP.getFlashChipRealSiz()) {
+      if (bin_flash_size > ESP.getFlashChipRealSize()) {
 #endif
         //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
         uploaderror = 4;
