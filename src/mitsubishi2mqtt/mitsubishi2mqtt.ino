@@ -1,14 +1,39 @@
+/*
+  mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
+  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+#include "FS.h"               // SPIFFS for store config 
+#ifdef ESP32
+#include <WiFi.h>             // WIFI for ESP32
+#include <WiFiUdp.h>
+#include <ESPmDNS.h>          // mDNS for ESP32
+#include <WebServer.h>        // webServer for ESP32
+#include "SPIFFS.h"           // ESP32 SPIFFS for store config
+WebServer server(80);         //ESP32 web
+#else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
+ESP8266WebServer server(80);  // ESP8266 web
+#endif
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
-#include "FS.h"               // SPIFFS for store config 
 #include <math.h>             // for rounding to Fahrenheit values
 
 #include <ArduinoOTA.h>   // for OTA
-#include <HeatPump.h>     // Swiacago library: https://github.com/SwiCago/HeatPump
+#include <HeatPump.h>     // SwiCago library: https://github.com/SwiCago/HeatPump
 //#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
@@ -27,7 +52,7 @@ const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 1, 1);
 IPAddress netMsk(255, 255, 255, 0);
 DNSServer dnsServer;
-ESP8266WebServer server(80);
+
 boolean captive = false;
 boolean mqtt_config = false;
 boolean wifi_config = false;
@@ -43,13 +68,19 @@ int uploaderror = 0;
 void setup() {
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
-  Serial.println();
   Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
-  if (!SPIFFS.begin()) {
-    Serial.println(F("An Error has occurred while mounting SPIFFS"));
+  if (SPIFFS.begin())
+  {
+    Serial.println(F("Mounted file system"));
   }
-
+  else
+  {
+    Serial.println(F("Failed to mount FS -> formating"));
+    SPIFFS.format();
+    if (SPIFFS.begin())
+      Serial.println(F("Mounted file system after formating"));
+  }
   //set led pin as output
   pinMode(blueLedPin, OUTPUT);
   /*
@@ -58,14 +89,20 @@ void setup() {
 
   //Define hostname
   hostname += hostnamePrefix;
-  hostname += String(ESP.getChipId(), HEX);
+  hostname += getId();
   mqtt_client_id = hostname;
-  WiFi.hostname(hostname);
+#ifdef ESP32
+  WiFi.setHostname(hostname.c_str());
+#else
+  WiFi.hostname(hostname.c_str());
+#endif
   setDefaults();
   loadWifi();
   loadAdvance();
   if (initWifi()) {
-    SPIFFS.remove(console_file);
+    if (SPIFFS.exists(console_file)) {
+      SPIFFS.remove(console_file);
+    }
     //write_log("Starting Mitsubishi2MQTT");
     //Web interface
     server.on("/", handleRoot);
@@ -137,6 +174,10 @@ void setup() {
 bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
+  if (!SPIFFS.exists(wifi_conf)) {
+    Serial.println(F("Wifi config file not exist!"));
+    return false;
+  }
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
     Serial.println(F("Failed to open wifi config file"));
@@ -287,6 +328,10 @@ void initOTA() {
 }
 
 bool loadMqtt() {
+  if (!SPIFFS.exists(mqtt_conf)) {
+    Serial.println(F("MQTT config file not exist!"));
+    return false;
+  }
   //write_log("Loading MQTT configuration");
   File configFile = SPIFFS.open(mqtt_conf, "r");
   if (!configFile) {
@@ -326,6 +371,10 @@ bool loadMqtt() {
 }
 
 bool loadAdvance() {
+  if (!SPIFFS.exists(advance_conf)) {
+    Serial.println(F("Advance config file not exist!"));
+    return false;
+  }
   File configFile = SPIFFS.open(advance_conf, "r");
   if (!configFile) {
     return false;
@@ -376,19 +425,23 @@ boolean initWifi() {
     {
       // reset hostname back to default before starting AP mode for privacy
       hostname = hostnamePrefix;
-      hostname += String(ESP.getChipId(), HEX);
+      hostname += getId();
     }
   }
 
   Serial.println(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(apIP, apIP, netMsk);
-  if (!connectWifiSuccess)
+  WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
+  if (!connectWifiSuccess) {
     // Set AP password when falling back to AP on fail
     WiFi.softAP(hostname.c_str(), hostname.c_str());
-  else
+  }
+  else {
     // First time setup does not require password
     WiFi.softAP(hostname.c_str());
+  }
+  delay(2000); // VERY IMPORTANT
+  WiFi.softAPConfig(apIP, apIP, netMsk);
   Serial.print(F("IP address: "));
   Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
@@ -456,7 +509,11 @@ void handleRoot() {
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
     delay(10);
+#ifdef ESP32
+    ESP.restart();
+#else
     ESP.reset();
+#endif
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -494,7 +551,11 @@ void handleSetup() {
     server.send(200, F("text/html"), toSend);
     SPIFFS.format();
     delay(10);
+#ifdef ESP32
+    ESP.restart();
+#else
     ESP.reset();
+#endif
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -549,7 +610,7 @@ void handleMqtt() {
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
     delay(10);
-    ESP.reset();
+    ESP.restart();
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -579,7 +640,7 @@ void handleAdvance() {
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
     delay(10);
-    ESP.reset();
+    ESP.restart();
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -611,7 +672,11 @@ void handleWifi() {
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
     delay(10);
+#ifdef ESP32
+    ESP.restart();
+#else
     ESP.reset();
+#endif
   }
   else {
     String headerContent = FPSTR(html_common_header);
@@ -893,7 +958,11 @@ void handleUploadDone()
   server.send(200, "text/html", toSend);
   if (restartflag) {
     delay(10);
+#ifdef ESP32
+    ESP.restart();
+#else
     ESP.reset();
+#endif
   }
 }
 
@@ -934,7 +1003,11 @@ void handleUploadLoop()
         return;
       }
       uint32_t bin_flash_size = ESP.magicFlashChipSize((upload.buf[3] & 0xf0) >> 4);
+#ifdef ESP32
+      if (bin_flash_size > ESP.getFlashChipSize()) {
+#else
       if (bin_flash_size > ESP.getFlashChipRealSize()) {
+#endif
         //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
         uploaderror = 4;
         return;
@@ -1264,7 +1337,7 @@ void haConfig() {
   DynamicJsonDocument haConfig(capacity);
 
   haConfig["name"]                          = mqtt_fn;
-  haConfig["unique_id"]                     = String(ESP.getChipId(), HEX);
+  haConfig["unique_id"]                     = getId();
 
   JsonArray haConfigModes = haConfig.createNestedArray("modes");
   haConfigModes.add("heat_cool"); //native AUTO mode
@@ -1371,12 +1444,19 @@ void mqttConnect() {
 }
 
 bool connectWifi() {
-  WiFi.hostname(hostname);
+#ifdef ESP32
+  WiFi.setHostname(hostname.c_str());
+#else
+  WiFi.hostname(hostname.c_str());
+#endif
   if (WiFi.getMode() != WIFI_STA) {
     WiFi.mode(WIFI_STA);
     delay(10);
   }
-  WiFi.begin(ap_ssid, ap_pwd);
+#ifdef ESP32
+  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
+#endif
+  WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   Serial.println("Connecting to " + ap_ssid);
   unsigned long wifiStartTime = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < 10000) {
@@ -1443,6 +1523,17 @@ String getTemperatureScale() {
   } else {
     return "C";
   }
+}
+
+String getId() {
+#ifdef ESP32
+  uint64_t macAddress = ESP.getEfuseMac();
+  uint64_t macAddressTrunc = macAddress << 40;
+  uint32_t chipID = macAddressTrunc >> 40;
+#else
+  uint32_t chipID = ESP.getChipId();
+#endif
+  return String(chipID, HEX);
 }
 
 //Check if header is present and correct
