@@ -23,12 +23,22 @@ const char html_page_reboot[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <p>Rebooting... Refresh in 10s...</p>
+        <p>Rebooting... Refresh in 10s... <span id='count'>10s</span>...</p>
         <script>
-            setTimeout(function() {
-                window.location.href = '/';
-            }, 10000);
+            var count = 10;
+            (function countDown() {
+                document.getElementById('count').innerHTML = count + 's';
+                setTimeout(function() {
+                    if(count > 0) {
+                        count --;
+                        return countDown();
+                    } else {
+                        window.location.href = '/';
+                    }
+                }, 1000);
+            })();
         </script>
+    </div>
 )====";
 
 const char html_page_reset[] PROGMEM = R"====(
@@ -41,6 +51,7 @@ const char html_page_reset[] PROGMEM = R"====(
             <h3>_UNIT_NAME_</h3>
         </div>
         <p>Resetting... Connect to SSID HVAC_XXXX...</p>
+    </div>
 )====";
 
 
@@ -53,13 +64,22 @@ const char html_page_save_reboot[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <p>Saving configuration and rebooting... Refresh in 10s...</p>
+        <p>Saving configuration and rebooting... Refresh in <span id='count'>10s</span>...</p>
         <script>
-            setTimeout(function() {
-                window.location.href = '/';
-            }, 10000);
+            var count = 10;
+            (function countDown() {
+                document.getElementById('count').innerHTML = count + 's';
+                setTimeout(function() {
+                    if(count > 0) {
+                        count --;
+                        return countDown();
+                    } else {
+                        window.location.href = '/';
+                    }
+                }, 1000);
+            })();
         </script>
-
+    </div>
 )====";
 
 const char html_page_mqtt[] PROGMEM = R"====(
@@ -110,6 +130,7 @@ const char html_page_mqtt[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_others[] PROGMEM = R"====(
@@ -152,6 +173,7 @@ const char html_page_others[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_status[] PROGMEM = R"====(
@@ -175,6 +197,7 @@ const char html_page_status[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_wifi[] PROGMEM = R"====(
@@ -216,6 +239,7 @@ const char html_page_wifi[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 
@@ -352,6 +376,7 @@ const char html_page_control[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_advance[] PROGMEM = R"====(
@@ -408,6 +433,7 @@ const char html_page_advance[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_login[] PROGMEM = R"====(
@@ -451,6 +477,7 @@ const char html_page_login[] PROGMEM = R"====(
         <div
         _LOGIN_MSG_
         </div>
+    </div>
 )====";
 
 const char html_page_upgrade[] PROGMEM = R"====(
@@ -469,10 +496,10 @@ const char html_page_upgrade[] PROGMEM = R"====(
         </div>
         <div id="f1" style="display:block;">
             <fieldset>
-                <legend><b>&nbsp;Firmware OTA upgrade by file upload&nbsp;</b></legend>
+                <legend><b>&nbsp;Firmware OTA upgrade by bin file upload&nbsp;</b></legend>
                 <form method='post' action='upload' enctype='multipart/form-data'>
                     <br>
-                    <input type='file' name='upload'>
+                    <input type='file' accept='.bin' name='upload'>
                     <br>
                     <br>
                     <button type='submit' onclick='eb("f1").style.display="none";eb("f2").style.display="block";this.form.submit();' class='button bgrn'>Start upgrade</button>
@@ -485,6 +512,7 @@ const char html_page_upgrade[] PROGMEM = R"====(
             </p>
         </div>
         <div id='f2' style='display:none;text-align:center;'><b>Upload started ...</b></div>
+    </div>
 )====";
 
 
@@ -505,4 +533,5 @@ const char html_page_upload[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
