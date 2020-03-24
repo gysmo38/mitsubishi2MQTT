@@ -75,7 +75,7 @@ const char html_page_mqtt[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;MQTT Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>Friendly name</b>
                         <br/>
                         <input id='fn' name='fn' placeholder=' ' value='_UNIT_NAME_'>
@@ -125,7 +125,7 @@ const char html_page_others[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;Others Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>HA Autodiscovery</b>
                         <select name="HAA">
                             <option value="ON" _HAA_ON_>ON</option>
@@ -189,7 +189,7 @@ const char html_page_wifi[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;WIFI Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>Hostname</b>
                         <br/>
                         <input id='hn' name='hn' placeholder=' ' value='_UNIT_NAME_'>
@@ -241,18 +241,10 @@ const char html_page_control[] PROGMEM = R"====(
 
         function setTemp(b) {
             var t = document.getElementById('TEMP');
-            if (useF) {
-                if (b && t.value < 88) {
-                    t.value++;
-                } else if (!b && t.value > 61) {
-                    t.value--;
-                }
-            } else {
-                if (b && t.value < 31) {
-                    t.value++;
-                } else if (!b && t.value > 16) {
-                    t.value--;
-                }
+            if (b && t.value < _MAX_TEMP_) {
+                t.value+= _TEMP_STEP_;
+            } else if (!b && t.value > _MIN_TEMP_) {
+                t.value-= _TEMP_STEP_;
             }
             document.getElementById("FTEMP_").submit();
         }
@@ -374,13 +366,25 @@ const char html_page_advance[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;Advance configuration&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p>
                         <b>Temperature Unit</b>
                         <select name="tu">
                             <option value="cel" _TU_CEL_>Celsius</option>
                             <option value="fah" _TU_FAH_>Fahrenheit</option>
                         </select>
+                    </p>
+                    <p><b>Ninimum temperture</b>
+                        <br/>
+                        <input type='number' id='min_temp' name='min_temp' placeholder=' ' value='_MIN_TEMP_'>
+                    </p>
+                    <p><b>Maximum temperture</b>
+                        <br/>
+                        <input type='number' id='max_temp' name='max_temp' placeholder=' ' value='_MAX_TEMP_'>
+                    </p>
+                    <p><b>Temperture step</b>
+                        <br/>
+                        <input type='number' id='temp_step' step="0.1" name='temp_step' placeholder=' ' value='_TEMP_STEP_'>
                     </p>
                     <p>
                         <b>Mode Support</b>
