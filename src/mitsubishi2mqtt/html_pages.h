@@ -23,12 +23,22 @@ const char html_page_reboot[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <p>Rebooting... Refresh in 10s...</p>
+        <p>Rebooting... Refresh in 10s... <span id='count'>10s</span>...</p>
         <script>
-            setTimeout(function() {
-                window.location.href = '/';
-            }, 10000);
+            var count = 10;
+            (function countDown() {
+                document.getElementById('count').innerHTML = count + 's';
+                setTimeout(function() {
+                    if(count > 0) {
+                        count --;
+                        return countDown();
+                    } else {
+                        window.location.href = '/';
+                    }
+                }, 1000);
+            })();
         </script>
+    </div>
 )====";
 
 const char html_page_reset[] PROGMEM = R"====(
@@ -41,6 +51,7 @@ const char html_page_reset[] PROGMEM = R"====(
             <h3>_UNIT_NAME_</h3>
         </div>
         <p>Resetting... Connect to SSID HVAC_XXXX...</p>
+    </div>
 )====";
 
 
@@ -53,13 +64,22 @@ const char html_page_save_reboot[] PROGMEM = R"====(
             </noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
-        <p>Saving configuration and rebooting... Refresh in 10s...</p>
+        <p>Saving configuration and rebooting... Refresh in <span id='count'>10s</span>...</p>
         <script>
-            setTimeout(function() {
-                window.location.href = '/';
-            }, 10000);
+            var count = 10;
+            (function countDown() {
+                document.getElementById('count').innerHTML = count + 's';
+                setTimeout(function() {
+                    if(count > 0) {
+                        count --;
+                        return countDown();
+                    } else {
+                        window.location.href = '/';
+                    }
+                }, 1000);
+            })();
         </script>
-
+    </div>
 )====";
 
 const char html_page_mqtt[] PROGMEM = R"====(
@@ -75,7 +95,7 @@ const char html_page_mqtt[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;MQTT Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>Friendly name</b>
                         <br/>
                         <input id='fn' name='fn' placeholder=' ' value='_UNIT_NAME_'>
@@ -110,6 +130,7 @@ const char html_page_mqtt[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_others[] PROGMEM = R"====(
@@ -125,7 +146,7 @@ const char html_page_others[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;Others Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>HA Autodiscovery</b>
                         <select name="HAA">
                             <option value="ON" _HAA_ON_>ON</option>
@@ -152,6 +173,7 @@ const char html_page_others[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_status[] PROGMEM = R"====(
@@ -175,6 +197,7 @@ const char html_page_status[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_wifi[] PROGMEM = R"====(
@@ -189,7 +212,7 @@ const char html_page_wifi[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;WIFI Parameters&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p><b>Hostname</b>
                         <br/>
                         <input id='hn' name='hn' placeholder=' ' value='_UNIT_NAME_'>
@@ -216,6 +239,7 @@ const char html_page_wifi[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 
@@ -241,18 +265,10 @@ const char html_page_control[] PROGMEM = R"====(
 
         function setTemp(b) {
             var t = document.getElementById('TEMP');
-            if (useF) {
-                if (b && t.value < 88) {
-                    t.value++;
-                } else if (!b && t.value > 61) {
-                    t.value--;
-                }
-            } else {
-                if (b && t.value < 31) {
-                    t.value++;
-                } else if (!b && t.value > 16) {
-                    t.value--;
-                }
+            if (b && t.value < _MAX_TEMP_) {
+                t.value+= _TEMP_STEP_;
+            } else if (!b && t.value > _MIN_TEMP_) {
+                t.value-= _TEMP_STEP_;
             }
             document.getElementById("FTEMP_").submit();
         }
@@ -360,6 +376,7 @@ const char html_page_control[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_advance[] PROGMEM = R"====(
@@ -374,13 +391,25 @@ const char html_page_advance[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <fieldset>
                 <legend><b>&nbsp;Advance configuration&nbsp;</b></legend>
-                <form method='get'>
+                <form method='post'>
                     <p>
                         <b>Temperature Unit</b>
                         <select name="tu">
                             <option value="cel" _TU_CEL_>Celsius</option>
                             <option value="fah" _TU_FAH_>Fahrenheit</option>
                         </select>
+                    </p>
+                    <p><b>Ninimum temperture</b>
+                        <br/>
+                        <input type='number' id='min_temp' name='min_temp' placeholder=' ' value='_MIN_TEMP_'>
+                    </p>
+                    <p><b>Maximum temperture</b>
+                        <br/>
+                        <input type='number' id='max_temp' name='max_temp' placeholder=' ' value='_MAX_TEMP_'>
+                    </p>
+                    <p><b>Temperture step</b>
+                        <br/>
+                        <input type='number' id='temp_step' step="0.1" name='temp_step' placeholder=' ' value='_TEMP_STEP_'>
                     </p>
                     <p>
                         <b>Mode Support</b>
@@ -404,6 +433,7 @@ const char html_page_advance[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";
 
 const char html_page_login[] PROGMEM = R"====(
@@ -447,6 +477,7 @@ const char html_page_login[] PROGMEM = R"====(
         <div
         _LOGIN_MSG_
         </div>
+    </div>
 )====";
 
 const char html_page_upgrade[] PROGMEM = R"====(
@@ -465,10 +496,10 @@ const char html_page_upgrade[] PROGMEM = R"====(
         </div>
         <div id="f1" style="display:block;">
             <fieldset>
-                <legend><b>&nbsp;Firmware OTA upgrade by file upload&nbsp;</b></legend>
+                <legend><b>&nbsp;Firmware OTA upgrade by bin file upload&nbsp;</b></legend>
                 <form method='post' action='upload' enctype='multipart/form-data'>
                     <br>
-                    <input type='file' name='upload'>
+                    <input type='file' accept='.bin' name='upload'>
                     <br>
                     <br>
                     <button type='submit' onclick='eb("f1").style.display="none";eb("f2").style.display="block";this.form.submit();' class='button bgrn'>Start upgrade</button>
@@ -481,6 +512,7 @@ const char html_page_upgrade[] PROGMEM = R"====(
             </p>
         </div>
         <div id='f2' style='display:none;text-align:center;'><b>Upload started ...</b></div>
+    </div>
 )====";
 
 
@@ -501,4 +533,5 @@ const char html_page_upload[] PROGMEM = R"====(
                 </form>
             </p>
         </div>
+    </div>
 )====";

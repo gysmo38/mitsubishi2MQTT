@@ -81,9 +81,9 @@ String login_password;
 bool _debugMode = false;
 
 // Customization
-const PROGMEM uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
-const PROGMEM uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
-const PROGMEM char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
+uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
+String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
 const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000;

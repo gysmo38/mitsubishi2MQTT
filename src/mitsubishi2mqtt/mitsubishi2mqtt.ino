@@ -230,12 +230,21 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void saveAdvance(String tempUnit, String supportMode, String loginPassword) {
-  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+void saveAdvance(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep) {
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
   if (tempUnit == '\0') tempUnit = "cel";
   doc["unit_tempUnit"]   = tempUnit;
+  // if minTemp is empty, we use default 16
+  if (minTemp == '\0') minTemp = 16;
+  doc["min_temp"]   = minTemp;
+  // if maxTemp is empty, we use default 31
+  if (maxTemp == '\0') maxTemp = 31;
+  doc["max_temp"]   = maxTemp;
+  // if tempStep is empty, we use default 1
+  if (tempStep == '\0') tempStep = 1;
+  doc["temp_step"] = tempStep;
   // if support mode is empty, we use default all mode
   if (supportMode == '\0') supportMode = "all";
   doc["support_mode"]   = supportMode;
@@ -393,6 +402,9 @@ bool loadAdvance() {
   //unit
   String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
   if (unit_tempUnit == "fah") useFahrenheit = true;
+  min_temp              = doc["min_temp"].as<uint8_t>();
+  max_temp              = doc["max_temp"].as<uint8_t>();
+  temp_step             = doc["temp_step"].as<String>();
   //mode
   String supportMode = doc["support_mode"].as<String>();
   if (supportMode == "nht") supportHeatMode = false;
@@ -471,7 +483,7 @@ void handleNotFound() {
 void handleSaveWifi() {
   checkLogin();
   Serial.println(F("Saving wifi config"));
-  if (server.hasArg("submit")) {
+  if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
   String headerContent = FPSTR(html_common_header);
@@ -571,7 +583,7 @@ void handleSetup() {
 
 void handleOthers() {
   checkLogin();
-  if (server.hasArg("save")) {
+  if (server.method() == HTTP_POST) {
 
   }
   else {
@@ -600,7 +612,7 @@ void handleOthers() {
 
 void handleMqtt() {
   checkLogin();
-  if (server.hasArg("save")) {
+  if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
@@ -630,8 +642,8 @@ void handleMqtt() {
 
 void handleAdvance() {
   checkLogin();
-  if (server.hasArg("save")) {
-    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"));
+  if (server.method() == HTTP_POST) {
+    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), server.arg("min_temp"), server.arg("max_temp"), server.arg("temp_step"));
     String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String footerContent = FPSTR(html_common_footer);
@@ -649,6 +661,9 @@ void handleAdvance() {
     String toSend = headerContent + advancePage + footerContent;
     toSend.replace(F("_UNIT_NAME_"), mqtt_fn);
     toSend.replace(F("_VERSION_"), m2mqtt_version);
+    toSend.replace(F("_MIN_TEMP_"), String(min_temp));
+    toSend.replace(F("_MAX_TEMP_"), String(max_temp));
+    toSend.replace(F("_TEMP_STEP_"), String(temp_step));
     //temp
     if (useFahrenheit) toSend.replace(F("_TU_FAH_"), F("selected"));
     else toSend.replace(F("_TU_CEL_"), F("selected"));
@@ -662,7 +677,7 @@ void handleAdvance() {
 
 void handleWifi() {
   checkLogin();
-  if (server.hasArg("save")) {
+  if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     String headerContent = FPSTR(html_common_header);
     String rebootPage =  FPSTR(html_page_save_reboot);
@@ -720,7 +735,7 @@ void handleControl() {
   if (!hp.isConnected()) {
     server.sendHeader("Location", "/status");
     server.sendHeader("Cache-Control", "no-cache");
-    server.send(301);
+    server.send(302);
     return;
   }
   heatpumpSettings settings = hp.getSettings();
@@ -737,6 +752,9 @@ void handleControl() {
   controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
   controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
+  controlPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
+  controlPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
+  controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
 
   if (strcmp(settings.power, "ON") == 0) {
     controlPage.replace("_POWER_ON_", "selected");
@@ -883,7 +901,7 @@ void handleLogin() {
       redirectPage += F("}, 1000);");
       redirectPage += F("</script>");
       redirectPage += F("</body></html>");
-      server.send(301, F("text/html"), redirectPage);
+      server.send(302, F("text/html"), redirectPage);
       return;
     }
   }
@@ -1562,7 +1580,7 @@ void checkLogin() {
     redirectPage += F("}, 1000);");
     redirectPage += F("</script>");
     redirectPage += F("</body></html>");
-    server.send(301, F("text/html"), redirectPage);
+    server.send(302, F("text/html"), redirectPage);
     return;
   }
 }
