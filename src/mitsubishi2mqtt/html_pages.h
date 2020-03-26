@@ -125,9 +125,7 @@ const char html_page_mqtt[] PROGMEM = R"====(
                 </form>
             </fieldset>
             <p>
-                <form action='/setup' method='get'>
-                    <button>Back</button>
-                </form>
+                <a class="button" href="/setup" class="back">Back</a>
             </p>
         </div>
     </div>
@@ -168,9 +166,7 @@ const char html_page_others[] PROGMEM = R"====(
                 </form>
             </fieldset>
             <p>
-                <form action='/setup' method='get'>
-                    <button>Back</button>
-                </form>
+                <a class="button" href="/setup" class="back">Back</a>
             </p>
         </div>
     </div>
@@ -192,9 +188,7 @@ const char html_page_status[] PROGMEM = R"====(
             <br /> WIFI Rssi => _WIFI_STATUS_ dBm
             <br />
             <p>
-                <form action='/' method='get'>
-                    <button>Back</button>
-                </form>
+                <a class="button" href="/" class="back">Back</a>
             </p>
         </div>
     </div>
@@ -234,9 +228,7 @@ const char html_page_wifi[] PROGMEM = R"====(
                 </form>
             </fieldset>
             <p>
-                <form action='/setup' method='get'>
-                    <button>Back</button>
-                </form>
+                <a class="button" href="/setup" class="back">Back</a>
             </p>
         </div>
     </div>
@@ -245,52 +237,6 @@ const char html_page_wifi[] PROGMEM = R"====(
 
 const char html_page_control[] PROGMEM = R"====(
 <body>
-    <script>
-        function $_GET(param) {
-            var vars = {};
-            window.location.href.replace(location.hash, '').replace(
-                /[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
-                function(m, key, value) { // callback
-                    vars[key] = value !== undefined ? value : '';
-                }
-            );
-
-            if (param) {
-                return vars[param] ? vars[param] : null;
-            }
-            return vars;
-        }
-
-        var useF = _USE_FAHRENHEIT_;
-
-        function setTemp(b) {
-            var t = document.getElementById('TEMP');
-            if (b && t.value < _MAX_TEMP_) {
-                t.value+= _TEMP_STEP_;
-            } else if (!b && t.value > _MIN_TEMP_) {
-                t.value-= _TEMP_STEP_;
-            }
-            document.getElementById("FTEMP_").submit();
-        }
-
-        window.onload = function() {
-            if ($_GET('TEMP')) {
-                document.getElementById('TEMP').value = $_GET('TEMP');
-            }
-        }
-
-        var heatMode = _HEAT_MODE_SUPPORT_;
-
-        document.onreadystatechange = function() {
-            if (document.readyState === "complete") {
-                if (heatMode == 0) {
-                    var options = document.getElementById("MODE").options;
-                    options[3].disabled = (options[3].value == "HEAT");
-                }
-            }
-        }
-    </script>
-
     <div style='text-align:left;display:inline-block;min-width:340px;'>
         <div style='text-align:center;'>
             <noscript>To user Mitsubishi2MQTT, you need to activate Javascript
@@ -371,12 +317,37 @@ const char html_page_control[] PROGMEM = R"====(
                 </p>
             </fieldset>
             <p>
-                <form action='/' method='get'>
-                    <button class="back">Back</button>
-                </form>
+                <a class="button" href="/" class="back">Back</a>
             </p>
         </div>
     </div>
+    <script>
+        const queryParams = (window.location.search.split('?')[1] || '')
+                .split('&')
+                .reduce((QS, current) => {
+                    const [key, value] = current.split('=');
+                    return Object.assign(QS, {[key]: value !== undefined ? value : ''});
+                }, {});
+
+        function setTemp(b) {
+            var t = document.getElementById('TEMP');
+            if (b && t.value < _MAX_TEMP_) {
+                t.value = Number(t.value) + _TEMP_STEP_;
+            } else if (!b && t.value > _MIN_TEMP_) {
+                t.value = Number(t.value) - _TEMP_STEP_;
+            }
+            document.getElementById("FTEMP_").submit();
+        }
+
+        if (queryParams['TEMP']) {
+            document.getElementById('TEMP').value = queryParams['TEMP'];
+        }
+
+        if (!_HEAT_MODE_SUPPORT_) {
+            var options = document.getElementById("MODE").options;
+            options[3].disabled = (options[3].value == "HEAT");
+        }
+    </script>
 )====";
 
 const char html_page_advance[] PROGMEM = R"====(
@@ -428,9 +399,7 @@ const char html_page_advance[] PROGMEM = R"====(
                 </form>
             </fieldset>
             <p>
-                <form action='/setup' method='get'>
-                    <button class="back">Back</button>
-                </form>
+                <a class="button" href="/setup" class="back">Back</a>
             </p>
         </div>
     </div>
@@ -506,9 +475,7 @@ const char html_page_upgrade[] PROGMEM = R"====(
                 </form>
             </fieldset>
             <p>
-                <form action='/' method='get'>
-                    <button class="back">Back</button>
-                </form>
+                <a class="button" href="/" class="back">Back</a>
             </p>
         </div>
         <div id='f2' style='display:none;text-align:center;'><b>Upload started ...</b></div>
@@ -528,9 +495,7 @@ const char html_page_upload[] PROGMEM = R"====(
         <div id='l1' name='l1'>
             <br>_UPLOAD_MSG_
             <p>
-                <form action='/upgrade' method='get'>
-                    <button class="back">Back</button>
-                </form>
+                <a class="button" href="/upgrade" class="back">Back</a>
             </p>
         </div>
     </div>
