@@ -26,7 +26,7 @@ const char html_init_setup[] PROGMEM = R"====(
         <div id='l1' name='l1'></div>
         <fieldset>
             <legend><b>&nbsp;Initial setup&nbsp;</b></legend>
-            <form method='get' action='save'>
+            <form method='post' action='save'>
                 <p><b>Hostname</b>
                     <br/>
                     <input id='hn' name='hn' placeholder=' ' value='_UNIT_NAME_'>
@@ -49,10 +49,7 @@ const char html_init_setup[] PROGMEM = R"====(
             </form>
         </fieldset>
         <fieldset>
-            <form method='get' action='reboot'>
-                <br/>
-                <button name='reboot' type='submit' class='button bgrn'>Reboot</button>
-            </form>
+            <a class="button" href="/reboot" class="back">Reboot</a>
         </fieldset>
 )====";
 
