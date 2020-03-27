@@ -37,6 +37,7 @@ ESP8266WebServer server(80);  // ESP8266 web
 //#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
+#include "javascript_common.h"  // common code javascript (like refresh page)
 #include "html_init.h"    // code html for initial config
 #include "html_menu.h"    // code html for menu
 #include "html_pages.h"   // code html for pages
@@ -493,7 +494,7 @@ void handleSaveWifi() {
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
   server.send(200, F("text/html"), toSend);
-  delay(100);
+  delay(500);
   ESP.restart();
 }
 
@@ -506,7 +507,7 @@ void handleReboot() {
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
   server.send(200, F("text/html"), toSend);
-  delay(100);
+  delay(500);
   ESP.restart();
 }
 
@@ -515,12 +516,13 @@ void handleRoot() {
   if (server.hasArg("REBOOT")) {
     String headerContent = FPSTR(html_common_header);
     String rebootPage =  FPSTR(html_page_reboot);
+    String countDown = FPSTR(count_down_script);
     String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + rebootPage + footerContent;
+    String toSend = headerContent + rebootPage + countDown + footerContent;
     toSend.replace(F("_UNIT_NAME_"), hostname);
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
-    delay(10);
+    delay(500);
 #ifdef ESP32
     ESP.restart();
 #else
@@ -562,7 +564,7 @@ void handleSetup() {
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
     SPIFFS.format();
-    delay(10);
+    delay(500);
 #ifdef ESP32
     ESP.restart();
 #else
@@ -616,12 +618,13 @@ void handleMqtt() {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
+    String countDown = FPSTR(count_down_script);
     String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + saveRebootPage + footerContent;
+    String toSend = headerContent + saveRebootPage + countDown + footerContent;
     toSend.replace(F("_UNIT_NAME_"), hostname);
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
-    delay(10);
+    delay(500);
     ESP.restart();
   }
   else {
@@ -645,13 +648,14 @@ void handleAdvance() {
   if (server.method() == HTTP_POST) {
     saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), server.arg("min_temp"), server.arg("max_temp"), server.arg("temp_step"));
     String headerContent = FPSTR(html_common_header);
-    String saveRebootPage =  FPSTR(html_page_save_reboot);
+    String saveRebootPage = FPSTR(html_page_save_reboot);
+    String countDown = FPSTR(count_down_script);
     String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + saveRebootPage + footerContent;
+    String toSend = headerContent + saveRebootPage + countDown + footerContent;
     toSend.replace(F("_UNIT_NAME_"), hostname);
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
-    delay(10);
+    delay(500);
     ESP.restart();
   }
   else {
@@ -680,13 +684,14 @@ void handleWifi() {
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     String headerContent = FPSTR(html_common_header);
-    String rebootPage =  FPSTR(html_page_save_reboot);
+    String rebootPage = FPSTR(html_page_save_reboot);
+    String countDown = FPSTR(count_down_script);
     String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + rebootPage + footerContent;
+    String toSend = headerContent + rebootPage + countDown + footerContent;
     toSend.replace(F("_UNIT_NAME_"), hostname);
     toSend.replace(F("_VERSION_"), m2mqtt_version);
     server.send(200, F("text/html"), toSend);
-    delay(10);
+    delay(500);
 #ifdef ESP32
     ESP.restart();
 #else
@@ -716,8 +721,8 @@ void handleStatus() {
   if (server.hasArg("mrconn")) mqttConnect();
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
-  String connected = F("<font color='green'><b>CONNECTED</b></font>");
-  String disconnected = F("<font color='red'><b>DISCONNECTED</b></font>");
+  String connected = F("<span style='color:#47c266'><b>CONNECTED</b></span>");
+  String disconnected = F("<span style='color:#d43535'><b>DISCONNECTED</b></span>");
   if ((Serial) and hp.isConnected()) toSend.replace(F("_HVAC_STATUS_"), connected);
   else  toSend.replace(F("_HVAC_STATUS_"), disconnected);
   if (mqtt_client.connected()) toSend.replace(F("_MQTT_STATUS_"), connected);
@@ -876,7 +881,7 @@ void handleLogin() {
         server.sendHeader("Cache-Control", "no-cache");
         server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
         loginSuccess = true;
-        msg = F("<b><font color='red'>Login successful, you will be redirect in few seconds.</font></b>");
+        msg = F("<span style='color:#d43535;font-weight:bold;'>Login successful, you will be redirect in few seconds.</span>");
         loginPage += F("<script>");
         loginPage += F("setTimeout(function () {");
         loginPage += F("window.location.href= '/';");
@@ -884,7 +889,7 @@ void handleLogin() {
         loginPage += F("</script>");
         //Log in Successful;
       } else {
-        msg = F("<b><font color='red'>Wrong username/password! try again.</font></b>");
+        msg = F("<span style='color:#d43535;font-weight:bold;'>Wrong username/password! try again.</span>");
         //Log in Failed;
       }
     }
@@ -935,7 +940,7 @@ void handleUploadDone()
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
   if (uploaderror) {
-    content += F("<font color='red'>failed</font></b>");
+    content += F("<span style='color:#d43535'>failed</span></b>");
     if (uploaderror == 1) {
       content += F("<br/><br/>No file selected");
     } else if (uploaderror == 2) {
@@ -959,12 +964,8 @@ void handleUploadDone()
       content += String(Update.getError());
     }
   } else {
-    content += F("<b><font color='green'>successful</font></b><br/><br/>Device will restart in a few seconds");
-    content += F("<script>");
-    content += F("setTimeout(function () {");
-    content += F("window.location.href= '/';");
-    content += F("}, 10000);");
-    content += F("</script>");
+    content += F("<span style='color:#47c266; font-weight: bold;'>successful</span><br/><br/>Refresh in <span id='count'>10s</span>...");
+    content += FPSTR(count_down_script);
     restartflag = true;
   }
   content += F("</div><br/>");
@@ -975,7 +976,7 @@ void handleUploadDone()
   toSend.replace("_VERSION_", m2mqtt_version);
   server.send(200, "text/html", toSend);
   if (restartflag) {
-    delay(10);
+    delay(500);
 #ifdef ESP32
     ESP.restart();
 #else
