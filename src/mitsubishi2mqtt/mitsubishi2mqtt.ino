@@ -464,20 +464,22 @@ boolean initWifi() {
 
 // Handler webserver response
 
+void sendWrappedHTML(String content) {
+  String headerContent = FPSTR(html_common_header);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend = headerContent + content + footerContent;
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), m2mqtt_version);
+  server.send(200, F("text/html"), toSend);
+}
+
 void handleNotFound() {
   if (captive) {
     String initSetupContent = FPSTR(html_init_setup);
     server.send(200, "text/html", initSetupContent);
   }
   else {
-    String headerContent = FPSTR(html_common_header);
-    String menuRootPage =  FPSTR(html_menu_root);
-    menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
-    //not show control button if hp not connected
-    menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + menuRootPage + footerContent;
-    server.send(200, "text/html", toSend);
+    handleRoot();
   }
 }
 
@@ -487,26 +489,14 @@ void handleSaveWifi() {
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
-  String headerContent = FPSTR(html_common_header);
   String initSavePage =  FPSTR(html_init_save);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + initSavePage + footerContent;
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
-  server.send(200, F("text/html"), toSend);
   delay(500);
   ESP.restart();
 }
 
 void handleReboot() {
   Serial.println(F("Rebooting"));
-  String headerContent = FPSTR(html_common_header);
-  String initRebootPage =  FPSTR(html_init_reboot);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + initRebootPage + footerContent;
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
-  server.send(200, F("text/html"), toSend);
+  sendWrappedHTML(FPSTR(html_init_reboot));
   delay(500);
   ESP.restart();
 }
@@ -514,14 +504,9 @@ void handleReboot() {
 void handleRoot() {
   checkLogin();
   if (server.hasArg("REBOOT")) {
-    String headerContent = FPSTR(html_common_header);
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + rebootPage + countDown + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(rebootPage + countDown);
     delay(500);
 #ifdef ESP32
     ESP.restart();
@@ -530,39 +515,22 @@ void handleRoot() {
 #endif
   }
   else {
-    String headerContent = FPSTR(html_common_header);
     String menuRootPage =  FPSTR(html_menu_root);
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
     //not show control button if hp not connected
     menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + menuRootPage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(menuRootPage);
   }
 }
 
 void handleInitSetup() {
-  String headerContent = FPSTR(html_common_header);
-  String initSetupPage =  FPSTR(html_init_setup);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + initSetupPage + footerContent;
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
-  server.send(200, F("text/html"), toSend);
+  sendWrappedHTML(FPSTR(html_init_setup));
 }
 
 void handleSetup() {
   checkLogin();
   if (server.hasArg("RESET")) {
-    String headerContent = FPSTR(html_common_header);
-    String resetPage =  FPSTR(html_page_reset);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + resetPage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(FPSTR(html_page_reset));
     SPIFFS.format();
     delay(500);
 #ifdef ESP32
@@ -572,13 +540,7 @@ void handleSetup() {
 #endif
   }
   else {
-    String headerContent = FPSTR(html_common_header);
-    String menuSetupPage =  FPSTR(html_menu_setup);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + menuSetupPage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(FPSTR(html_menu_setup));
   }
 
 }
@@ -589,26 +551,21 @@ void handleOthers() {
 
   }
   else {
-    String headerContent = FPSTR(html_common_header);
     String othersPage =  FPSTR(html_page_others);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + othersPage + footerContent;
-    toSend.replace("_UNIT_NAME_", mqtt_fn);
-    toSend.replace("_VERSION_", m2mqtt_version);
-    toSend.replace("_HAA_TOPIC_", others_haa_topic);
+    othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (strcmp(others_haa.c_str(), "ON") == 0) {
-      toSend.replace("_HAA_ON_", "selected");
+      othersPage.replace("_HAA_ON_", "selected");
     }
     else {
-      toSend.replace("_HAA_OFF_", "selected");
+      othersPage.replace("_HAA_OFF_", "selected");
     }
     if (strcmp(others_debug.c_str(), "ON") == 0) {
-      toSend.replace("_DEBUG_ON_", "selected");
+      othersPage.replace("_DEBUG_ON_", "selected");
     }
     else {
-      toSend.replace("_DEBUG_OFF_", "selected");
+      othersPage.replace("_DEBUG_OFF_", "selected");
     }
-    server.send(200, "text/html", toSend);
+    sendWrappedHTML(othersPage);
   }
 }
 
@@ -616,30 +573,20 @@ void handleMqtt() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
-    String headerContent = FPSTR(html_common_header);
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + saveRebootPage + countDown + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(saveRebootPage + countDown);
     delay(500);
     ESP.restart();
   }
   else {
-    String headerContent = FPSTR(html_common_header);
     String mqttPage =  FPSTR(html_page_mqtt);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + mqttPage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), mqtt_fn);
-    toSend.replace(F("_MQTT_HOST_"), mqtt_server);
-    toSend.replace(F("_MQTT_PORT_"), String(mqtt_port));
-    toSend.replace(F("_MQTT_USER_"), mqtt_username);
-    toSend.replace(F("_MQTT_PASSWORD_"), mqtt_password);
-    toSend.replace(F("_MQTT_TOPIC_"), mqtt_topic);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
+    mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
+    mqttPage.replace(F("_MQTT_USER_"), mqtt_username);
+    mqttPage.replace(F("_MQTT_PASSWORD_"), mqtt_password);
+    mqttPage.replace(F("_MQTT_TOPIC_"), mqtt_topic);
+    sendWrappedHTML(mqttPage);
   }
 }
 
@@ -647,35 +594,25 @@ void handleAdvance() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), server.arg("min_temp"), server.arg("max_temp"), server.arg("temp_step"));
-    String headerContent = FPSTR(html_common_header);
     String saveRebootPage = FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + saveRebootPage + countDown + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(saveRebootPage + countDown);
     delay(500);
     ESP.restart();
   }
   else {
-    String headerContent = FPSTR(html_common_header);
     String advancePage =  FPSTR(html_page_advance);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + advancePage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), mqtt_fn);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    toSend.replace(F("_MIN_TEMP_"), String(min_temp));
-    toSend.replace(F("_MAX_TEMP_"), String(max_temp));
-    toSend.replace(F("_TEMP_STEP_"), String(temp_step));
+    advancePage.replace(F("_MIN_TEMP_"), String(min_temp));
+    advancePage.replace(F("_MAX_TEMP_"), String(max_temp));
+    advancePage.replace(F("_TEMP_STEP_"), String(temp_step));
     //temp
-    if (useFahrenheit) toSend.replace(F("_TU_FAH_"), F("selected"));
-    else toSend.replace(F("_TU_CEL_"), F("selected"));
+    if (useFahrenheit) advancePage.replace(F("_TU_FAH_"), F("selected"));
+    else advancePage.replace(F("_TU_CEL_"), F("selected"));
     //mode
-    if (supportHeatMode) toSend.replace(F("_MD_ALL_"), F("selected"));
-    else toSend.replace(F("_MD_NONHEAT_"), F("selected"));
-    toSend.replace(F("_LOGIN_PASSWORD_"), login_password);
-    server.send(200, F("text/html"), toSend);
+    if (supportHeatMode) advancePage.replace(F("_MD_ALL_"), F("selected"));
+    else advancePage.replace(F("_MD_NONHEAT_"), F("selected"));
+    advancePage.replace(F("_LOGIN_PASSWORD_"), login_password);
+    sendWrappedHTML(advancePage);
   }
 }
 
@@ -683,14 +620,9 @@ void handleWifi() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
-    String headerContent = FPSTR(html_common_header);
     String rebootPage = FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + rebootPage + countDown + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    sendWrappedHTML(rebootPage + countDown);
     delay(500);
 #ifdef ESP32
     ESP.restart();
@@ -699,37 +631,27 @@ void handleWifi() {
 #endif
   }
   else {
-    String headerContent = FPSTR(html_common_header);
     String wifiPage =  FPSTR(html_page_wifi);
-    String footerContent = FPSTR(html_common_footer);
-    String toSend = headerContent + wifiPage + footerContent;
-    toSend.replace(F("_UNIT_NAME_"), hostname);
-    toSend.replace(F("_SSID_"), ap_ssid);
-    toSend.replace(F("_PSK_"), ap_pwd);
-    toSend.replace(F("_OTA_PWD_"), ota_pwd);
-    toSend.replace(F("_VERSION_"), m2mqtt_version);
-    server.send(200, F("text/html"), toSend);
+    wifiPage.replace(F("_SSID_"), ap_ssid);
+    wifiPage.replace(F("_PSK_"), ap_pwd);
+    wifiPage.replace(F("_OTA_PWD_"), ota_pwd);
+    sendWrappedHTML(wifiPage);
   }
 
 }
 
 void handleStatus() {
-  String headerContent = FPSTR(html_common_header);
   String statusPage =  FPSTR(html_page_status);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + statusPage + footerContent;
   if (server.hasArg("mrconn")) mqttConnect();
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
   String connected = F("<span style='color:#47c266'><b>CONNECTED</b></span>");
   String disconnected = F("<span style='color:#d43535'><b>DISCONNECTED</b></span>");
-  if ((Serial) and hp.isConnected()) toSend.replace(F("_HVAC_STATUS_"), connected);
-  else  toSend.replace(F("_HVAC_STATUS_"), disconnected);
-  if (mqtt_client.connected()) toSend.replace(F("_MQTT_STATUS_"), connected);
-  else toSend.replace(F("_MQTT_STATUS_"), disconnected);
-  toSend.replace(F("_MQTT_REASON_"), String(mqtt_client.state()));
-  toSend.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
-  server.send(200, F("text/html"), toSend);
+  if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
+  else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
+  if (mqtt_client.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
+  else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
+  statusPage.replace(F("_MQTT_REASON_"), String(mqtt_client.state()));
+  statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
+  sendWrappedHTML(statusPage);
 }
 
 
@@ -910,33 +832,21 @@ void handleLogin() {
       return;
     }
   }
-  String headerContent = FPSTR(html_common_header);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + loginPage + footerContent;
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
-  toSend.replace(F("_LOGIN_SUCCESS_"), (String) loginSuccess);
-  toSend.replace(F("_LOGIN_MSG_"), msg);
-  server.send(200, F("text/html"), toSend);
+  loginPage.replace(F("_LOGIN_SUCCESS_"), (String) loginSuccess);
+  loginPage.replace(F("_LOGIN_MSG_"), msg);
+  sendWrappedHTML(loginPage);
 }
 
 void handleUpgrade()
 {
   uploaderror = 0;
-  String headerContent = FPSTR(html_common_header);
-  String upgradePage =  FPSTR(html_page_upgrade);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + upgradePage + footerContent;
-  toSend.replace(F("_UNIT_NAME_"), hostname);
-  toSend.replace(F("_VERSION_"), m2mqtt_version);
-  server.send(200, F("text/html"), toSend);
+  sendWrappedHTML(FPSTR(html_page_upgrade));
 }
 
 void handleUploadDone()
 {
   //Serial.printl(PSTR("HTTP: Firmware upload done"));
   bool restartflag = false;
-  String headerContent = FPSTR(html_common_header);
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
   if (uploaderror) {
@@ -970,11 +880,7 @@ void handleUploadDone()
   }
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
-  String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + uploadDonePage + footerContent;
-  toSend.replace("_UNIT_NAME_", hostname);
-  toSend.replace("_VERSION_", m2mqtt_version);
-  server.send(200, "text/html", toSend);
+  sendWrappedHTML(uploadDonePage);
   if (restartflag) {
     delay(500);
 #ifdef ESP32
