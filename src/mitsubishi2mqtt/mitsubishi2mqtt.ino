@@ -552,10 +552,18 @@ void handleSetup() {
 
 }
 
+void rebootAndSendPage() {
+    String saveRebootPage =  FPSTR(html_page_save_reboot);
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(saveRebootPage + countDown);
+    delay(500);
+    ESP.restart();
+}
+
 void handleOthers() {
   checkLogin();
   if (server.method() == HTTP_POST) {
-
+    rebootAndSendPage();
   }
   else {
     String othersPage =  FPSTR(html_page_others);
@@ -580,11 +588,7 @@ void handleMqtt() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
-    String saveRebootPage =  FPSTR(html_page_save_reboot);
-    String countDown = FPSTR(count_down_script);
-    sendWrappedHTML(saveRebootPage + countDown);
-    delay(500);
-    ESP.restart();
+    rebootAndSendPage();
   }
   else {
     String mqttPage =  FPSTR(html_page_mqtt);
@@ -601,11 +605,7 @@ void handleAdvance() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), server.arg("min_temp"), server.arg("max_temp"), server.arg("temp_step"));
-    String saveRebootPage = FPSTR(html_page_save_reboot);
-    String countDown = FPSTR(count_down_script);
-    sendWrappedHTML(saveRebootPage + countDown);
-    delay(500);
-    ESP.restart();
+    rebootAndSendPage();
   }
   else {
     String advancePage =  FPSTR(html_page_advance);
@@ -627,10 +627,7 @@ void handleWifi() {
   checkLogin();
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
-    String rebootPage = FPSTR(html_page_save_reboot);
-    String countDown = FPSTR(count_down_script);
-    sendWrappedHTML(rebootPage + countDown);
-    delay(500);
+    rebootAndSendPage();
 #ifdef ESP32
     ESP.restart();
 #else
