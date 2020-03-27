@@ -15,7 +15,7 @@
 */
  
 const char html_menu_root[] PROGMEM = R"====(
-<div id="control">
+<div id="control" style="display:none">
     <form action='/control' method='get'>
         <button>Control</button>
     </form>

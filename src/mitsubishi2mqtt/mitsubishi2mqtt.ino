@@ -62,6 +62,8 @@ boolean wifi_config = false;
 HeatPump hp;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
+unsigned long lastHpSync;
+unsigned long hpConnectionRetries;
 
 //Web OTA
 int uploaderror = 0;
@@ -128,6 +130,8 @@ void setup() {
 
     server.begin();
     lastMqttRetry = 0;
+    lastHpSync = 0;
+    hpConnectionRetries = 0;
     if (loadMqtt()) {
       //write_log("Starting MQTT");
       // setup HA topics
@@ -479,7 +483,10 @@ void handleNotFound() {
     server.send(200, "text/html", initSetupContent);
   }
   else {
-    handleRoot();
+    server.sendHeader("Location", "/");
+    server.sendHeader("Cache-Control", "no-cache");
+    server.send(302);
+    return;
   }
 }
 
@@ -1497,7 +1504,16 @@ void loop() {
   ArduinoOTA.handle();
   if (!captive and mqtt_config) {
     // Sync HVAC UNIT
-    hp.sync();
+    if (!hp.isConnected()) {
+      if (((millis() > (lastHpSync + HP_RETRY_INTERVAL_MS)) or lastHpSync == 0) and (hpConnectionRetries < HP_MAX_RETRIES)) {
+        lastHpSync = millis();
+        hpConnectionRetries++;
+        hp.sync();
+      }
+    } else {
+        hp.sync();
+    }
+
     //MQTT failed retry to connect
     if (mqtt_client.state() < MQTT_CONNECTED)
     {

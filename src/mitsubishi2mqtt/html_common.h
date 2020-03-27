@@ -51,7 +51,7 @@ const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
             width: 99%;
         }
 
-        input:not([type]) {
+        input:not([type]), input[type=password]  {
             width: 100%;
             box-sizing: border-box;
             -webkit-box-sizing: border-box;

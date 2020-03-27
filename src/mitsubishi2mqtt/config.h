@@ -86,8 +86,10 @@ uint8_t max_temp                    = 31; // Maximum temperature, check value fr
 String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
-const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000;
-const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 30 seconds
+const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 seconds
+const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 seconds
+const PROGMEM uint32_t HP_MAX_RETRIES = 5;
 
 // temp settings
 bool useFahrenheit = false;
