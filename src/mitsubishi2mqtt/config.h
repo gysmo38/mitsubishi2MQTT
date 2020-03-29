@@ -1,19 +1,43 @@
 /*
- * mitsubishi2mqtt
- *
- */
+  mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
+  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 
-String m2mqtt_version = "0.4.9";
+const PROGMEM char* m2mqtt_version = "0.6.0";
 
 //Define global variables for files
-String wifi_conf = "wifi.json";
-String mqtt_conf = "mqtt.json";
-String unit_conf = "unit.json";
-String console_file = "console.log";
-String others_conf = "others.json";
+#ifdef ESP32
+const PROGMEM char* wifi_conf = "/wifi.json";
+const PROGMEM char* mqtt_conf = "/mqtt.json";
+const PROGMEM char* advance_conf = "/advance.json";
+const PROGMEM char* console_file = "/console.log";
+const PROGMEM char* others_conf = "/others.json";
+// pinouts
+const PROGMEM  uint8_t blueLedPin = 2;            // The ESP32 has an internal blue LED at D2 (GPIO 02)
+#else
+const PROGMEM char* wifi_conf = "wifi.json";
+const PROGMEM char* mqtt_conf = "mqtt.json";
+const PROGMEM char* advance_conf = "advance.json";
+const PROGMEM char* console_file = "console.log";
+const PROGMEM char* others_conf = "others.json";
+// pinouts
+const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
+#endif
+const PROGMEM  uint8_t redLedPin = 0;
 
 // Define global variables for network
-String hostnamePrefix = "HVAC_";
+const PROGMEM char* hostnamePrefix = "HVAC_";
 String hostname = "";
 String ap_ssid;
 String ap_pwd;
@@ -48,22 +72,26 @@ String ha_debug_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
 String hvac_name;
+//login
+String login_username = "admin";
+String login_password;
 
 // debug mode, when true, will send all packets received from the heatpump to topic heatpump_debug_topic
 // this can also be set by sending "on" to heatpump_debug_set_topic
 bool _debugMode = false;
 
 // Customization
-float min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
-float max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
-const char* temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
+uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
+uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
+String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
-// pinouts
-const int blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
-const int redLedPin = 0;
 // sketch settings
-const unsigned int SEND_ROOM_TEMP_INTERVAL_MS = 30000;
-const unsigned int MQTT_RETRY_INTERVAL_MS = 1000; //1 seconds
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 30 seconds
+const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 seconds
+const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 seconds
+const PROGMEM uint32_t HP_MAX_RETRIES = 5;
 
 // temp settings
 bool useFahrenheit = false;
+// support heat mode settings, some model do not support heat mode 
+bool supportHeatMode = true;
