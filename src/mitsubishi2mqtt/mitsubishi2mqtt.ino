@@ -1373,7 +1373,7 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
-      if (!mqtt_client.publish(mqtt_will_topic.c_str(), mqtt_connect_message.c_str())) {
+      if (!mqtt_client.publish(mqtt_will_topic.c_str(), mqtt_connect_message.c_str(),true)) {
         if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish connect message")));
       }
       haConfig();
