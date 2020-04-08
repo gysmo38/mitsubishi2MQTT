@@ -51,6 +51,11 @@ String mqtt_username;
 String mqtt_password;
 String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
+String mqtt_will_topic;
+String mqtt_connect_message;
+String mqtt_will_message;
+uint8_t mqtt_will_retain;
+uint8_t mqtt_will_qos;
 
 //Define global variables for Others settings
 String others_debug;

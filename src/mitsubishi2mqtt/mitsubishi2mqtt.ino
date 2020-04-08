@@ -147,6 +147,12 @@ void setup() {
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
+      // mqtt will message
+      mqtt_will_topic       = mqtt_topic + "/" + mqtt_fn + "/online";
+      mqtt_connect_message  = "true";
+      mqtt_will_message     = "false";
+      mqtt_will_retain      = 1;
+      mqtt_will_qos         = 0;
       // startup mqtt connection
       initMqtt();
     }
@@ -1343,7 +1349,7 @@ void mqttConnect() {
   int attempts = 0;
   while (!mqtt_client.connected()) {
     // Attempt to connect
-    mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str());
+    mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str(), mqtt_will_topic.c_str(), mqtt_will_qos, mqtt_will_retain, mqtt_will_message.c_str());
     // If state < 0 (MQTT_CONNECTED) => network problem we retry 5 times and then waiting for MQTT_RETRY_INTERVAL_MS and retry reapeatly
     if (mqtt_client.state() < MQTT_CONNECTED) {
       if (attempts == 5) {
@@ -1367,6 +1373,9 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
+      if (!mqtt_client.publish(mqtt_will_topic.c_str(), mqtt_connect_message.c_str())) {
+        if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish connect message")));
+      }
       haConfig();
     }
   }
