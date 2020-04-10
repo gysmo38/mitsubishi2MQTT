@@ -101,6 +101,7 @@ void setup() {
 #endif
   setDefaults();
   loadWifi();
+  loadOthers();
   loadAdvance();
   if (initWifi()) {
     if (SPIFFS.exists(console_file)) {
@@ -146,7 +147,10 @@ void setup() {
       ha_state_topic        = mqtt_topic  + "/" + mqtt_fn + "/state";
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
-      ha_config_topic       = "homeassistant/climate/" + mqtt_fn + "/config";
+
+      if (others_haa) {
+        ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
+      }
       // startup mqtt connection
       initMqtt();
     }
@@ -422,12 +426,49 @@ bool loadAdvance() {
   return true;
 }
 
+
+bool loadOthers() {
+  if (!SPIFFS.exists(others_conf)) {
+    Serial.println(F("Others config file not exist!"));
+    return false;
+  }
+  File configFile = SPIFFS.open(others_conf, "r");
+  if (!configFile) {
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    return false;
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  configFile.readBytes(buf.get(), size);
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+  DynamicJsonDocument doc(capacity);
+  deserializeJson(doc, buf.get());
+  //unit
+  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
+  if (unit_tempUnit == "fah") useFahrenheit = true;
+  others_haa_topic              = doc["haat"].as<String>();
+  String haa              = doc["haa"].as<String>();
+  String debug             = doc["debug"].as<String>();
+
+  if (strcmp(haa.c_str(), "ON") == 0) {
+    others_haa = true;
+  }
+  if (strcmp(debug.c_str(), "ON") == 0) {
+    _debugMode = true;
+  }
+
+  return true;
+}
+
 void setDefaults() {
   ap_ssid = "";
   ap_pwd  = "";
-  others_haa = "ON";
+  others_haa = true;
   others_haa_topic = "homeassistant";
-  others_debug = "OFF";
 
 }
 
@@ -563,18 +604,19 @@ void rebootAndSendPage() {
 void handleOthers() {
   checkLogin();
   if (server.method() == HTTP_POST) {
+    saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("Debug"));
     rebootAndSendPage();
   }
   else {
     String othersPage =  FPSTR(html_page_others);
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
-    if (strcmp(others_haa.c_str(), "ON") == 0) {
+    if (others_haa) {
       othersPage.replace("_HAA_ON_", "selected");
     }
     else {
       othersPage.replace("_HAA_OFF_", "selected");
     }
-    if (strcmp(others_debug.c_str(), "ON") == 0) {
+    if (_debugMode) {
       othersPage.replace("_DEBUG_ON_", "selected");
     }
     else {
@@ -1124,7 +1166,7 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
       message += String(packet[idx], HEX) + " ";
     }
 
-    const size_t bufferSize = JSON_OBJECT_SIZE(1);
+    const size_t bufferSize = JSON_OBJECT_SIZE(10);
     StaticJsonDocument<bufferSize> root;
 
     root[packetDirection] = message;
@@ -1367,7 +1409,9 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
-      haConfig();
+      if (others_haa) {
+        haConfig();
+      }
     }
   }
 }
