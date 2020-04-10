@@ -53,8 +53,7 @@ String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
 
 //Define global variables for Others settings
-String others_debug;
-String others_haa;
+bool others_haa;
 String others_haa_topic;
 
 // Define global variables for HA topics

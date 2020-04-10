@@ -1,3 +1,4 @@
+.DS_Store
 .vscode/arduino.json
 .vscode/c_cpp_properties.json
 src/mitsubishi2mqtt/mitsubishi2mqtt.ino.generic.bin
