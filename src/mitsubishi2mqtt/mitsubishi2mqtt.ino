@@ -467,7 +467,7 @@ bool loadOthers() {
 void setDefaults() {
   ap_ssid = "";
   ap_pwd  = "";
-  others_haa = false;
+  others_haa = true;
   others_haa_topic = "homeassistant";
 
 }
@@ -1409,7 +1409,9 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
-      haConfig();
+      if (others_haa) {
+        haConfig();
+      }
     }
   }
 }
