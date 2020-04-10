@@ -13,7 +13,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "FS.h"               // SPIFFS for store config 
+#include "FS.h"               // SPIFFS for store config
 #ifdef ESP32
 #include <WiFi.h>             // WIFI for ESP32
 #include <WiFiUdp.h>
@@ -646,13 +646,13 @@ void handleMqtt() {
 void handleAdvance() {
   checkLogin();
   if (server.method() == HTTP_POST) {
-    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), server.arg("min_temp"), server.arg("max_temp"), server.arg("temp_step"));
+    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)setTemperature(server.arg("min_temp").toInt(), useFahrenheit), (String)setTemperature(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
   }
   else {
     String advancePage =  FPSTR(html_page_advance);
-    advancePage.replace(F("_MIN_TEMP_"), String(min_temp));
-    advancePage.replace(F("_MAX_TEMP_"), String(max_temp));
+    advancePage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
+    advancePage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
     advancePage.replace(F("_TEMP_STEP_"), String(temp_step));
     //temp
     if (useFahrenheit) advancePage.replace(F("_TU_FAH_"), F("selected"));
@@ -1326,8 +1326,11 @@ void haConfig() {
   haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
   haConfig["temp_stat_t"]                   = ha_state_topic;
-  String temp_stat_tpl_str                  = F("{{ value_json.temperature if (value_json is defined and value_json.temperature is defined and value_json.temperature|int > ");
-  temp_stat_tpl_str                        += (String)getTemperature(16, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  //Set default value for fix "Could not parse data for HA"
+  String temp_stat_tpl_str                  = F("{% if (value_json is defined and value_json.temperature is defined) %}{% if (value_json.temperature|int > ");
+  temp_stat_tpl_str                        +=(String)getTemperature(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
+  temp_stat_tpl_str                        +=(String)getTemperature(max_temp, useFahrenheit) + ") %}{{ value_json.temperature }}";
+  temp_stat_tpl_str                        +="{% elif (value_json.temperature|int < " + (String)getTemperature(min_temp, useFahrenheit) + ") %}" + (String)getTemperature(min_temp, useFahrenheit) + "{% elif (value_json.temperature|int > " + (String)getTemperature(max_temp, useFahrenheit) + ") %}" + (String)getTemperature(max_temp, useFahrenheit) +  "{% endif %}{% else %}" + (String)getTemperature(22, useFahrenheit) + "{% endif %}";
   haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");

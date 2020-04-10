@@ -15,20 +15,20 @@
 */
 
 
-const char html_page_reboot[] PROGMEM = 
+const char html_page_reboot[] PROGMEM =
 "<p>Rebooting... Refresh in <span id='count'>10s</span>...</p>"
 ;
 
-const char html_page_reset[] PROGMEM = 
+const char html_page_reset[] PROGMEM =
 "<p>Resetting... Connect to SSID HVAC_XXXX...</p>"
 ;
 
 
-const char html_page_save_reboot[] PROGMEM = 
+const char html_page_save_reboot[] PROGMEM =
 "<p>Saving configuration and rebooting... Refresh in <span id='count'>10s</span>...</p>"
 ;
 
-const char html_page_mqtt[] PROGMEM = 
+const char html_page_mqtt[] PROGMEM =
 "<h2>Config</h2>"
 "<div id='l1' name='l1'>"
     "<fieldset>"
@@ -68,7 +68,7 @@ const char html_page_mqtt[] PROGMEM =
 "</div>"
 ;
 
-const char html_page_others[] PROGMEM = 
+const char html_page_others[] PROGMEM =
 "<h2>Config</h2>"
 "<div id='l1' name='l1'>"
     "<fieldset>"
@@ -100,7 +100,7 @@ const char html_page_others[] PROGMEM =
 "</div>"
 ;
 
-const char html_page_status[] PROGMEM = 
+const char html_page_status[] PROGMEM =
 "<h2>Status</h2>"
 "<div id='l1' name='l1'>"
     "HVAC Status => _HVAC_STATUS_"
@@ -113,7 +113,7 @@ const char html_page_status[] PROGMEM =
 "</div>"
 ;
 
-const char html_page_wifi[] PROGMEM = 
+const char html_page_wifi[] PROGMEM =
 "<div id='l1' name='l1'>"
     "<fieldset>"
         "<legend><b>&nbsp;WIFI Parameters&nbsp;</b></legend>"
@@ -145,7 +145,7 @@ const char html_page_wifi[] PROGMEM =
 ;
 
 
-const char html_page_control[] PROGMEM = 
+const char html_page_control[] PROGMEM =
 "<h2>Current temp _ROOMTEMP_&#176;</h2>"
 "<div id='l1' name='l1'>"
     "<fieldset>"
@@ -251,7 +251,7 @@ const char html_page_control[] PROGMEM =
 "</script>"
 ;
 
-const char html_page_advance[] PROGMEM = 
+const char html_page_advance[] PROGMEM =
 "<div id='l1' name='l1'>"
     "<fieldset>"
         "<legend><b>&nbsp;Advanced configuration&nbsp;</b></legend>"
@@ -263,7 +263,7 @@ const char html_page_advance[] PROGMEM =
                     "<option value='fah' _TU_FAH_>Fahrenheit</option>"
                 "</select>"
             "</p>"
-            "<p><b>Ninimum temperture</b>"
+            "<p><b>Minimum temperture</b>"
                 "<br/>"
                 "<input type='number' id='min_temp' name='min_temp' placeholder=' ' value='_MIN_TEMP_'>"
             "</p>"
@@ -278,8 +278,8 @@ const char html_page_advance[] PROGMEM =
             "<p>"
                 "<b>Mode Support</b>"
                 "<select name='md'>"
-                    "<option value='all' _MD_ALL_>All mode</option>"
-                    "<option value='nht' _MD_NONHEAT_>Not support heat mode</option>"
+                    "<option value='all' _MD_ALL_>All modes</option>"
+                    "<option value='nht' _MD_NONHEAT_>No support for heat modes</option>"
                 "</select>"
             "</p>"
             "<p><b>Login Password</b>"
@@ -297,7 +297,7 @@ const char html_page_advance[] PROGMEM =
 "</div>"
 ;
 
-const char html_page_login[] PROGMEM = 
+const char html_page_login[] PROGMEM =
 "<script>"
     "var loginSucess = _LOGIN_SUCCESS_;"
     "document.onreadystatechange = function() {"
@@ -332,7 +332,7 @@ const char html_page_login[] PROGMEM =
 "</div>"
 ;
 
-const char html_page_upgrade[] PROGMEM = 
+const char html_page_upgrade[] PROGMEM =
 "<script>"
     "function eb(s) {"
         "return document.getElementById(s);"
@@ -357,7 +357,7 @@ const char html_page_upgrade[] PROGMEM =
 ;
 
 
-const char html_page_upload[] PROGMEM = 
+const char html_page_upload[] PROGMEM =
 "<div id='l1' name='l1'>"
     "<br>_UPLOAD_MSG_"
     "<p>"
