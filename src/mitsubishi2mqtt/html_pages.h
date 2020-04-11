@@ -251,7 +251,7 @@ const char html_page_control[] PROGMEM =
 "</script>"
 ;
 
-const char html_page_advance[] PROGMEM =
+const char html_page_unit[] PROGMEM =
 "<div id='l1' name='l1'>"
     "<fieldset>"
         "<legend><b>&nbsp;Advanced configuration&nbsp;</b></legend>"

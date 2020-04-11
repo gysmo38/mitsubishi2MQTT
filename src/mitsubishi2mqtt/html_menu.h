@@ -68,8 +68,13 @@ const char html_menu_setup[] PROGMEM = R"====(
     </form>
 </p>
 <p>
-    <form action='/advance' method='get'>
-        <button>ADVANCED</button>
+    <form action='/unit' method='get'>
+        <button>Unit</button>
+    </form>
+</p>
+<p>
+    <form action='/others' method='get'>
+        <button>Others</button>
     </form>
 </p>
 <p>

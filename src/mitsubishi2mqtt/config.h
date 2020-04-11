@@ -14,7 +14,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-const PROGMEM char* m2mqtt_version = "0.6.1";
+const PROGMEM char* m2mqtt_version = "0.6.2";
 
 //Define global variables for files
 #ifdef ESP32
@@ -28,7 +28,7 @@ const PROGMEM  uint8_t blueLedPin = 2;            // The ESP32 has an internal b
 #else
 const PROGMEM char* wifi_conf = "wifi.json";
 const PROGMEM char* mqtt_conf = "mqtt.json";
-const PROGMEM char* advance_conf = "advance.json";
+const PROGMEM char* unit_conf = "unit.json";
 const PROGMEM char* console_file = "console.log";
 const PROGMEM char* others_conf = "others.json";
 // pinouts

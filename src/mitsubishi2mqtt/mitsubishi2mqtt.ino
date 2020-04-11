@@ -102,7 +102,7 @@ void setup() {
   setDefaults();
   loadWifi();
   loadOthers();
-  loadAdvance();
+  loadUnit();
   if (initWifi()) {
     if (SPIFFS.exists(console_file)) {
       SPIFFS.remove(console_file);
@@ -114,7 +114,7 @@ void setup() {
     server.on("/setup", handleSetup);
     server.on("/mqtt", handleMqtt);
     server.on("/wifi", handleWifi);
-    server.on("/advance", handleAdvance);
+    server.on("/unit", handleUnit);
     server.on("/status", handleStatus);
     server.on("/others", handleOthers);
     server.onNotFound(handleNotFound);
@@ -239,7 +239,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void saveAdvance(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep) {
+void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep) {
   const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
@@ -260,7 +260,7 @@ void saveAdvance(String tempUnit, String supportMode, String loginPassword, Stri
   // if login password is empty, we use empty
   if (loginPassword == '\0') loginPassword = "";
   doc["login_password"]   = loginPassword;
-  File configFile = SPIFFS.open(advance_conf, "w");
+  File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
     Serial.println(F("Failed to open config file for writing"));
   }
@@ -388,12 +388,12 @@ bool loadMqtt() {
   return true;
 }
 
-bool loadAdvance() {
-  if (!SPIFFS.exists(advance_conf)) {
-    Serial.println(F("Advance config file not exist!"));
+bool loadUnit() {
+  if (!SPIFFS.exists(unit_conf)) {
+    Serial.println(F("Unit config file not exist!"));
     return false;
   }
-  File configFile = SPIFFS.open(advance_conf, "r");
+  File configFile = SPIFFS.open(unit_conf, "r");
   if (!configFile) {
     return false;
   }
@@ -643,25 +643,25 @@ void handleMqtt() {
   }
 }
 
-void handleAdvance() {
+void handleUnit() {
   checkLogin();
   if (server.method() == HTTP_POST) {
-    saveAdvance(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)setTemperature(server.arg("min_temp").toInt(), useFahrenheit), (String)setTemperature(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
+    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)setTemperature(server.arg("min_temp").toInt(), useFahrenheit), (String)setTemperature(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
   }
   else {
-    String advancePage =  FPSTR(html_page_advance);
-    advancePage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
-    advancePage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
-    advancePage.replace(F("_TEMP_STEP_"), String(temp_step));
+    String unitPage =  FPSTR(html_page_unit);
+    unitPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
+    unitPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
+    unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
     //temp
-    if (useFahrenheit) advancePage.replace(F("_TU_FAH_"), F("selected"));
-    else advancePage.replace(F("_TU_CEL_"), F("selected"));
+    if (useFahrenheit) unitPage.replace(F("_TU_FAH_"), F("selected"));
+    else unitPage.replace(F("_TU_CEL_"), F("selected"));
     //mode
-    if (supportHeatMode) advancePage.replace(F("_MD_ALL_"), F("selected"));
-    else advancePage.replace(F("_MD_NONHEAT_"), F("selected"));
-    advancePage.replace(F("_LOGIN_PASSWORD_"), login_password);
-    sendWrappedHTML(advancePage);
+    if (supportHeatMode) unitPage.replace(F("_MD_ALL_"), F("selected"));
+    else unitPage.replace(F("_MD_NONHEAT_"), F("selected"));
+    unitPage.replace(F("_LOGIN_PASSWORD_"), login_password);
+    sendWrappedHTML(unitPage);
   }
 }
 
