@@ -14,7 +14,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-const PROGMEM char* m2mqtt_version = "0.6.0";
+const PROGMEM char* m2mqtt_version = "0.6.1";
 
 //Define global variables for files
 #ifdef ESP32
@@ -92,5 +92,5 @@ const PROGMEM uint32_t HP_MAX_RETRIES = 5;
 
 // temp settings
 bool useFahrenheit = false;
-// support heat mode settings, some model do not support heat mode 
+// support heat mode settings, some model do not support heat mode
 bool supportHeatMode = true;
