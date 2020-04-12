@@ -71,18 +71,18 @@ int uploaderror = 0;
 void setup() {
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
-  Serial.println(F("Starting Mitsubishi2MQTT"));
+  // Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
   {
-    Serial.println(F("Mounted file system"));
+    // Serial.println(F("Mounted file system"));
   }
   else
   {
-    Serial.println(F("Failed to mount FS -> formating"));
+    // Serial.println(F("Failed to mount FS -> formating"));
     SPIFFS.format();
-    if (SPIFFS.begin())
-      Serial.println(F("Mounted file system after formating"));
+    // if (SPIFFS.begin())
+      // Serial.println(F("Mounted file system after formating"));
   }
   //set led pin as output
   pinMode(blueLedPin, OUTPUT);
@@ -157,7 +157,7 @@ void setup() {
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
-    Serial.println(F("Connection to HVAC. Stop serial log."));
+    // Serial.println(F("Connection to HVAC. Stop serial log."));
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
@@ -184,17 +184,17 @@ bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
   if (!SPIFFS.exists(wifi_conf)) {
-    Serial.println(F("Wifi config file not exist!"));
+    // Serial.println(F("Wifi config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
-    Serial.println(F("Failed to open wifi config file"));
+    // Serial.println(F("Failed to open wifi config file"));
     return false;
   }
   size_t size = configFile.size();
   if (size > 1024) {
-    Serial.println(F("Wifi config file size is too large"));
+    // Serial.println(F("Wifi config file size is too large"));
     return false;
   }
 
@@ -232,7 +232,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
-    Serial.println(F("Failed to open config file for writing"));
+    // Serial.println(F("Failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -262,7 +262,7 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
-    Serial.println(F("Failed to open config file for writing"));
+    // Serial.println(F("Failed to open config file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -278,7 +278,7 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
-    Serial.println(F("Failed to open wifi file for writing"));
+    // Serial.println(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, Serial);
   serializeJson(doc, configFile);
@@ -294,7 +294,7 @@ void saveOthers(String haa, String haat, String debug) {
   doc["debug"] = debug;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
-    Serial.println(F("Failed to open wifi file for writing"));
+    // Serial.println(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -303,7 +303,7 @@ void saveOthers(String haa, String haat, String debug) {
 
 // Initialize captive portal page
 void initCaptivePortal() {
-  Serial.println(F("Starting captive portal"));
+  // Serial.println(F("Starting captive portal"));
   server.on("/", handleInitSetup);
   server.on("/save", handleSaveWifi);
   server.on("/reboot", handleReboot);
@@ -336,11 +336,11 @@ void initOTA() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     //    write_log("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
-    else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-    else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-    else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-    else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
+    // if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
+    // else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
+    // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
+    // else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
+    // else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
   });
   ArduinoOTA.begin();
 }
@@ -390,7 +390,7 @@ bool loadMqtt() {
 
 bool loadUnit() {
   if (!SPIFFS.exists(unit_conf)) {
-    Serial.println(F("Unit config file not exist!"));
+    // Serial.println(F("Unit config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(unit_conf, "r");
@@ -429,7 +429,7 @@ bool loadUnit() {
 
 bool loadOthers() {
   if (!SPIFFS.exists(others_conf)) {
-    Serial.println(F("Others config file not exist!"));
+    // Serial.println(F("Others config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(others_conf, "r");
@@ -487,7 +487,7 @@ boolean initWifi() {
     }
   }
 
-  Serial.println(F("\n\r \n\rStarting in AP mode"));
+  // Serial.println(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
   WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
   if (!connectWifiSuccess) {
@@ -500,8 +500,8 @@ boolean initWifi() {
   }
   delay(2000); // VERY IMPORTANT
   WiFi.softAPConfig(apIP, apIP, netMsk);
-  Serial.print(F("IP address: "));
-  Serial.println(WiFi.softAPIP());
+  // Serial.print(F("IP address: "));
+  // Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
   wifi_config = false;
   return false;
@@ -533,7 +533,7 @@ void handleNotFound() {
 
 void handleSaveWifi() {
   checkLogin();
-  Serial.println(F("Saving wifi config"));
+  // Serial.println(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
@@ -543,7 +543,7 @@ void handleSaveWifi() {
 }
 
 void handleReboot() {
-  Serial.println(F("Rebooting"));
+  // Serial.println(F("Rebooting"));
   sendWrappedHTML(FPSTR(html_init_reboot));
   delay(500);
   ESP.restart();
@@ -1433,7 +1433,7 @@ bool connectWifi() {
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
-  Serial.println("Connecting to " + ap_ssid);
+  // Serial.println("Connecting to " + ap_ssid);
   unsigned long wifiStartTime = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < 10000) {
     Serial.write('.');
@@ -1445,23 +1445,23 @@ bool connectWifi() {
     delay(250);
   }
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println(F("Failed to connect to wifi"));
+    // Serial.println(F("Failed to connect to wifi"));
     return false;
   }
-  Serial.println(F("Connected to "));
-  Serial.println(ap_ssid);
-  Serial.println(F("Ready"));
-  Serial.print("IP address: ");
+  // Serial.println(F("Connected to "));
+  // Serial.println(ap_ssid);
+  // Serial.println(F("Ready"));
+  // Serial.print("IP address: ");
   unsigned long dhcpStartTime = millis();
   while ((WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") && millis() - dhcpStartTime < 5000) {
-    Serial.write('.');
+    // Serial.write('.');
     delay(500);
   }
   if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
-    Serial.println(F("Failed to get IP address"));
+    // Serial.println(F("Failed to get IP address"));
     return false;
   }
-  Serial.println(WiFi.localIP());
+  // Serial.println(WiFi.localIP());
   //ticker.detach(); // Stop blinking the LED because now we are connected:)
   //keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
