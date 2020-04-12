@@ -70,7 +70,7 @@ int uploaderror = 0;
 
 void setup() {
   // Start serial for debug before HVAC connect to serial
-  Serial.begin(9600);
+  Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
