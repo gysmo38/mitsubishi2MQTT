@@ -13,6 +13,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
 #include "FS.h"               // SPIFFS for store config
 #ifdef ESP32
 #include <WiFi.h>             // WIFI for ESP32
@@ -41,6 +42,15 @@ ESP8266WebServer server(80);  // ESP8266 web
 #include "html_init.h"    // code html for initial config
 #include "html_menu.h"    // code html for menu
 #include "html_pages.h"   // code html for pages
+// Languages
+#ifndef MY_LANGUAGE
+  #include "languages/en-GB.h" // default language English
+#else
+  #define QUOTEME(x) QUOTEME_1(x)
+  #define QUOTEME_1(x) #x
+  #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
+  #include INCLUDE_FILE(MY_LANGUAGE)
+#endif
 
 //Ticker ticker;
 
@@ -567,6 +577,11 @@ void handleRoot() {
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
     //not show control button if hp not connected
     menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
+    menuRootPage.replace("_TXT_CONTROL_",FPSTR(txt_control));
+    menuRootPage.replace("_TXT_SETUP_",FPSTR(txt_setup));
+    menuRootPage.replace("_TXT_STATUS_",FPSTR(txt_status));
+    menuRootPage.replace("_TXT_FW_UPGRADE_",FPSTR(txt_firmware_upgrade));
+    menuRootPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
     sendWrappedHTML(menuRootPage);
   }
 }
@@ -588,7 +603,14 @@ void handleSetup() {
 #endif
   }
   else {
-    sendWrappedHTML(FPSTR(html_menu_setup));
+    String menuSetupPage = FPSTR(html_menu_setup);
+    menuSetupPage.replace("_TXT_MQTT_",FPSTR(txt_MQTT));
+    menuSetupPage.replace("_TXT_WIFI_",FPSTR(txt_WIFI));
+    menuSetupPage.replace("_TXT_UNIT_",FPSTR(txt_unit));
+    menuSetupPage.replace("_TXT_OTHERS_",FPSTR(txt_others));
+    menuSetupPage.replace("_TXT_RESET_",FPSTR(txt_reset));
+    menuSetupPage.replace("_TXT_BACK_",FPSTR(txt_back));
+    sendWrappedHTML(menuSetupPage);
   }
 
 }
@@ -609,6 +631,8 @@ void handleOthers() {
   }
   else {
     String othersPage =  FPSTR(html_page_others);
+    othersPage.replace("_TXT_SAVE_", FPSTR(txt_save));
+    othersPage.replace("_TXT_BACK_", FPSTR(txt_back));
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
       othersPage.replace("_HAA_ON_", "selected");
@@ -634,6 +658,8 @@ void handleMqtt() {
   }
   else {
     String mqttPage =  FPSTR(html_page_mqtt);
+    mqttPage.replace("_TXT_SAVE_", FPSTR(txt_save));
+    mqttPage.replace("_TXT_BACK_", FPSTR(txt_back));
     mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
     mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
     mqttPage.replace(F("_MQTT_USER_"), mqtt_username);
@@ -651,6 +677,8 @@ void handleUnit() {
   }
   else {
     String unitPage =  FPSTR(html_page_unit);
+    unitPage.replace("_TXT_SAVE_", FPSTR(txt_save));
+    unitPage.replace("_TXT_BACK_", FPSTR(txt_back));
     unitPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
     unitPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
     unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
@@ -678,6 +706,8 @@ void handleWifi() {
   }
   else {
     String wifiPage =  FPSTR(html_page_wifi);
+    wifiPage.replace("_TXT_SAVE_", FPSTR(txt_save));
+    wifiPage.replace("_TXT_BACK_", FPSTR(txt_back));
     wifiPage.replace(F("_SSID_"), ap_ssid);
     wifiPage.replace(F("_PSK_"), ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), ota_pwd);
@@ -688,6 +718,8 @@ void handleWifi() {
 
 void handleStatus() {
   String statusPage =  FPSTR(html_page_status);
+  statusPage.replace("_TXT_SAVE_", FPSTR(txt_save));
+  statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
   if (server.hasArg("mrconn")) mqttConnect();
   String connected = F("<span style='color:#47c266'><b>CONNECTED</b></span>");
   String disconnected = F("<span style='color:#d43535'><b>DISCONNECTED</b></span>");
@@ -719,6 +751,7 @@ void handleControl() {
   //write_log("Enter HVAC control");
   headerContent.replace("_UNIT_NAME_", hostname);
   footerContent.replace("_VERSION_", m2mqtt_version);
+  controlPage.replace("_TXT_BACK_", FPSTR(txt_back));
   controlPage.replace("_UNIT_NAME_", hostname);
   controlPage.replace("_RATE_", "60");
   controlPage.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
@@ -886,7 +919,10 @@ void handleLogin() {
 void handleUpgrade()
 {
   uploaderror = 0;
-  sendWrappedHTML(FPSTR(html_page_upgrade));
+  String upgradePage = FPSTR(html_page_upgrade);
+  upgradePage.replace("_TXT_UPGRADE_",FPSTR(txt_upgrade));
+  upgradePage.replace("_TXT_BACK_",FPSTR(txt_back));
+  sendWrappedHTML(upgradePage);
 }
 
 void handleUploadDone()
