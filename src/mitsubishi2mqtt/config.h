@@ -14,7 +14,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define MY_LANGUAGE fr-FR // define your language
+//#define MY_LANGUAGE fr-FR // define your language
 
 const PROGMEM char* m2mqtt_version = "0.7.0";
 
