@@ -13,7 +13,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
- 
+
 const char html_menu_root[] PROGMEM = R"====(
 <div id="control" style="display:none">
     <form action='/control' method='get'>
@@ -78,7 +78,7 @@ const char html_menu_setup[] PROGMEM = R"====(
     </form>
 </p>
 <p>
-    <form>
+    <form onsubmit="return confirm('Do you really want to reset this unit?');">
         <button type='submit' name='RESET' class='button bred'>_TXT_RESET_</button>
     </form>
 </p>
