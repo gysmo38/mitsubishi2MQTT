@@ -78,7 +78,7 @@ const char html_menu_setup[] PROGMEM = R"====(
     </form>
 </p>
 <p>
-    <form onsubmit="return confirm('Are you sure you want to remove this unit's configuration?');">
+    <form onsubmit="return confirm('Do you really want to reset this unit?');">
         <button type='submit' name='RESET' class='button bred'>_TXT_RESET_</button>
     </form>
 </p>
