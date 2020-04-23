@@ -56,7 +56,7 @@ const char txt_f_noheat[] PROGMEM = "All modes execept heat";
 
 //Page Reboot, save & Resseting
 const char txt_m_reboot[] PROGMEM = "Rebooting... Refresh in";
-const char txt_m_reboot[] PROGMEM = "Resetting... Connect to SSID";
+const char txt_m_reset[] PROGMEM = "Resetting... Connect to SSID";
 const char txt_m_save[] PROGMEM = "Saving configuration and rebooting... Refresh in";
 
 //Page MQTT
