@@ -689,6 +689,7 @@ void handleMqtt() {
     mqttPage.replace("_TXT_MQTT_USER_", FPSTR(txt_mqtt_user));
     mqttPage.replace("_TXT_MQTT_PASSWORD_", FPSTR(txt_mqtt_password));
     mqttPage.replace("_TXT_MQTT_TOPIC_", FPSTR(txt_mqtt_topic));
+    mqttPage.replace(F("_MQTT_FN_"), mqtt_fn);
     mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
     mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
     mqttPage.replace(F("_MQTT_USER_"), mqtt_username);
