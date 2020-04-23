@@ -17,27 +17,27 @@
 const char html_init_setup[] PROGMEM = R"====(
 <div id='l1' name='l1'></div>
 <fieldset>
-    <legend><b>&nbsp;Initial setup&nbsp;</b></legend>
+    <legend><b>&nbsp; _TXT_INIT_TITLE_ &nbsp;</b></legend>
     <form method='post' action='save'>
-        <p><b>Hostname</b>
+        <p><b>_TXT_INIT_HOST_</b>
             <br/>
             <input id='hn' name='hn' placeholder=' ' value='_UNIT_NAME_'>
         </p>
-        <p><b>SSID</b> ()
+        <p><b>_TXT_INIT_SSID_</b> ()
             <br/>
             <input id='ssid' name='ssid' placeholder=' '>
         </p>
-        <p><b>PSK</b> ()
+        <p><b>_TXT_INIT_PSK_</b> ()
             <br/>
             <input id='psk' name='psk' placeholder=' '>
         </p>
-        <p><b>OTA Password</b>
+        <p><b>_TXT_INIT_OTA_</b>
             <br/>
             <input id='otapwd' name='otapwd' placeholder=' '>
         </p>
         </p>
         <br/>
-        <button name='submit' type='submit' class='button bgrn'>Save & Reboot</button>
+        <button name='submit' type='submit' class='button bgrn'>_TXT_M_SAVE_</button>
     </form>
 </fieldset>
 <fieldset>
