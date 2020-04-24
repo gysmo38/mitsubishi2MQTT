@@ -24,7 +24,7 @@ const char txt_reboot[] PROGMEM = "再起動";
 //Setup Menu
 const char txt_MQTT[] PROGMEM = "MQTT";
 const char txt_WIFI[] PROGMEM = "WIFI";
-const char txt_unit[] PROGMEM = "本体";
+const char txt_unit[] PROGMEM = "エアコン本体";
 const char txt_others[] PROGMEM = "その他";
 const char txt_reset[] PROGMEM = "初期化";
 
@@ -32,103 +32,103 @@ const char txt_reset[] PROGMEM = "初期化";
 const char txt_back[] PROGMEM = "戻る";
 const char txt_save[] PROGMEM = "保存して再起動";
 const char txt_logout[] PROGMEM = "ログアウト";
-const char txt_upgrade[] PROGMEM = "更新開始";
+const char txt_upgrade[] PROGMEM = "アップデート開始";
 
 //Form choices
-const char txt_f_on[] PROGMEM = "ON";
-const char txt_f_off[] PROGMEM = "OFF";
-const char txt_f_auto[] PROGMEM = "AUTO";
-const char txt_f_heat[] PROGMEM = "HEAT";
-const char txt_f_dry[] PROGMEM = "DRY";
-const char txt_f_cool[] PROGMEM = "COOL";
-const char txt_f_fan[] PROGMEM = "FAN";
-const char txt_f_quiet[] PROGMEM = "QUIET";
-const char txt_f_speed[] PROGMEM = "SPEED";
-const char txt_f_swing[] PROGMEM = "SWING";
-const char txt_f_pos[] PROGMEM = "POSITION";
-const char txt_f_celsius[] PROGMEM = "Celsius";
-const char txt_f_fh[] PROGMEM = "Fahrenheit";
-const char txt_f_allmodes[] PROGMEM = "All modes";
-const char txt_f_noheat[] PROGMEM = "All modes execept heat";
+const char txt_f_on[] PROGMEM = "オン";
+const char txt_f_off[] PROGMEM = "オフ";
+const char txt_f_auto[] PROGMEM = "自動";
+const char txt_f_heat[] PROGMEM = "暖房";
+const char txt_f_dry[] PROGMEM = "除湿";
+const char txt_f_cool[] PROGMEM = "冷房";
+const char txt_f_fan[] PROGMEM = "送風";
+const char txt_f_quiet[] PROGMEM = "静";
+const char txt_f_speed[] PROGMEM = "風速";
+const char txt_f_swing[] PROGMEM = "スイング";
+const char txt_f_pos[] PROGMEM = "風向";
+const char txt_f_celsius[] PROGMEM = "摂氏";
+const char txt_f_fh[] PROGMEM = "華氏";
+const char txt_f_allmodes[] PROGMEM = "全ての機能";
+const char txt_f_noheat[] PROGMEM = "暖房以外の全ての機能";
 
 
 //Page Reboot, save & Resseting
-const char txt_m_reboot[] PROGMEM = "Rebooting... Refresh in";
-const char txt_m_reset[] PROGMEM = "Resetting... Connect to SSID";
-const char txt_m_save[] PROGMEM = "Saving configuration and rebooting... Refresh in";
+const char txt_m_reboot[] PROGMEM = "再起動中";
+const char txt_m_reset[] PROGMEM = "初期化中... SSIDに接続してください";
+const char txt_m_save[] PROGMEM = "設定を保存し、再起動中";
 
 //Page MQTT
-const char txt_mqtt_title[] PROGMEM = "MQTT Parameters";
-const char txt_mqtt_fn[] PROGMEM = "Friendly name";
-const char txt_mqtt_host[] PROGMEM = "Host";
-const char txt_mqtt_port[] PROGMEM = "Port (default 1883)";
-const char txt_mqtt_user[] PROGMEM = "User";
-const char txt_mqtt_password[] PROGMEM = "Password";
-const char txt_mqtt_topic[] PROGMEM = "Topic";
+const char txt_mqtt_title[] PROGMEM = "MQTT設定";
+const char txt_mqtt_fn[] PROGMEM = "フレンドリー名";
+const char txt_mqtt_host[] PROGMEM = "ホスト";
+const char txt_mqtt_port[] PROGMEM = "ポート（初期値 1883）";
+const char txt_mqtt_user[] PROGMEM = "ユーザー名";
+const char txt_mqtt_password[] PROGMEM = "パスワード";
+const char txt_mqtt_topic[] PROGMEM = "トピック";
 
 //Page Others
-const char txt_others_title[] PROGMEM = "Others Parameters";
-const char txt_others_haauto[] PROGMEM = "HA Autodiscovery";
-const char txt_others_hatopic[] PROGMEM = "HA Autodiscovery topic";
-const char txt_others_debug[] PROGMEM = "Debug";
+const char txt_others_title[] PROGMEM = "その他設定";
+const char txt_others_haauto[] PROGMEM = "HA自動検出";
+const char txt_others_hatopic[] PROGMEM = "HA自動検出トピック";
+const char txt_others_debug[] PROGMEM = "デバッグ";
 
 //Page Status
-const char txt_status_title[] PROGMEM = "Status";
-const char txt_status_hvac[] PROGMEM = "HVAC Status";
-const char txt_status_mqtt[] PROGMEM = "MQTT Status";
+const char txt_status_title[] PROGMEM = "ステータス";
+const char txt_status_hvac[] PROGMEM = "エアコン本体";
+const char txt_status_mqtt[] PROGMEM = "MQTT";
 const char txt_status_wifi[] PROGMEM = "WIFI RSSI";
-const char txt_status_connect[] PROGMEM = "CONNECTED";
-const char txt_status_disconnect[] PROGMEM = "DICONNECTED";
+const char txt_status_connect[] PROGMEM = "接続中";
+const char txt_status_disconnect[] PROGMEM = "切断中";
 
 //Page WIFI
-const char txt_wifi_title[] PROGMEM = "WIFI Parameters";
-const char txt_wifi_hostname[] PROGMEM = "Hostname";
+const char txt_wifi_title[] PROGMEM = "WIFI設定";
+const char txt_wifi_hostname[] PROGMEM = "ホスト名";
 const char txt_wifi_SSID[] PROGMEM = "SSID";
 const char txt_wifi_psk[] PROGMEM = "PSK";
-const char txt_wifi_otap[] PROGMEM = "OTA Password";
+const char txt_wifi_otap[] PROGMEM = "OTAパスワード";
 
 //Page Control
-const char txt_ctrl_title[] PROGMEM = "Control Unit";
-const char txt_ctrl_temp[] PROGMEM = "Temperature";
-const char txt_ctrl_power[] PROGMEM = "Power";
-const char txt_ctrl_mode[] PROGMEM = "Mode";
-const char txt_ctrl_fan[] PROGMEM = "Fan";
-const char txt_ctrl_vane[] PROGMEM = "Vane";
-const char txt_ctrl_wvane[] PROGMEM = "Wide Vane";
-const char txt_ctrl_ctemp[] PROGMEM = "Current temperature";
+const char txt_ctrl_title[] PROGMEM = "エアコン操作";
+const char txt_ctrl_temp[] PROGMEM = "設定温度";
+const char txt_ctrl_power[] PROGMEM = "電源";
+const char txt_ctrl_mode[] PROGMEM = "運転モード";
+const char txt_ctrl_fan[] PROGMEM = "風量";
+const char txt_ctrl_vane[] PROGMEM = "上下風向";
+const char txt_ctrl_wvane[] PROGMEM = "左右風向";
+const char txt_ctrl_ctemp[] PROGMEM = "現在の室温";
 
 //Page Unit
-const char txt_unit_title[] PROGMEM = "Unit configuration";
-const char txt_unit_temp[] PROGMEM = "Temperature unit";
-const char txt_unit_maxtemp[] PROGMEM = "Maximun temperature";
-const char txt_unit_mintemp[] PROGMEM = "Minimun temperature";
-const char txt_unit_steptemp[] PROGMEM = "Temerature step";
-const char txt_unit_modes[] PROGMEM = "Mode support";
-const char txt_unit_password[] PROGMEM = "Web password";
+const char txt_unit_title[] PROGMEM = "エアコン本体設定";
+const char txt_unit_temp[] PROGMEM = "温度単位";
+const char txt_unit_maxtemp[] PROGMEM = "最高設定温度";
+const char txt_unit_mintemp[] PROGMEM = "最低設定温度";
+const char txt_unit_steptemp[] PROGMEM = "設定温度単位";
+const char txt_unit_modes[] PROGMEM = "対応機能";
+const char txt_unit_password[] PROGMEM = "Webパスワード";
 
 //Page Login
-const char txt_login_title[] PROGMEM = "Authentication";
-const char txt_login_password[] PROGMEM = "Password";
-const char txt_login_sucess[] PROGMEM = "Login successful, you will be redirect in few seconds.";
-const char txt_login_fail[] PROGMEM = "Wrong username/password! try again.";
+const char txt_login_title[] PROGMEM = "ログイン";
+const char txt_login_password[] PROGMEM = "パスワード";
+const char txt_login_sucess[] PROGMEM = "ログイン成功、数秒後にリダイレクトされます";
+const char txt_login_fail[] PROGMEM = "ユーザー名・パスワードが間違っています、もう一度試してください";
 
 //Page Upgrade
-const char txt_upgrade_title[] PROGMEM = "Upgrade";
-const char txt_upgrade_info[] PROGMEM = "Firmware OTA upgrade by bin file upload";
-const char txt_upgrade_start[] PROGMEM = "Upload started";
+const char txt_upgrade_title[] PROGMEM = "更新";
+const char txt_upgrade_info[] PROGMEM = "binファイルをアップロードし、ファームウェアのOTAアップデートを行う";
+const char txt_upgrade_start[] PROGMEM = "アップロード中";
 
 //Page Upload
-const char txt_upload_nofile[] PROGMEM = "No file selected";
-const char txt_upload_filetoolarge[] PROGMEM = "File size is larger than available free space";
-const char txt_upload_fileheader[] PROGMEM = "File magic header does not start with 0xE9";
-const char txt_upload_flashsize[] PROGMEM = "File flash size is larger than device flash size";
-const char txt_upload_buffer[] PROGMEM = "File upload buffer miscompare";
-const char txt_upload_failed[] PROGMEM = "Upload failed. Enable logging option 3 for more information";
-const char txt_upload_aborted[] PROGMEM = "Upload aborted";
-const char txt_upload_code[] PROGMEM = "Upload error code ";
-const char txt_upload_error[] PROGMEM = "Update error code (see Updater.cpp) ";
-const char txt_upload_sucess[] PROGMEM = "successful";
-const char txt_upload_refresh[] PROGMEM = "Refresh in";
+const char txt_upload_nofile[] PROGMEM = "ファイルが選択されていません";
+const char txt_upload_filetoolarge[] PROGMEM = "ファイルのサイズが空き容量を超えています";
+const char txt_upload_fileheader[] PROGMEM = "ファイルのマジックナンバーが0xE9から始まっていません";
+const char txt_upload_flashsize[] PROGMEM = "ファイルのフラッシュサイズがデバイスのフラッシュ容量を超えています";
+const char txt_upload_buffer[] PROGMEM = "ファイルアップロードのバッファサイズが一致しません";
+const char txt_upload_failed[] PROGMEM = "アップロード失敗. loggingのオプション3を有効にし、詳細を確認してください";
+const char txt_upload_aborted[] PROGMEM = "アップロード中止";
+const char txt_upload_code[] PROGMEM = "アップロードエラーコード ";
+const char txt_upload_error[] PROGMEM = "アップデートエラーコード (Updater.cppを参照してください) ";
+const char txt_upload_sucess[] PROGMEM = "成功";
+const char txt_upload_refresh[] PROGMEM = "再読込中";
 
 //Page Init
-const char txt_init_title[] PROGMEM = "Initial setup";
+const char txt_init_title[] PROGMEM = "初期設定";
