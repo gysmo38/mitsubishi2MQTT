@@ -15,7 +15,7 @@
 */
 
 //Main Menu
-const char txt_control[] PROGMEM = "コントロール";
+const char txt_control[] PROGMEM = "エアコン操作";
 const char txt_setup[] PROGMEM = "設定";
 const char txt_status[] PROGMEM = "ステータス";
 const char txt_firmware_upgrade[] PROGMEM = "ファームウェア更新";
@@ -113,7 +113,7 @@ const char txt_login_sucess[] PROGMEM = "ログイン成功、数秒後にリダ
 const char txt_login_fail[] PROGMEM = "ユーザー名・パスワードが間違っています、もう一度試してください";
 
 //Page Upgrade
-const char txt_upgrade_title[] PROGMEM = "更新";
+const char txt_upgrade_title[] PROGMEM = "ファームウェア更新";
 const char txt_upgrade_info[] PROGMEM = "binファイルをアップロードし、ファームウェアのOTAアップデートを行う";
 const char txt_upgrade_start[] PROGMEM = "アップロード中";
 
