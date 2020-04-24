@@ -51,7 +51,7 @@ const char txt_f_pos[] PROGMEM = "POSITION";
 const char txt_f_celsius[] PROGMEM = "Celsius";
 const char txt_f_fh[] PROGMEM = "Fahrenheit";
 const char txt_f_allmodes[] PROGMEM = "All modes";
-const char txt_f_noheat[] PROGMEM = "All modes execept heat";
+const char txt_f_noheat[] PROGMEM = "All modes except heat";
 
 
 //Page Reboot, save & Resseting
@@ -80,7 +80,7 @@ const char txt_status_hvac[] PROGMEM = "HVAC Status";
 const char txt_status_mqtt[] PROGMEM = "MQTT Status";
 const char txt_status_wifi[] PROGMEM = "WIFI RSSI";
 const char txt_status_connect[] PROGMEM = "CONNECTED";
-const char txt_status_disconnect[] PROGMEM = "DICONNECTED";
+const char txt_status_disconnect[] PROGMEM = "DISCONNECTED";
 
 //Page WIFI
 const char txt_wifi_title[] PROGMEM = "WIFI Parameters";
@@ -102,17 +102,17 @@ const char txt_ctrl_ctemp[] PROGMEM = "Current temperature";
 //Page Unit
 const char txt_unit_title[] PROGMEM = "Unit configuration";
 const char txt_unit_temp[] PROGMEM = "Temperature unit";
-const char txt_unit_maxtemp[] PROGMEM = "Maximun temperature";
-const char txt_unit_mintemp[] PROGMEM = "Minimun temperature";
-const char txt_unit_steptemp[] PROGMEM = "Temerature step";
+const char txt_unit_maxtemp[] PROGMEM = "Maximum temperature";
+const char txt_unit_mintemp[] PROGMEM = "Minimum temperature";
+const char txt_unit_steptemp[] PROGMEM = "Temperature step";
 const char txt_unit_modes[] PROGMEM = "Mode support";
 const char txt_unit_password[] PROGMEM = "Web password";
 
 //Page Login
 const char txt_login_title[] PROGMEM = "Authentication";
 const char txt_login_password[] PROGMEM = "Password";
-const char txt_login_sucess[] PROGMEM = "Login successful, you will be redirect in few seconds.";
-const char txt_login_fail[] PROGMEM = "Wrong username/password! try again.";
+const char txt_login_sucess[] PROGMEM = "Login successful, you will be redirected in a few seconds.";
+const char txt_login_fail[] PROGMEM = "Wrong username/password! Try again.";
 
 //Page Upgrade
 const char txt_upgrade_title[] PROGMEM = "Upgrade";
@@ -129,7 +129,7 @@ const char txt_upload_failed[] PROGMEM = "Upload failed. Enable logging option 3
 const char txt_upload_aborted[] PROGMEM = "Upload aborted";
 const char txt_upload_code[] PROGMEM = "Upload error code ";
 const char txt_upload_error[] PROGMEM = "Update error code (see Updater.cpp) ";
-const char txt_upload_sucess[] PROGMEM = "successful";
+const char txt_upload_sucess[] PROGMEM = "Successful";
 const char txt_upload_refresh[] PROGMEM = "Refresh in";
 
 //Page Init
