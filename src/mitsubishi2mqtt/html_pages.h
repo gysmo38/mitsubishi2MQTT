@@ -35,7 +35,7 @@ const char html_page_mqtt[] PROGMEM =
         "<form method='post'>"
             "<p><b>_TXT_MQTT_FN_</b>"
                 "<br/>"
-                "<input id='fn' name='fn' placeholder=' ' value='_UNIT_NAME_'>"
+                "<input id='fn' name='fn' placeholder=' ' value='_MQTT_FN_'>"
             "</p>"
             "<p><b>_TXT_MQTT_HOST_</b>"
                 "<br/>"
