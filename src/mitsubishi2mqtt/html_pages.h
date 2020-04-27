@@ -355,7 +355,7 @@ const char html_page_upgrade[] PROGMEM =
                 "<input type='file' accept='.bin' name='upload'>"
                 "<br>"
                 "<br>"
-                "<button type='submit' onclick=\"eb('f1').style.display='none';eb('f2').style.display='block';this.form.submit();\" class='button bgrn'>_TXT_UPGRADE_</button>"
+                "<button type='submit' onclick=\"eb('f1').style.display='none';eb('f2').style.display='block';this.form.submit();\" class='button bgrn'>_TXT_B_UPGRADE_</button>"
             "</form>"
         "</fieldset>"
         "<p>"
