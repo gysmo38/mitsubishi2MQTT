@@ -27,6 +27,7 @@ const char txt_WIFI[] PROGMEM = "WIFI";
 const char txt_unit[] PROGMEM = "Unità";
 const char txt_others[] PROGMEM = "Altri parametri";
 const char txt_reset[] PROGMEM = "Reset configurazione";
+const char txt_reset_confirm[] PROGMEM = "Sei sicuro di voler resettare l'unità?";
 
 //Buttons
 const char txt_back[] PROGMEM = "Indietro";
