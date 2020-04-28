@@ -23,7 +23,7 @@ const char txt_reboot[] PROGMEM = "Riavvio";
 
 //Setup Menu
 const char txt_MQTT[] PROGMEM = "MQTT";
-const char txt_WIFI[] PROGMEM = "WIFI";
+const char txt_WIFI[] PROGMEM = "Wi-Fi";
 const char txt_unit[] PROGMEM = "Unità";
 const char txt_others[] PROGMEM = "Altri parametri";
 const char txt_reset[] PROGMEM = "Reset configurazione";
@@ -116,7 +116,7 @@ const char txt_login_fail[] PROGMEM = "Username/password errati! Riprova.";
 
 //Page Upgrade
 const char txt_upgrade_title[] PROGMEM = "Upgrade";
-const char txt_upgrade_info[] PROGMEM = "Aggiornamnento firmware OTA tramite upload del file bin";
+const char txt_upgrade_info[] PROGMEM = "Aggiornamento firmware OTA tramite upload del file bin.";
 const char txt_upgrade_start[] PROGMEM = "Caricamento avviato";
 
 //Page Upload
