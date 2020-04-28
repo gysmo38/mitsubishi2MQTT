@@ -42,7 +42,7 @@ const char html_menu_root[] PROGMEM = R"====(
 </div>
 <div id="logout" style="display:none">
     <form action='/login?LOGOUT=YES' method='post'>
-        <button type='submit' name='Logout' class='button bred'>Logout</button>
+        <button type='submit' name='Logout' class='button bred'>_TXT_LOGOUT_</button>
     </form>
 </div>
 <script>
@@ -78,7 +78,7 @@ const char html_menu_setup[] PROGMEM = R"====(
     </form>
 </p>
 <p>
-    <form onsubmit="return confirm('Do you really want to reset this unit?');">
+    <form onsubmit="return confirm(' _TXT_RESET_CONFIRM_ ');">
         <button type='submit' name='RESET' class='button bred'>_TXT_RESET_</button>
     </form>
 </p>

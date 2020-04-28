@@ -531,6 +531,13 @@ void sendWrappedHTML(String content) {
 void handleNotFound() {
   if (captive) {
     String initSetupContent = FPSTR(html_init_setup);
+    initSetupContent.replace("_TXT_INIT_TITLE",FPSTR(txt_init_title));
+    initSetupContent.replace("_TXT_INIT_HOST",FPSTR(txt_wifi_hostname));
+    initSetupContent.replace("_TXT_INIT_SSID",FPSTR(txt_wifi_SSID));
+    initSetupContent.replace("_TXT_INIT_PSK",FPSTR(txt_wifi_psk));
+    initSetupContent.replace("_TXT_INIT_OTA",FPSTR(txt_wifi_otap));
+    initSetupContent.replace("_TXT_M_SAVE_",FPSTR(txt_save));
+    
     server.send(200, "text/html", initSetupContent);
   }
   else {
@@ -553,7 +560,6 @@ void handleSaveWifi() {
 }
 
 void handleReboot() {
-  // Serial.println(F("Rebooting"));
   sendWrappedHTML(FPSTR(html_init_reboot));
   delay(500);
   ESP.restart();
@@ -564,6 +570,7 @@ void handleRoot() {
   if (server.hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
+    rebootPage.replace("_TXT_M_REBOOT_",FPSTR(txt_m_reboot));
     sendWrappedHTML(rebootPage + countDown);
     delay(500);
 #ifdef ESP32
@@ -582,6 +589,7 @@ void handleRoot() {
     menuRootPage.replace("_TXT_STATUS_",FPSTR(txt_status));
     menuRootPage.replace("_TXT_FW_UPGRADE_",FPSTR(txt_firmware_upgrade));
     menuRootPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
+    menuRootPage.replace("_TXT_LOGOUT_",FPSTR(txt_logout));
     sendWrappedHTML(menuRootPage);
   }
 }
@@ -593,7 +601,12 @@ void handleInitSetup() {
 void handleSetup() {
   checkLogin();
   if (server.hasArg("RESET")) {
-    sendWrappedHTML(FPSTR(html_page_reset));
+    String pageReset = FPSTR(html_page_reset);
+    String ssid = hostnamePrefix;
+    ssid += getId();
+    pageReset.replace("_TXT_M_RESET_",FPSTR(txt_m_reset));
+    pageReset.replace("_SSID_",ssid);
+    sendWrappedHTML(pageReset);
     SPIFFS.format();
     delay(500);
 #ifdef ESP32
@@ -610,6 +623,7 @@ void handleSetup() {
     menuSetupPage.replace("_TXT_OTHERS_",FPSTR(txt_others));
     menuSetupPage.replace("_TXT_RESET_",FPSTR(txt_reset));
     menuSetupPage.replace("_TXT_BACK_",FPSTR(txt_back));
+    menuSetupPage.replace("_TXT_RESET_CONFIRM_",FPSTR(txt_reset_confirm));
     sendWrappedHTML(menuSetupPage);
   }
 
@@ -618,6 +632,7 @@ void handleSetup() {
 void rebootAndSendPage() {
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
+    saveRebootPage.replace("_TXT_M_SAVE_",FPSTR(txt_m_save));
     sendWrappedHTML(saveRebootPage + countDown);
     delay(500);
     ESP.restart();
@@ -633,6 +648,13 @@ void handleOthers() {
     String othersPage =  FPSTR(html_page_others);
     othersPage.replace("_TXT_SAVE_", FPSTR(txt_save));
     othersPage.replace("_TXT_BACK_", FPSTR(txt_back));
+    othersPage.replace("_TXT_F_ON_", FPSTR(txt_f_on));
+    othersPage.replace("_TXT_F_OFF_", FPSTR(txt_f_off));
+    othersPage.replace("_TXT_OTHERS_TITLE_", FPSTR(txt_others_title));
+    othersPage.replace("_TXT_OTHERS_HAAUTO_", FPSTR(txt_others_haauto));
+    othersPage.replace("_TXT_OTHERS_HATOPIC_", FPSTR(txt_others_hatopic));
+    othersPage.replace("_TXT_OTHERS_DEBUG_", FPSTR(txt_others_debug));
+
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
       othersPage.replace("_HAA_ON_", "selected");
@@ -660,6 +682,14 @@ void handleMqtt() {
     String mqttPage =  FPSTR(html_page_mqtt);
     mqttPage.replace("_TXT_SAVE_", FPSTR(txt_save));
     mqttPage.replace("_TXT_BACK_", FPSTR(txt_back));
+    mqttPage.replace("_TXT_MQTT_TITLE_", FPSTR(txt_mqtt_title));
+    mqttPage.replace("_TXT_MQTT_FN_", FPSTR(txt_mqtt_fn));
+    mqttPage.replace("_TXT_MQTT_HOST_", FPSTR(txt_mqtt_host));
+    mqttPage.replace("_TXT_MQTT_PORT_", FPSTR(txt_mqtt_port));
+    mqttPage.replace("_TXT_MQTT_USER_", FPSTR(txt_mqtt_user));
+    mqttPage.replace("_TXT_MQTT_PASSWORD_", FPSTR(txt_mqtt_password));
+    mqttPage.replace("_TXT_MQTT_TOPIC_", FPSTR(txt_mqtt_topic));
+    mqttPage.replace(F("_MQTT_FN_"), mqtt_fn);
     mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
     mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
     mqttPage.replace(F("_MQTT_USER_"), mqtt_username);
@@ -679,6 +709,17 @@ void handleUnit() {
     String unitPage =  FPSTR(html_page_unit);
     unitPage.replace("_TXT_SAVE_", FPSTR(txt_save));
     unitPage.replace("_TXT_BACK_", FPSTR(txt_back));
+    unitPage.replace("_TXT_UNIT_TITLE_", FPSTR(txt_unit_title));
+    unitPage.replace("_TXT_UNIT_TEMP_", FPSTR(txt_unit_temp));
+    unitPage.replace("_TXT_UNIT_MINTEMP_", FPSTR(txt_unit_mintemp));
+    unitPage.replace("_TXT_UNIT_MAXTEMP_", FPSTR(txt_unit_maxtemp));
+    unitPage.replace("_TXT_UNIT_STEPTEMP_", FPSTR(txt_unit_steptemp));
+    unitPage.replace("_TXT_UNIT_MODES_", FPSTR(txt_unit_modes));
+    unitPage.replace("_TXT_UNIT_PASSWORD_", FPSTR(txt_unit_password));
+    unitPage.replace("_TXT_F_CELSIUS_", FPSTR(txt_f_celsius));
+    unitPage.replace("_TXT_F_FH_", FPSTR(txt_f_fh));
+    unitPage.replace("_TXT_F_ALLMODES_", FPSTR(txt_f_allmodes));
+    unitPage.replace("_TXT_F_NOHEAT_", FPSTR(txt_f_noheat));
     unitPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
     unitPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
     unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
@@ -708,6 +749,11 @@ void handleWifi() {
     String wifiPage =  FPSTR(html_page_wifi);
     wifiPage.replace("_TXT_SAVE_", FPSTR(txt_save));
     wifiPage.replace("_TXT_BACK_", FPSTR(txt_back));
+    wifiPage.replace("_TXT_WIFI_TITLE_", FPSTR(txt_wifi_title));
+    wifiPage.replace("_TXT_WIFI_HOST_", FPSTR(txt_wifi_hostname));
+    wifiPage.replace("_TXT_WIFI_SSID_", FPSTR(txt_wifi_SSID));
+    wifiPage.replace("_TXT_WIFI_PSK_", FPSTR(txt_wifi_psk));
+    wifiPage.replace("_TXT_WIFI_OTAP_", FPSTR(txt_wifi_otap));
     wifiPage.replace(F("_SSID_"), ap_ssid);
     wifiPage.replace(F("_PSK_"), ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), ota_pwd);
@@ -718,11 +764,22 @@ void handleWifi() {
 
 void handleStatus() {
   String statusPage =  FPSTR(html_page_status);
-  statusPage.replace("_TXT_SAVE_", FPSTR(txt_save));
   statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
+  statusPage.replace("_TXT_STATUS_TITLE_", FPSTR(txt_status_title));
+  statusPage.replace("_TXT_STATUS_HVAC_", FPSTR(txt_status_hvac));
+  statusPage.replace("_TXT_STATUS_MQTT_", FPSTR(txt_status_mqtt));
+  statusPage.replace("_TXT_STATUS_WIFI_", FPSTR(txt_status_wifi));
+
   if (server.hasArg("mrconn")) mqttConnect();
-  String connected = F("<span style='color:#47c266'><b>CONNECTED</b></span>");
-  String disconnected = F("<span style='color:#d43535'><b>DISCONNECTED</b></span>");
+
+  String connected = F("<span style='color:#47c266'><b>");
+  connected += FPSTR(txt_status_connect);
+  connected += F("</b><span>");
+
+  String disconnected = F("<span style='color:#d43535'><b>");
+  disconnected += FPSTR(txt_status_disconnect);
+  disconnected += F("</b></span>");
+
   if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
   else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
   if (mqtt_client.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
@@ -761,6 +818,25 @@ void handleControl() {
   controlPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
   controlPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
   controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
+  controlPage.replace("_TXT_CTRL_CTEMP_", FPSTR(txt_ctrl_ctemp));
+  controlPage.replace("_TXT_CTRL_TEMP_", FPSTR(txt_ctrl_temp));
+  controlPage.replace("_TXT_CTRL_TITLE_", FPSTR(txt_ctrl_title));
+  controlPage.replace("_TXT_CTRL_POWER_", FPSTR(txt_ctrl_power));
+  controlPage.replace("_TXT_CTRL_MODE_", FPSTR(txt_ctrl_mode));
+  controlPage.replace("_TXT_CTRL_FAN_", FPSTR(txt_ctrl_fan));
+  controlPage.replace("_TXT_CTRL_VANE_", FPSTR(txt_ctrl_vane));
+  controlPage.replace("_TXT_CTRL_WVANE_", FPSTR(txt_ctrl_wvane));
+  controlPage.replace("_TXT_F_ON_", FPSTR(txt_f_on));
+  controlPage.replace("_TXT_F_OFF_", FPSTR(txt_f_off));
+  controlPage.replace("_TXT_F_AUTO_", FPSTR(txt_f_auto));
+  controlPage.replace("_TXT_F_HEAT_", FPSTR(txt_f_heat));
+  controlPage.replace("_TXT_F_DRY_", FPSTR(txt_f_dry));
+  controlPage.replace("_TXT_F_COOL_", FPSTR(txt_f_cool));
+  controlPage.replace("_TXT_F_FAN_", FPSTR(txt_f_fan));
+  controlPage.replace("_TXT_F_QUIET_", FPSTR(txt_f_quiet));
+  controlPage.replace("_TXT_F_SPEED_", FPSTR(txt_f_speed));
+  controlPage.replace("_TXT_F_SWING_", FPSTR(txt_f_swing));
+  controlPage.replace("_TXT_F_POS_", FPSTR(txt_f_pos));
 
   if (strcmp(settings.power, "ON") == 0) {
     controlPage.replace("_POWER_ON_", "selected");
@@ -866,6 +942,10 @@ void handleLogin() {
   bool loginSuccess = false;
   String msg;
   String loginPage =  FPSTR(html_page_login);
+  loginPage.replace("_TXT_LOGIN_TITLE_", FPSTR(txt_login_title));
+  loginPage.replace("_TXT_LOGIN_PASSWORD_", FPSTR(txt_login_password));
+  loginPage.replace("_TXT_LOGIN_", FPSTR(txt_login));
+
   if (server.hasHeader("Cookie")) {
     //Found cookie;
     String cookie = server.header("Cookie");
@@ -882,7 +962,9 @@ void handleLogin() {
         server.sendHeader("Cache-Control", "no-cache");
         server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
         loginSuccess = true;
-        msg = F("<span style='color:#d43535;font-weight:bold;'>Login successful, you will be redirect in few seconds.</span>");
+        msg = F("<span style='color:#47c266;font-weight:bold;'>");
+        msg += FPSTR(txt_login_sucess);
+        msg += F("<span>");
         loginPage += F("<script>");
         loginPage += F("setTimeout(function () {");
         loginPage += F("window.location.href= '/';");
@@ -890,7 +972,9 @@ void handleLogin() {
         loginPage += F("</script>");
         //Log in Successful;
       } else {
-        msg = F("<span style='color:#d43535;font-weight:bold;'>Wrong username/password! try again.</span>");
+        msg = F("<span style='color:#d43535;font-weight:bold;'>");
+        msg += FPSTR(txt_login_fail);
+        msg += F("</span>");
         //Log in Failed;
       }
     }
@@ -920,8 +1004,12 @@ void handleUpgrade()
 {
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
-  upgradePage.replace("_TXT_UPGRADE_",FPSTR(txt_upgrade));
+  upgradePage.replace("_TXT_B_UPGRADE_",FPSTR(txt_upgrade));
   upgradePage.replace("_TXT_BACK_",FPSTR(txt_back));
+  upgradePage.replace("_TXT_UPGRADE_TITLE_",FPSTR(txt_upgrade_title));
+  upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
+  upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
+  
   sendWrappedHTML(upgradePage);
 }
 
@@ -932,31 +1020,35 @@ void handleUploadDone()
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
   if (uploaderror) {
-    content += F("<span style='color:#d43535'>failed</span></b>");
+    content += F("<span style='color:#d43535'>failed</span></b><br/><br/>");
     if (uploaderror == 1) {
-      content += F("<br/><br/>No file selected");
+      content += FPSTR(txt_upload_nofile);
     } else if (uploaderror == 2) {
-      content += F("<br/><br/>File size is larger than available free space");
+      content += FPSTR(txt_upload_filetoolarge);
     } else if (uploaderror == 3) {
-      content += F("<br/><br/>File magic header does not start with 0xE9");
+      content += FPSTR(txt_upload_fileheader);
     } else if (uploaderror == 4) {
-      content += F("<br/><br/>File flash size is larger than device flash size");
+      content += FPSTR(txt_upload_flashsize);
     } else if (uploaderror == 5) {
-      content += F("<br/><br/>File upload buffer miscompare");
+      content += FPSTR(txt_upload_buffer);
     } else if (uploaderror == 6) {
-      content += F("<br/><br/>Upload failed. Enable logging option 3 for more information");
+      content += FPSTR(txt_upload_failed);
     } else if (uploaderror == 7) {
-      content += F("<br/><br/>Upload aborted");
+      content += FPSTR(txt_upload_aborted);
     } else {
-      content += F("<br/><br/>Upload error code ");
+      content += FPSTR(txt_upload_error);
       content += String(uploaderror);
     }
     if (Update.hasError()) {
-      content += F("<br/><br/>Update error code (see Updater.cpp) ");
+      content += FPSTR(txt_upload_code);
       content += String(Update.getError());
     }
   } else {
-    content += F("<span style='color:#47c266; font-weight: bold;'>successful</span><br/><br/>Refresh in <span id='count'>10s</span>...");
+    content += F("<span style='color:#47c266; font-weight: bold;'>");
+    content += FPSTR(txt_upload_sucess);
+    content += F("</span><br/><br/>");
+    content += FPSTR(txt_upload_refresh);
+    content += F("<span id='count'>10s</span>...");
     content += FPSTR(count_down_script);
     restartflag = true;
   }

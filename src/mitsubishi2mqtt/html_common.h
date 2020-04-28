@@ -168,7 +168,7 @@ const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
 <body>
     <div class="main">
         <div style='text-align:center;'>
-            <noscript>To user Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
+            <noscript>To use Mitsubishi2MQTT, you need to activate Javascript<br/></noscript>
             <h3>_UNIT_NAME_</h3>
         </div>
 )====";
