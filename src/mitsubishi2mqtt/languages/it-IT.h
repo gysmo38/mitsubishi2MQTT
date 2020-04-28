@@ -33,12 +33,12 @@ const char txt_back[] PROGMEM = "Indietro";
 const char txt_save[] PROGMEM = "Salva & Riavvia";
 const char txt_logout[] PROGMEM = "Logout";
 const char txt_upgrade[] PROGMEM = "Avvia aggiornamento";
-const char txt_login[] PROGMEM = "LOGIN";
+const char txt_login[] PROGMEM = "Login";
 
 //Form choices
 const char txt_f_on[] PROGMEM = "Acceso";
 const char txt_f_off[] PROGMEM = "Spento";
-const char txt_f_auto[] PROGMEM = "AUTO";
+const char txt_f_auto[] PROGMEM = "Automatico";
 const char txt_f_heat[] PROGMEM = "Riscaldamento";
 const char txt_f_dry[] PROGMEM = "Deumidificatore";
 const char txt_f_cool[] PROGMEM = "Condizionamento";
