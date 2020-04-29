@@ -280,7 +280,7 @@ const char html_page_unit[] PROGMEM =
                 "<br/>"
                 "<input type='number' id='max_temp' name='max_temp' placeholder=' ' value='_MAX_TEMP_'>"
             "</p>"
-            "<p><b>_TXT_UNIT_STEP_TEMP_</b>"
+            "<p><b>_TXT_UNIT_STEPTEMP_</b>"
                 "<br/>"
                 "<input type='number' id='temp_step' step='0.1' name='temp_step' placeholder=' ' value='_TEMP_STEP_'>"
             "</p>"
