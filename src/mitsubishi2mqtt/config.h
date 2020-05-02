@@ -72,7 +72,9 @@ String ha_debug_topic;
 String ha_debug_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
+String ha_custom_packet;
 String hvac_name;
+
 //login
 String login_username = "admin";
 String login_password;

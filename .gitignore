@@ -1,5 +1,5 @@
 .DS_Store
-.vscode/arduino.json
-.vscode/c_cpp_properties.json
+.vscode
+.pio*
 *.bin
 build/

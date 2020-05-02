@@ -157,6 +157,7 @@ void setup() {
       ha_state_topic        = mqtt_topic  + "/" + mqtt_fn + "/state";
       ha_debug_topic        = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic    = mqtt_topic + "/" + mqtt_fn + "/debug/set";
+      ha_custom_packet      = mqtt_topic + "/" + mqtt_fn + "/custom/send";
 
       if (others_haa) {
         ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
@@ -1423,7 +1424,32 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       _debugMode = false;
       mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode disabled")));
     }
-  } else {
+  }
+  else if(strcmp(topic, ha_custom_packet.c_str()) == 0) { //send custom packet for advance user
+      String custom = message;
+
+      // copy custom packet to char array
+      char buffer[(custom.length() + 1)]; // +1 for the NULL at the end
+      custom.toCharArray(buffer, (custom.length() + 1));
+
+      byte bytes[20]; // max custom packet bytes is 20
+      int byteCount = 0;
+      char *nextByte;
+
+      // loop over the byte string, breaking it up by spaces (or at the end of the line - \n)
+      nextByte = strtok(buffer, " ");
+      while (nextByte != NULL && byteCount < 20) {
+        bytes[byteCount] = strtol(nextByte, NULL, 16); // convert from hex string
+        nextByte = strtok(NULL, "   ");
+        byteCount++;
+      }
+
+      // dump the packet so we can see what it is. handy because you can run the code without connecting the ESP to the heatpump, and test sending custom packets
+      hpPacketDebug(bytes, byteCount, "customPacket");
+
+      hp.sendCustomPacket(bytes, byteCount);
+  }
+   else {
     mqtt_client.publish(ha_debug_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
   }
 }
@@ -1540,6 +1566,7 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
+      mqtt_client.subscribe(ha_custom_packet.c_str());
       if (others_haa) {
         haConfig();
       }
