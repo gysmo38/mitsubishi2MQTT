@@ -31,39 +31,16 @@ How to use:
  - Step 7: (optional): Set Login password to prevent unwanted access in SETUP->ADVANCE->Login Password
 
 ***
-For nodered fans MQTT topic case uses
-- topic/power/set
- - OFF
-- topic/mode/set
- - AUTO
- - HEAT
- - COOL
- - DRY
- - FAN_ONLY
- - OFF
- - ON
-
-- topic/temp/set
- - 16-31
+For nodered fans MQTT topic use cases
+- topic/power/set OFF
+- topic/mode/set AUTO HEAT COOL DRY FAN_ONLY OFF ON
+- topic/temp/set 16-31
 - topic/remote_temp/set
-- topic/fan/set
- - 1-4
- - AUTO
- - QUIET
-- topic/vane/set
-  - 1-5 
-  - SWING
-  - AUTO
-- topic/wideVane/set
- - <<
- - <
- - |
- - >
- - >>
+- topic/fan/set 1-4 AUTO QUIET
+- topic/vane/set 1-5 SWING AUTO
+- topic/wideVane/set << < | > >>
 - topic/settings
 - topic/state
 - topic/debug
-- topic/debug/set
- - on
- - off
+- topic/debug/set on off
 - topic/custom/send
