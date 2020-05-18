@@ -532,13 +532,14 @@ void sendWrappedHTML(String content) {
 void handleNotFound() {
   if (captive) {
     String initSetupContent = FPSTR(html_init_setup);
-    initSetupContent.replace("_TXT_INIT_TITLE",FPSTR(txt_init_title));
-    initSetupContent.replace("_TXT_INIT_HOST",FPSTR(txt_wifi_hostname));
-    initSetupContent.replace("_TXT_INIT_SSID",FPSTR(txt_wifi_SSID));
-    initSetupContent.replace("_TXT_INIT_PSK",FPSTR(txt_wifi_psk));
-    initSetupContent.replace("_TXT_INIT_OTA",FPSTR(txt_wifi_otap));
-    initSetupContent.replace("_TXT_M_SAVE_",FPSTR(txt_save));
-    
+    initSetupContent.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
+    initSetupContent.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
+    initSetupContent.replace("_TXT_INIT_SSID_",FPSTR(txt_wifi_SSID));
+    initSetupContent.replace("_TXT_INIT_PSK_",FPSTR(txt_wifi_psk));
+    initSetupContent.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
+    initSetupContent.replace("_TXT_SAVE_",FPSTR(txt_save));
+    initSetupContent.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
+
     server.send(200, "text/html", initSetupContent);
   }
   else {
@@ -556,12 +557,16 @@ void handleSaveWifi() {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
   String initSavePage =  FPSTR(html_init_save);
+  initSavePage.replace("_TXT_INIT_REBOOT_MESS_",FPSTR(txt_init_reboot_mes));
+  sendWrappedHTML(initSavePage);
   delay(500);
   ESP.restart();
 }
 
 void handleReboot() {
-  sendWrappedHTML(FPSTR(html_init_reboot));
+  String initRebootPage = FPSTR(html_init_reboot);
+  initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
+  sendWrappedHTML(initRebootPage);
   delay(500);
   ESP.restart();
 }
@@ -596,7 +601,16 @@ void handleRoot() {
 }
 
 void handleInitSetup() {
-  sendWrappedHTML(FPSTR(html_init_setup));
+  String initSetupPage = FPSTR(html_init_setup);
+  initSetupPage.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
+  initSetupPage.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
+  initSetupPage.replace("_TXT_INIT_SSID_",FPSTR(txt_wifi_SSID));
+  initSetupPage.replace("_TXT_INIT_PSK_",FPSTR(txt_wifi_psk));
+  initSetupPage.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
+  initSetupPage.replace("_TXT_SAVE_",FPSTR(txt_save));
+  initSetupPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
+  
+  sendWrappedHTML(initSetupPage);
 }
 
 void handleSetup() {
@@ -624,7 +638,7 @@ void handleSetup() {
     menuSetupPage.replace("_TXT_OTHERS_",FPSTR(txt_others));
     menuSetupPage.replace("_TXT_RESET_",FPSTR(txt_reset));
     menuSetupPage.replace("_TXT_BACK_",FPSTR(txt_back));
-    menuSetupPage.replace("_TXT_RESET_CONFIRM_",FPSTR(txt_reset_confirm));
+    menuSetupPage.replace("_TXT_RESETCONFIRM_",FPSTR(txt_reset_confirm));
     sendWrappedHTML(menuSetupPage);
   }
 
