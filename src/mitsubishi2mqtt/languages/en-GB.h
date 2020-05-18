@@ -134,4 +134,5 @@ const char txt_upload_refresh[] PROGMEM = "Refresh in";
 
 //Page Init
 const char txt_init_title[] PROGMEM = "Initial setup";
-
+const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
+const char txt_init_reboot[] PROGMEM = "Rebooting...";

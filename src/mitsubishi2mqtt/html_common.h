@@ -64,6 +64,7 @@ const char html_common_header[] PROGMEM = R"====(<!DOCTYPE html>
             width: 100%;
             background: #dddddd;
             color: #000000;
+            block-size: 40px;
         }
 
         textarea {
