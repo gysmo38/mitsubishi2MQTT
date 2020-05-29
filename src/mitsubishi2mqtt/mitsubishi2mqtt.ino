@@ -1299,10 +1299,10 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
 }
 
-void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
+void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirection) {
   if (_debugMode) {
     String message;
-    for (int idx = 0; idx < length; idx++) {
+    for (unsigned int idx = 0; idx < length; idx++) {
       if (packet[idx] < 16) {
         message += "0"; // pad single hex digits with a 0
       }
@@ -1351,7 +1351,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // Copy payload into message buffer
   char message[length + 1];
-  for (int i = 0; i < length; i++) {
+  for (unsigned int i = 0; i < length; i++) {
     message[i] = (char)payload[i];
   }
   message[length] = '\0';
