@@ -1603,8 +1603,7 @@ bool connectWifi() {
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   // Serial.println("Connecting to " + ap_ssid);
-  unsigned long wifiStartTime = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < 10000) {
+  while (WiFi.status() != WL_CONNECTED) {
     Serial.write('.');
     //Serial.print(WiFi.status());
     // wait 500ms, flashing the blue LED to indicate WiFi connecting...
@@ -1622,7 +1621,7 @@ bool connectWifi() {
   // Serial.println(F("Ready"));
   // Serial.print("IP address: ");
   unsigned long dhcpStartTime = millis();
-  while ((WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") && millis() - dhcpStartTime < 5000) {
+  while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
     // Serial.write('.');
     delay(500);
   }
