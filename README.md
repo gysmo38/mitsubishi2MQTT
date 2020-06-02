@@ -35,7 +35,7 @@ For nodered fans MQTT topic use cases
 - topic/power/set OFF
 - topic/mode/set AUTO HEAT COOL DRY FAN_ONLY OFF ON
 - topic/temp/set 16-31
-- topic/remote_temp/set
+- topic/remote_temp/set also called "room_temp", the implementation defined in "HeatPump" seems not work in some models
 - topic/fan/set 1-4 AUTO QUIET
 - topic/vane/set 1-5 SWING AUTO
 - topic/wideVane/set << < | > >>
@@ -43,4 +43,4 @@ For nodered fans MQTT topic use cases
 - topic/state
 - topic/debug
 - topic/debug/set on off
-- topic/custom/send
+- topic/custom/send as example "fc 42 01 30 10 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7b " see https://github.com/SwiCago/HeatPump/blob/master/src/HeatPump.h

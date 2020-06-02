@@ -57,7 +57,7 @@ const char txt_f_noheat[] PROGMEM = "Todos los modos excepto calor";
 //Page Reboot, save & Resseting
 const char txt_m_reboot[] PROGMEM = "Reiniciando... Refrescando en";
 const char txt_m_reset[] PROGMEM = "Restableciendo... Sonectando a SSID";
-const char txt_m_save[] PROGMEM = "Guardando configuración and riniciando... Refrecando en";
+const char txt_m_save[] PROGMEM = "Guardando configuración and reiniciando... Refrecando en";
 
 //Page MQTT
 const char txt_mqtt_title[] PROGMEM = "Parametros MQTT";
@@ -132,7 +132,8 @@ const char txt_upload_error[] PROGMEM = "Código de error de subida (mirar en Up
 const char txt_upload_sucess[] PROGMEM = "Satisfactorio";
 const char txt_upload_refresh[] PROGMEM = "Refescando en in";
 
+
 //Page Init
 const char txt_init_title[] PROGMEM = "Configuración inicial";
-const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
-const char txt_init_reboot[] PROGMEM = "Rebooting...";
+const char txt_init_reboot_mes[] PROGMEM = "Reiniciando y conectando a su red WiFi! Debería ver el equipo lo en su punto de acceso.";
+const char txt_init_reboot[] PROGMEM = "Reiniciando...";
