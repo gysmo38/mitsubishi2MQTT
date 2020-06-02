@@ -1433,10 +1433,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
       _debugMode = true;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode enabled")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Debug mode enabled");
     } else if (strcmp(message, "off") == 0) {
       _debugMode = false;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode disabled")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Debug mode disabled");
     }
   }
   else if(strcmp(topic, ha_custom_packet.c_str()) == 0) { //send custom packet for advance user
