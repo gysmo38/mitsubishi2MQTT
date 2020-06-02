@@ -362,7 +362,7 @@ const char html_page_upgrade[] PROGMEM =
             "<a class='button back' href='/'>_TXT_BACK_</a>"
         "</p>"
     "</div>"
-    "<div id='f2' style='display:none;text-align:center;'><b>_TXT_UPGRADE_START ...</b></div>"
+    "<div id='f2' style='display:none;text-align:center;'><b>_TXT_UPGRADE_START_ ...</b></div>"
 ;
 
 
