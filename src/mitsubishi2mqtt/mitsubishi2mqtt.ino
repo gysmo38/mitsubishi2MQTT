@@ -20,15 +20,16 @@
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>          // mDNS for ESP32
 #include <WebServer.h>        // webServer for ESP32
-#include "LittleFS.h"           // ESP32 SPIFFS for store config
-WebServer server(80);         //ESP32 web
+#include "SPIFFS.h"           // ESP32 SPIFFS for store config
+#define LittleFS SPIFFS       // alias LittleFS to SPIFFS
+WebServer server(80);         // ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
 ESP8266WebServer server(80);  // ESP8266 web
-#endif
 #include <LittleFS.h>         // SPIFFS replacement
+#endif
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
