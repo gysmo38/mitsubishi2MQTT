@@ -1069,6 +1069,7 @@ void handleUploadDone()
   }
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
+  uploadDonePage.replace("_TXT_BACK_", FPSTR(txt_back));
   sendWrappedHTML(uploadDonePage);
   if (restartflag) {
     delay(500);
