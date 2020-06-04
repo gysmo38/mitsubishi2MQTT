@@ -1234,7 +1234,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp settings")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp settings"));
   }
 
   hpStatusChanged(hp.getStatus());
@@ -1295,7 +1295,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp status change")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp status change"));
   }
 
 }
@@ -1317,7 +1317,7 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     String mqttOutput;
     serializeJson(root, mqttOutput);
     if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish to heatpump/debug topic")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
     }
   }
 }
@@ -1342,7 +1342,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish dummy hp status change")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
   }
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
@@ -1434,10 +1434,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
       _debugMode = true;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Debug mode enabled");
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Debug mode enabled"));
     } else if (strcmp(message, "off") == 0) {
       _debugMode = false;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Debug mode disabled");
+      mqtt_client.publish(ha_debug_topic.c_str(), (char *)("Debug mode disabled"));
     }
   }
   else if(strcmp(topic, ha_custom_packet.c_str()) == 0) { //send custom packet for advance user
