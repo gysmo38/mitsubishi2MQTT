@@ -112,7 +112,7 @@ const char txt_unit_password[] PROGMEM = "Contraseña interfaz";
 const char txt_login_title[] PROGMEM = "Autentificación";
 const char txt_login_password[] PROGMEM = "Contraseña";
 const char txt_login_sucess[] PROGMEM = "Autentificación correcta, en pocos segundos serás redirigido.";
-const char txt_login_fail[] PROGMEM = "¡Usuario contraseña invalidos! Intealo de nuevo.";
+const char txt_login_fail[] PROGMEM = "¡Usuario contraseña invalidos! Intentalo de nuevo.";
 
 //Page Upgrade
 const char txt_upgrade_title[] PROGMEM = "Actualización";
@@ -130,10 +130,10 @@ const char txt_upload_aborted[] PROGMEM = "Subida abortada";
 const char txt_upload_code[] PROGMEM = "Código de error de subida";
 const char txt_upload_error[] PROGMEM = "Código de error de subida (mirar en Updater.cpp) ";
 const char txt_upload_sucess[] PROGMEM = "Satisfactorio";
-const char txt_upload_refresh[] PROGMEM = "Refescando en in";
+const char txt_upload_refresh[] PROGMEM = "Refescando en ";
 
 
 //Page Init
 const char txt_init_title[] PROGMEM = "Configuración inicial";
-const char txt_init_reboot_mes[] PROGMEM = "Reiniciando y conectando a su red WiFi! Debería ver el equipo lo en su punto de acceso.";
+const char txt_init_reboot_mes[] PROGMEM = "Reiniciando y conectando a su red WiFi! Debería ver el equipo en su punto de acceso.";
 const char txt_init_reboot[] PROGMEM = "Reiniciando...";
