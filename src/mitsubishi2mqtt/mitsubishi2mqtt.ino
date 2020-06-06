@@ -1234,11 +1234,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
-<<<<<<< HEAD
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Failed to publish hp settings");
-=======
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp settings"));
->>>>>>> a2027fa9f2aa867d6ac6696d529b3517a129b99f
   }
 
   hpStatusChanged(hp.getStatus());
@@ -1299,11 +1295,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-<<<<<<< HEAD
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Failed to publish hp status change");
-=======
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp status change"));
->>>>>>> a2027fa9f2aa867d6ac6696d529b3517a129b99f
   }
 
 }
@@ -1325,11 +1317,7 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     String mqttOutput;
     serializeJson(root, mqttOutput);
     if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
-<<<<<<< HEAD
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Failed to publish to heatpump/debug topic");
-=======
       mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
->>>>>>> a2027fa9f2aa867d6ac6696d529b3517a129b99f
     }
   }
 }
@@ -1354,11 +1342,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-<<<<<<< HEAD
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)"Failed to publish dummy hp status change");
-=======
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
->>>>>>> a2027fa9f2aa867d6ac6696d529b3517a129b99f
   }
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
