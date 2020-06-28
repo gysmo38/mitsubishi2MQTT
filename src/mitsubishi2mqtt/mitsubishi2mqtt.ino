@@ -465,8 +465,8 @@ bool loadOthers() {
   String haa              = doc["haa"].as<String>();
   String debug             = doc["debug"].as<String>();
 
-  if (strcmp(haa.c_str(), "ON") == 0) {
-    others_haa = true;
+  if (strcmp(haa.c_str(), "OFF") == 0) {
+    others_haa = false;
   }
   if (strcmp(debug.c_str(), "ON") == 0) {
     _debugMode = true;
