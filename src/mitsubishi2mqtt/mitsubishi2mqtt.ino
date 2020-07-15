@@ -465,8 +465,8 @@ bool loadOthers() {
   String haa              = doc["haa"].as<String>();
   String debug             = doc["debug"].as<String>();
 
-  if (strcmp(haa.c_str(), "ON") == 0) {
-    others_haa = true;
+  if (strcmp(haa.c_str(), "OFF") == 0) {
+    others_haa = false;
   }
   if (strcmp(debug.c_str(), "ON") == 0) {
     _debugMode = true;
@@ -1069,6 +1069,7 @@ void handleUploadDone()
   }
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
+  uploadDonePage.replace("_TXT_BACK_", FPSTR(txt_back));
   sendWrappedHTML(uploadDonePage);
   if (restartflag) {
     delay(500);
@@ -1233,7 +1234,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp settings")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp settings"));
   }
 
   hpStatusChanged(hp.getStatus());
@@ -1294,15 +1295,15 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish hp status change")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp status change"));
   }
 
 }
 
-void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
+void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirection) {
   if (_debugMode) {
     String message;
-    for (int idx = 0; idx < length; idx++) {
+    for (unsigned int idx = 0; idx < length; idx++) {
       if (packet[idx] < 16) {
         message += "0"; // pad single hex digits with a 0
       }
@@ -1316,7 +1317,7 @@ void hpPacketDebug(byte* packet, unsigned int length, char* packetDirection) {
     String mqttOutput;
     serializeJson(root, mqttOutput);
     if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish to heatpump/debug topic")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
     }
   }
 }
@@ -1341,7 +1342,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Failed to publish dummy hp status change")));
+    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
   }
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
@@ -1351,7 +1352,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // Copy payload into message buffer
   char message[length + 1];
-  for (int i = 0; i < length; i++) {
+  for (unsigned int i = 0; i < length; i++) {
     message[i] = (char)payload[i];
   }
   message[length] = '\0';
@@ -1433,10 +1434,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
       _debugMode = true;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode enabled")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Debug mode enabled"));
     } else if (strcmp(message, "off") == 0) {
       _debugMode = false;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)(F("Debug mode disabled")));
+      mqtt_client.publish(ha_debug_topic.c_str(), (char *)("Debug mode disabled"));
     }
   }
   else if(strcmp(topic, ha_custom_packet.c_str()) == 0) { //send custom packet for advance user
@@ -1603,8 +1604,7 @@ bool connectWifi() {
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   // Serial.println("Connecting to " + ap_ssid);
-  unsigned long wifiStartTime = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartTime < 10000) {
+  while (WiFi.status() != WL_CONNECTED) {
     Serial.write('.');
     //Serial.print(WiFi.status());
     // wait 500ms, flashing the blue LED to indicate WiFi connecting...
@@ -1621,8 +1621,7 @@ bool connectWifi() {
   // Serial.println(ap_ssid);
   // Serial.println(F("Ready"));
   // Serial.print("IP address: ");
-  unsigned long dhcpStartTime = millis();
-  while ((WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") && millis() - dhcpStartTime < 5000) {
+    while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
     // Serial.write('.');
     delay(500);
   }
