@@ -107,7 +107,7 @@ const char html_page_status[] PROGMEM =
         "_HVAC_STATUS_"
     "</p>"
      "<p><b>_TXT_STATUS_MQTT_</b>"
-        " ==>" 
+        " ==> " 
         "_MQTT_STATUS_ ( _MQTT_REASON_ )"
     "</p>"
      "<p><b>_TXT_STATUS_WIFI_</b>"
