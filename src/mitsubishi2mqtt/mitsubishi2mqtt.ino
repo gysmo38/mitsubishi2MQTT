@@ -610,7 +610,7 @@ void handleInitSetup() {
   initSetupPage.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
   initSetupPage.replace("_TXT_SAVE_",FPSTR(txt_save));
   initSetupPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
-  
+
   sendWrappedHTML(initSetupPage);
 }
 
@@ -1025,7 +1025,7 @@ void handleUpgrade()
   upgradePage.replace("_TXT_UPGRADE_TITLE_",FPSTR(txt_upgrade_title));
   upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
   upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
-  
+
   sendWrappedHTML(upgradePage);
 }
 
@@ -1429,7 +1429,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
-    hp.setRemoteTemperature(temperature);
+    hp.setRemoteTemperature(setTemperature(temperature, useFahrenheit));
     hp.update();
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
@@ -1582,6 +1582,7 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_vane_set_topic.c_str());
+      mqtt_client.subscribe(ha_remote_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_custom_packet.c_str());
       if (others_haa) {
         haConfig();
