@@ -534,6 +534,7 @@ void handleNotFound() {
     String initSetupContent = FPSTR(html_init_setup);
     initSetupContent.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
     initSetupContent.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
+    initSetupContent.replace("_UNIT_NAME_", hostname);
     initSetupContent.replace("_TXT_INIT_SSID_",FPSTR(txt_wifi_SSID));
     initSetupContent.replace("_TXT_INIT_PSK_",FPSTR(txt_wifi_psk));
     initSetupContent.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
