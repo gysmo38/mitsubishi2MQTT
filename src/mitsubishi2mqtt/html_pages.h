@@ -215,7 +215,6 @@ const char html_page_control[] PROGMEM =
         "<p><b>_TXT_CTRL_WVANE_</b>"
             "<form onchange='this.submit()' method='POST'>"
                 "<select name='WIDEVANE'>"
-                /*    "<option value='AUTO' _WVANE_A_>&#9851; _TXT_F_AUTO_</option>" */
                     "<option value='SWING' _WVANE_S_>&#9887; _TXT_F_SWING_</option>"
                     "<option value='<<' _WVANE_1_><< _TXT_F_POS_ 1</option>"
                     "<option value='<' _WVANE_2_>< _TXT_F_POS_ 2</option>"
