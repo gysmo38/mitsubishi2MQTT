@@ -938,7 +938,9 @@ void handleControl() {
   else if (strcmp(settings.wideVane, "SWING") == 0) {
     controlPage.replace("_WVANE_S_", "selected");
   }
-
+  else if (strcmp(settings.wideVane, "<>") == 0) {
+    controlPage.replace("_WVANE_6_", "selected");
+  }
   controlPage.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
 
   // We need to send the page content in chunks to overcome
