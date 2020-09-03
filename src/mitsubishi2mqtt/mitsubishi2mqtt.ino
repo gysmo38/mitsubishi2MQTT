@@ -1432,7 +1432,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.setVaneSetting(message);
     hp.update();
   }
-  else if (strcmp(topic, ha_wideVane_set_topic.c_str()) == 0 {
+  else if (strcmp(topic, ha_wideVane_set_topic.c_str()) == 0) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["wideVane"] = message;
