@@ -1408,7 +1408,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.update();
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
+    //add to fix HP turn off after change temperature
+    heatpumpSettings currentSettings = hp.getSettings();
+    delay(10);
+    hp.setPowerSetting(currentSettings.power);
+    hp.setModeSetting(currentSettings.mode);
+    //
     float temperature = strtof(message, NULL);
+        if(!(temperature>=min_temp&&temperature<=max_temp)){
+       temperature = 23;
+    }
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
