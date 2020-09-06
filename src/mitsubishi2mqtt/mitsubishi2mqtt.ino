@@ -1285,7 +1285,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   // send room temp, operating info and all information
   heatpumpSettings currentSettings = hp.getSettings();
 
-  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
+  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(8);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
   rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);
