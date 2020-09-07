@@ -1260,7 +1260,7 @@ String hpGetMode() {
   return result;
 }
 
-String hpGetAction() {
+String hpGetAction(bool operating) {
   heatpumpSettings currentSettings = hp.getSettings();
   String hppower = String(currentSettings.power);
   String hpmode = String(currentSettings.mode);
@@ -1272,10 +1272,11 @@ String hpGetAction() {
     if (hpmode == "auto") result = "auto";
     //        if (currentStatus.roomTemperature > currentSettings.temperature) result = "cooling"
     //        else result = "heating";
-    else if (hpmode == "cool") result = "cooling";
-    else if (hpmode == "heat") result = "heating";
-    else if (hpmode == "dry")  result = "drying";
+    else if (hpmode == "cool" and operating) result = "cooling";
+    else if (hpmode == "heat" and operating) result = "heating";
+    else if (hpmode == "dry" and operating)  result = "drying";
     else if (hpmode == "fan")  result = "idle";
+    else result = "idle";
   }
   return result;
 }
@@ -1285,16 +1286,16 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   // send room temp, operating info and all information
   heatpumpSettings currentSettings = hp.getSettings();
 
-  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(8);
+  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(9);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
   rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);
   rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
-  //rootInfo["operating"]       = currentStatus.operating;
+  rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
-  rootInfo["action"]          = hpGetAction();
+  rootInfo["action"]          = hpGetAction(currentStatus.operating);
   rootInfo["mode"]            = hpGetMode();
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
@@ -1340,7 +1341,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
-  rootInfo["action"]          = hpGetAction();
+  rootInfo["action"]          = hpGetAction(currentStatus.operating);
   rootInfo["mode"]            = hpGetMode();
   rootInfo[name] = value;
   if (name2 != "") rootInfo[name2] = value2;
