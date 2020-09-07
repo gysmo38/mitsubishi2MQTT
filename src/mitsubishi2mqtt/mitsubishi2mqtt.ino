@@ -941,9 +941,6 @@ void handleControl() {
   else if (strcmp(settings.wideVane, "SWING") == 0) {
     controlPage.replace("_WVANE_S_", "selected");
   }
-  else if (strcmp(settings.wideVane, "<>") == 0) {
-    controlPage.replace("_WVANE_6_", "selected");
-  }
   controlPage.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
 
   // We need to send the page content in chunks to overcome
@@ -1288,7 +1285,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
   // send room temp, operating info and all information
   heatpumpSettings currentSettings = hp.getSettings();
 
-  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(7);
+  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(8);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
   rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);
@@ -1411,7 +1408,16 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.update();
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
+    //add to fix HP turn off after change temperature
+    heatpumpSettings currentSettings = hp.getSettings();
+    delay(10);
+    hp.setPowerSetting(currentSettings.power);
+    hp.setModeSetting(currentSettings.mode);
+    //
     float temperature = strtof(message, NULL);
+        if(!(temperature>=min_temp&&temperature<=max_temp)){
+       temperature = 23;
+    }
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["temperature"] = message;
@@ -1435,7 +1441,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.setVaneSetting(message);
     hp.update();
   }
-  else if (strcmp(topic, ha_vane_set_topic.c_str()) == 0 {
+  else if (strcmp(topic, ha_wideVane_set_topic.c_str()) == 0) {
     const size_t bufferSize = JSON_OBJECT_SIZE(2);
     StaticJsonDocument<bufferSize> root;
     root["wideVane"] = message;
