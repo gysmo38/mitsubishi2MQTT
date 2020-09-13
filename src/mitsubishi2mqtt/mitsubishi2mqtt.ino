@@ -1260,24 +1260,21 @@ String hpGetMode() {
   return result;
 }
 
-String hpGetAction() {
+String hpGetAction(boolean hpoperating) {
   heatpumpSettings currentSettings = hp.getSettings();
   String hppower = String(currentSettings.power);
   String hpmode = String(currentSettings.mode);
   hppower.toLowerCase();
   hpmode.toLowerCase();
-  String result = "idle";
-  if (hppower == "off") result = "off";
+  if (hppower == "off")         return "off";
+  else if (!hpoperating)        return "idle";
   else {
-    if (hpmode == "auto") result = "auto";
-    //        if (currentStatus.roomTemperature > currentSettings.temperature) result = "cooling"
-    //        else result = "heating";
-    else if (hpmode == "cool") result = "cooling";
-    else if (hpmode == "heat") result = "heating";
-    else if (hpmode == "dry")  result = "drying";
-    else if (hpmode == "fan")  result = "idle";
+    if (hpmode == "auto")       return "auto";
+    else if (hpmode == "cool")  return "cooling";
+    else if (hpmode == "heat")  return "heating";
+    else if (hpmode == "dry")   return "drying";
+    else if (hpmode == "fan")   return "idle";
   }
-  return result;
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
@@ -1290,11 +1287,10 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
   rootInfo["roomTemperature"] = getTemperature(currentStatus.roomTemperature, useFahrenheit);
   rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
-  //rootInfo["operating"]       = currentStatus.operating;
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
-  rootInfo["action"]          = hpGetAction();
+  rootInfo["action"]          = hpGetAction(currentStatus.operating);
   rootInfo["mode"]            = hpGetMode();
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
@@ -1340,7 +1336,7 @@ void hpSendDummy(String name, String value, String name2, String value2) {
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
-  rootInfo["action"]          = hpGetAction();
+  rootInfo["action"]          = hpGetAction(currentStatus.operating);
   rootInfo["mode"]            = hpGetMode();
   rootInfo[name] = value;
   if (name2 != "") rootInfo[name2] = value2;
@@ -1391,11 +1387,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     if (modeUpper == "DRY") {
       hpSendDummy("mode", "dry", "action", "drying");
-
     }
     if (modeUpper == "FAN_ONLY") {
       modeUpper = "FAN";
-      hpSendDummy("action", "fan_only", "mode", "fan_only");
+      hpSendDummy("action", "idle", "mode", "fan_only");
     }
     if (modeUpper == "OFF") {
       hp.setPowerSetting("OFF");
