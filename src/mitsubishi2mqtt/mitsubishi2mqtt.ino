@@ -110,7 +110,7 @@ void setup() {
   WiFi.hostname(hostname.c_str());
 #endif
   setDefaults();
-  loadWifi();
+  wifi_config_exists = loadWifi();
   loadOthers();
   loadUnit();
   if (initWifi()) {
@@ -500,10 +500,11 @@ boolean initWifi() {
 
   // Serial.println(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
+  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
-  if (!connectWifiSuccess) {
+  if (!connectWifiSuccess and login_password != "") {
     // Set AP password when falling back to AP on fail
-    WiFi.softAP(hostname.c_str(), hostname.c_str());
+    WiFi.softAP(hostname.c_str(), login_password);
   }
   else {
     // First time setup does not require password
@@ -1624,7 +1625,8 @@ bool connectWifi() {
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   // Serial.println("Connecting to " + ap_ssid);
-  while (WiFi.status() != WL_CONNECTED) {
+  wifi_timeout = millis() + 30000;
+  while (WiFi.status() != WL_CONNECTED && millis() < wifi_timeout) {
     Serial.write('.');
     //Serial.print(WiFi.status());
     // wait 500ms, flashing the blue LED to indicate WiFi connecting...
@@ -1734,6 +1736,14 @@ void checkLogin() {
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
+  
+  //reset board to attempt to connect to wifi again if in ap mode or wifi dropped out and time limit passed
+  if (WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED) {
+	  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
+  } else if (wifi_config_exists and millis() > wifi_timeout) {
+	  ESP.restart();
+  }
+  
   if (!captive and mqtt_config) {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
