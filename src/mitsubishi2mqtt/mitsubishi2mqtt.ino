@@ -1261,12 +1261,11 @@ void hpSettingsChanged() {
 String hpGetMode(String hppower, String hpmode) {
   hppower.toLowerCase();
   hpmode.toLowerCase();
-  String result;
+  String result = hpmode;
   if (hppower == "off")         result = "off";
   else {
     if (hpmode == "fan")        result = "fan_only";
     else if (hpmode == "auto")  result = "heat_cool";
-    else                        result = hpmode.c_str();
   }
   return result;
 }
@@ -1274,7 +1273,7 @@ String hpGetMode(String hppower, String hpmode) {
 String hpGetAction(boolean hpoperating, String hppower, String hpmode) {
   hppower.toLowerCase();
   hpmode.toLowerCase();
-  String result;
+  String result = "unknown";
   if (hppower == "off")         result = "off";
   else if (hpmode == "fan")     result = "fan";
   else if (!hpoperating)        result = "idle";
@@ -1283,7 +1282,6 @@ String hpGetAction(boolean hpoperating, String hppower, String hpmode) {
     else if (hpmode == "cool")  result = "cooling";
     else if (hpmode == "heat")  result = "heating";
     else if (hpmode == "dry")   result = "drying";
-    else                        result = "unknown";
   }
   return result;
 }
