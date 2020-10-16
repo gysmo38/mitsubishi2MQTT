@@ -1410,7 +1410,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       temperature_c = 23;
       rootInfo["temperature"] = getTemperature(temperature_c, useFahrenheit);
     } else {
-      rootInfo["temperature"] = getTemperature(temperature, useFahrenheit);
+      rootInfo["temperature"] = temperature;
     }
     hpSendLocalState();
     hp.setTemperature(temperature_c);
