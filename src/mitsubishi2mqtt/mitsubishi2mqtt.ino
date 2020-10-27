@@ -179,8 +179,8 @@ void setup() {
     hp.connect(&Serial);
     heatpumpStatus currentStatus = hp.getStatus();
     heatpumpSettings currentSettings = hp.getSettings();
-    rootInfo["roomTemperature"]     = getTemperature(currentStatus.roomTemperature, useFahrenheit);
-    rootInfo["temperature"]         = getTemperature(currentSettings.temperature, useFahrenheit);
+    rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
+    rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
@@ -732,7 +732,7 @@ void handleMqtt() {
 void handleUnit() {
   checkLogin();
   if (server.method() == HTTP_POST) {
-    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)setTemperature(server.arg("min_temp").toInt(), useFahrenheit), (String)setTemperature(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
+    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
   }
   else {
@@ -750,8 +750,8 @@ void handleUnit() {
     unitPage.replace("_TXT_F_FH_", FPSTR(txt_f_fh));
     unitPage.replace("_TXT_F_ALLMODES_", FPSTR(txt_f_allmodes));
     unitPage.replace("_TXT_F_NOHEAT_", FPSTR(txt_f_noheat));
-    unitPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
-    unitPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
+    unitPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
+    unitPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
     unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
     //temp
     if (useFahrenheit) unitPage.replace(F("_TU_FAH_"), F("selected"));
@@ -841,12 +841,12 @@ void handleControl() {
   controlPage.replace("_TXT_BACK_", FPSTR(txt_back));
   controlPage.replace("_UNIT_NAME_", hostname);
   controlPage.replace("_RATE_", "60");
-  controlPage.replace("_ROOMTEMP_", String(getTemperature(hp.getRoomTemperature(), useFahrenheit)));
+  controlPage.replace("_ROOMTEMP_", String(convertCelsiusToLocalUnit(hp.getRoomTemperature(), useFahrenheit)));
   controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
   controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
-  controlPage.replace(F("_MIN_TEMP_"), String(getTemperature(min_temp, useFahrenheit)));
-  controlPage.replace(F("_MAX_TEMP_"), String(getTemperature(max_temp, useFahrenheit)));
+  controlPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
+  controlPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
   controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
   controlPage.replace("_TXT_CTRL_CTEMP_", FPSTR(txt_ctrl_ctemp));
   controlPage.replace("_TXT_CTRL_TEMP_", FPSTR(txt_ctrl_temp));
@@ -955,7 +955,7 @@ void handleControl() {
   else if (strcmp(settings.wideVane, "SWING") == 0) {
     controlPage.replace("_WVANE_S_", "selected");
   }
-  controlPage.replace("_TEMP_", String(getTemperature(hp.getTemperature(), useFahrenheit)));
+  controlPage.replace("_TEMP_", String(convertCelsiusToLocalUnit(hp.getTemperature(), useFahrenheit)));
 
   // We need to send the page content in chunks to overcome
   // a limitation on the maximum size we can send at one
@@ -1193,7 +1193,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = setTemperature(server.arg("TEMP").toInt(), useFahrenheit);
+      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toInt(), useFahrenheit);
       update = true;
     }
     if (server.hasArg("FAN")) {
@@ -1223,7 +1223,7 @@ void hpSettingsChanged() {
   const size_t bufferSizeInfo = JSON_OBJECT_SIZE(6);
   StaticJsonDocument<bufferSizeInfo> rootInfo;
 
-  rootInfo["temperature"]     = getTemperature(currentSettings.temperature, useFahrenheit);
+  rootInfo["temperature"]     = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
@@ -1294,8 +1294,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
     if (currentStatus.roomTemperature == 0) return;
 
-    rootInfo["roomTemperature"]     = getTemperature(currentStatus.roomTemperature, useFahrenheit);
-    rootInfo["temperature"]         = getTemperature(currentSettings.temperature, useFahrenheit);
+    rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
+    rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
@@ -1405,10 +1405,10 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
-    float temperature_c = setTemperature(temperature, useFahrenheit);
+    float temperature_c = convertLocalUnitToCelsius(temperature, useFahrenheit);
     if (temperature_c < min_temp || temperature_c > max_temp) {
       temperature_c = 23;
-      rootInfo["temperature"] = getTemperature(temperature_c, useFahrenheit);
+      rootInfo["temperature"] = convertCelsiusToLocalUnit(temperature_c, useFahrenheit);
     } else {
       rootInfo["temperature"] = temperature;
     }
@@ -1436,7 +1436,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
-    hp.setRemoteTemperature(setTemperature(temperature, useFahrenheit));
+    hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
     hp.update();
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
@@ -1505,16 +1505,16 @@ void haConfig() {
   haConfig["temp_stat_t"]                   = ha_state_topic;
   //Set default value for fix "Could not parse data for HA"
   String temp_stat_tpl_str                  = F("{% if (value_json is defined and value_json.temperature is defined) %}{% if (value_json.temperature|int > ");
-  temp_stat_tpl_str                        +=(String)getTemperature(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
-  temp_stat_tpl_str                        +=(String)getTemperature(max_temp, useFahrenheit) + ") %}{{ value_json.temperature }}";
-  temp_stat_tpl_str                        +="{% elif (value_json.temperature|int < " + (String)getTemperature(min_temp, useFahrenheit) + ") %}" + (String)getTemperature(min_temp, useFahrenheit) + "{% elif (value_json.temperature|int > " + (String)getTemperature(max_temp, useFahrenheit) + ") %}" + (String)getTemperature(max_temp, useFahrenheit) +  "{% endif %}{% else %}" + (String)getTemperature(22, useFahrenheit) + "{% endif %}";
+  temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
+  temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}{{ value_json.temperature }}";
+  temp_stat_tpl_str                        +="{% elif (value_json.temperature|int < " + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + "{% elif (value_json.temperature|int > " + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) +  "{% endif %}{% else %}" + (String)convertCelsiusToLocalUnit(22, useFahrenheit) + "{% endif %}";
   haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
-  curr_temp_tpl_str                        += (String)getTemperature(8, useFahrenheit) + ") else '" + (String)getTemperature(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(8, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
-  haConfig["min_temp"]                      = getTemperature(min_temp, useFahrenheit);
-  haConfig["max_temp"]                      = getTemperature(max_temp, useFahrenheit);
+  haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
+  haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
   haConfig["pow_cmd_t"]                     = ha_power_set_topic;
 
@@ -1656,7 +1656,7 @@ float toCelsius(float fromFahrenheit) {
   return (fromFahrenheit - 32.0) / 1.8;
 }
 
-float getTemperature(float temperature, bool isFahrenheit) {
+float convertCelsiusToLocalUnit(float temperature, bool isFahrenheit) {
   if (isFahrenheit) {
     return toFahrenheit(temperature);
   } else {
@@ -1664,7 +1664,7 @@ float getTemperature(float temperature, bool isFahrenheit) {
   }
 }
 
-float setTemperature(float temperature, bool isFahrenheit) {
+float convertLocalUnitToCelsius(float temperature, bool isFahrenheit) {
   if (isFahrenheit) {
     return toCelsius(temperature);
   } else {
