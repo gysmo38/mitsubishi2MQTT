@@ -107,7 +107,7 @@ const char html_page_status[] PROGMEM =
         "_HVAC_STATUS_"
     "</p>"
      "<p><b>_TXT_STATUS_MQTT_</b>"
-        " ==>" 
+        " ==> " 
         "_MQTT_STATUS_ ( _MQTT_REASON_ )"
     "</p>"
      "<p><b>_TXT_STATUS_WIFI_</b>"
@@ -191,7 +191,7 @@ const char html_page_control[] PROGMEM =
             "<form onchange='this.submit()' method='POST'>"
                 "<select name='FAN'>"
                     "<option value='AUTO' _FAN_A_>&#9851; _TXT_F_AUTO_</option>"
-                    "<option value='QUIET' _FAN_QUIET_>.... _TXT_F_QUIET_</option>"
+                    "<option value='QUIET' _FAN_Q_>.... _TXT_F_QUIET_</option>"
                     "<option value='1' _FAN_1_>...: _TXT_F_SPEED_ 1</option>"
                     "<option value='2' _FAN_2_>..:: _TXT_F_SPEED_ 2</option>"
                     "<option value='3' _FAN_3_>.::: _TXT_F_SPEED_ 3</option>"
@@ -215,7 +215,6 @@ const char html_page_control[] PROGMEM =
         "<p><b>_TXT_CTRL_WVANE_</b>"
             "<form onchange='this.submit()' method='POST'>"
                 "<select name='WIDEVANE'>"
-                    "<option value='AUTO' _WVANE_A_>&#9851; _TXT_F_AUTO_</option>"
                     "<option value='SWING' _WVANE_S_>&#9887; _TXT_F_SWING_</option>"
                     "<option value='<<' _WVANE_1_><< _TXT_F_POS_ 1</option>"
                     "<option value='<' _WVANE_2_>< _TXT_F_POS_ 2</option>"
@@ -362,7 +361,7 @@ const char html_page_upgrade[] PROGMEM =
             "<a class='button back' href='/'>_TXT_BACK_</a>"
         "</p>"
     "</div>"
-    "<div id='f2' style='display:none;text-align:center;'><b>_TXT_UPGRADE_START ...</b></div>"
+    "<div id='f2' style='display:none;text-align:center;'><b>_TXT_UPGRADE_START_ ...</b></div>"
 ;
 
 

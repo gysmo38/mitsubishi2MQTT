@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "0.7.2";
+const PROGMEM char* m2mqtt_version = "0.7.3";
 
 //Define global variables for files
 #ifdef ESP32
@@ -40,6 +40,9 @@ const PROGMEM  uint8_t redLedPin = 0;
 
 // Define global variables for network
 const PROGMEM char* hostnamePrefix = "HVAC_";
+const PROGMEM uint32_t WIFI_RETRY_INTERVAL_MS = 300000;
+int wifi_timeout;
+bool wifi_config_exists;
 String hostname = "";
 String ap_ssid;
 String ap_pwd;
@@ -89,7 +92,7 @@ uint8_t max_temp                    = 31; // Maximum temperature, check value fr
 String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
-const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 30 seconds
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 45000; // 45 seconds (anything less may cause bouncing)
 const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 seconds
 const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 seconds
 const PROGMEM uint32_t HP_MAX_RETRIES = 5;

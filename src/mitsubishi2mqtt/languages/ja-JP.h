@@ -132,3 +132,5 @@ const char txt_upload_refresh[] PROGMEM = "再読込中";
 
 //Page Init
 const char txt_init_title[] PROGMEM = "初期設定";
+const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
+const char txt_init_reboot[] PROGMEM = "Rebooting...";

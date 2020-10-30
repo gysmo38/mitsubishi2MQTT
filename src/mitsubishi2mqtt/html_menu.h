@@ -78,7 +78,7 @@ const char html_menu_setup[] PROGMEM = R"====(
     </form>
 </p>
 <p>
-    <form onsubmit="return confirm(' _TXT_RESET_CONFIRM_ ');">
+    <form onsubmit="return confirm(' _TXT_RESETCONFIRM_ ');">
         <button type='submit' name='RESET' class='button bred'>_TXT_RESET_</button>
     </form>
 </p>

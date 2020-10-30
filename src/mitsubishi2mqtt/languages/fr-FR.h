@@ -133,3 +133,5 @@ const char txt_upload_refresh[] PROGMEM = "Rafaichissement dans ";
 
 //Page Init
 const char txt_init_title[] PROGMEM = "Initialisation";
+const char txt_init_reboot_mes[] PROGMEM = "Redémarrage et connexion à votre WIFI. L'appareil doit apparaitre dans votre réseau";
+const char txt_init_reboot[] PROGMEM = "Redémarrage...";

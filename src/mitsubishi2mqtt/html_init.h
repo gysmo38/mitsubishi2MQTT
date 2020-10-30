@@ -37,18 +37,18 @@ const char html_init_setup[] PROGMEM = R"====(
         </p>
         </p>
         <br/>
-        <button name='submit' type='submit' class='button bgrn'>_TXT_M_SAVE_</button>
+        <button name='submit' type='submit' class='button bgrn'> _TXT_SAVE_ </button>
     </form>
 </fieldset>
 <fieldset>
-    <a class="button" href="/reboot" class="back">Reboot</a>
+    <a class="button" href="/reboot" class="back"> _TXT_REBOOT_ </a>
 </fieldset>
 )====";
 
 const char html_init_save[] PROGMEM =  R"====(
-<p>Rebooting and connecting to your WiFi network! You should see it listed in on your access point.</p>
+<p> _TXT_INIT_REBOOT_MESS_ </p>
 )====";
 
 const char html_init_reboot[] PROGMEM =  R"====(
-<p>Rebooting</p>
+<p> _TXT_INIT_REBOOT_ </p>
 )====";
