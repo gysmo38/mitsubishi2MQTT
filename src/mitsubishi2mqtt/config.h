@@ -56,6 +56,8 @@ String mqtt_username;
 String mqtt_password;
 String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
+const PROGMEM char* mqtt_payload_available = "online";
+const PROGMEM char* mqtt_payload_unavailable = "offline";
 
 //Define global variables for Others settings
 bool others_haa;
@@ -76,6 +78,7 @@ String ha_debug_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
 String ha_custom_packet;
+String ha_availability_topic;
 String hvac_name;
 
 //login
