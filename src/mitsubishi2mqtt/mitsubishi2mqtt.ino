@@ -161,6 +161,7 @@ void setup() {
       ha_debug_topic           = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic       = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_custom_packet         = mqtt_topic + "/" + mqtt_fn + "/custom/send";
+      ha_availability_topic = mqtt_topic + "/" + mqtt_fn + "/availability";
 
       if (others_haa) {
         ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
@@ -1503,6 +1504,9 @@ void haConfig() {
   haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
   haConfig["temp_stat_t"]                   = ha_state_topic;
+  haConfig["avty_t"]                        = ha_availability_topic; // MQTT last will (status) messages topic 
+  haConfig["pl_not_avail"]                  = mqtt_payload_unavailable; // MQTT offline message payload
+  haConfig["pl_avail"]                      = mqtt_payload_available; // MQTT online message payload
   //Set default value for fix "Could not parse data for HA"
   String temp_stat_tpl_str                  = F("{% if (value_json is defined and value_json.temperature is defined) %}{% if (value_json.temperature|int > ");
   temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
@@ -1565,7 +1569,7 @@ void mqttConnect() {
   int attempts = 0;
   while (!mqtt_client.connected()) {
     // Attempt to connect
-    mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str());
+    mqtt_client.connect(mqtt_client_id.c_str(), mqtt_username.c_str(), mqtt_password.c_str(), ha_availability_topic.c_str(), 1, true, mqtt_payload_unavailable);
     // If state < 0 (MQTT_CONNECTED) => network problem we retry 5 times and then waiting for MQTT_RETRY_INTERVAL_MS and retry reapeatly
     if (mqtt_client.state() < MQTT_CONNECTED) {
       if (attempts == 5) {
@@ -1592,6 +1596,7 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_wideVane_set_topic.c_str());
       mqtt_client.subscribe(ha_remote_temp_set_topic.c_str());
       mqtt_client.subscribe(ha_custom_packet.c_str());
+      mqtt_client.publish(ha_availability_topic.c_str(), mqtt_payload_available, true); //publish status as available
       if (others_haa) {
         haConfig();
       }
