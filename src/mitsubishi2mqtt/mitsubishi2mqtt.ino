@@ -1511,7 +1511,7 @@ void haConfig() {
   haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
-  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(8, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
   haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
