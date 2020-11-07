@@ -1294,6 +1294,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
     if (currentStatus.roomTemperature == 0) return;
 
+    rootInfo.clear();
+    
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
     rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
     rootInfo["fan"]                 = currentSettings.fan;
