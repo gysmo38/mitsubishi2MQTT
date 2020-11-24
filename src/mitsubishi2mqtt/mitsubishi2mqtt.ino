@@ -1292,6 +1292,9 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     // send room temp, operating info and all information
     heatpumpSettings currentSettings = hp.getSettings();
 
+	const size_t bufferSizeInfo = JSON_OBJECT_SIZE(10);
+	StaticJsonDocument<bufferSizeInfo> rootInfo;
+
     if (currentStatus.roomTemperature == 0) return;
 
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
