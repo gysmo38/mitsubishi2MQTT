@@ -1733,7 +1733,7 @@ void loop() {
 	  ESP.restart();
   }
   
-  if (!captive and mqtt_config) {
+  if (!captive) {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
       if (((millis() > (lastHpSync + HP_RETRY_INTERVAL_MS)) or lastHpSync == 0) and (hpConnectionRetries < HP_MAX_RETRIES)) {
@@ -1745,20 +1745,22 @@ void loop() {
         hp.sync();
     }
 
-    //MQTT failed retry to connect
-    if (mqtt_client.state() < MQTT_CONNECTED)
-    {
-      if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
-        mqttConnect();
-      }
-    }
-    //MQTT config problem on MQTT do nothing
-    else if (mqtt_client.state() > MQTT_CONNECTED ) return;
-    //MQTT connected send status
-    else {
-      hpStatusChanged(hp.getStatus());
-      mqtt_client.loop();
-    }
+	if (mqtt_config) {
+		//MQTT failed retry to connect
+		if (mqtt_client.state() < MQTT_CONNECTED)
+		{
+		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
+			mqttConnect();
+		  }
+		}
+		//MQTT config problem on MQTT do nothing
+		else if (mqtt_client.state() > MQTT_CONNECTED ) return;
+		//MQTT connected send status
+		else {
+		  hpStatusChanged(hp.getStatus());
+		  mqtt_client.loop();
+		}
+	}
   }
   else {
     dnsServer.processNextRequest();
