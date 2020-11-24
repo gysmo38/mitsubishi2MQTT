@@ -28,8 +28,8 @@ WebServer server(80);         //ESP32 web
 #include <ESP8266WebServer.h> // webServer for ESP8266
 ESP8266WebServer server(80);  // ESP8266 web
 #endif
-#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.15.2
-#include <PubSubClient.h>     // MQTT: PubSubClient 2.8
+#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
+#include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
 #include <DNSServer.h>        // DNS for captive portal
 #include <math.h>             // for rounding to Fahrenheit values
 
@@ -173,14 +173,10 @@ void setup() {
     }
     // Serial.println(F("Connection to HVAC. Stop serial log."));
     //write_log("Connection to HVAC");
-    //hp.setSettingsChangedCallback(hpSettingsChanged);
-    //hp.setStatusChangedCallback(hpStatusChanged);
-    //hp.setPacketCallback(hpPacketDebug);
+    hp.setSettingsChangedCallback(hpSettingsChanged);
+    hp.setStatusChangedCallback(hpStatusChanged);
+    hp.setPacketCallback(hpPacketDebug);
     hp.connect(&Serial);
-	
-	// I prefer to allow use of external IR remotes - even though they get out of sync with the automation control
-	hp.enableExternalUpdate();
-	
     heatpumpStatus currentStatus = hp.getStatus();
     heatpumpSettings currentSettings = hp.getSettings();
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
@@ -344,11 +340,6 @@ void initMqtt() {
   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
   mqtt_client.setCallback(mqttCallback);
   mqttConnect();
-
-  //Only assign the MQTT-enabled callbacks if both hp and mqtt_client are initialized - Designed to correct issue #58
-  hp.setSettingsChangedCallback(hpSettingsChanged);
-  hp.setStatusChangedCallback(hpStatusChanged);
-  hp.setPacketCallback(hpPacketDebug);
 }
 
 // Enable OTA only when connected as a client.
