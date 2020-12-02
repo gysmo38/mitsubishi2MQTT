@@ -1220,9 +1220,7 @@ void hpSettingsChanged() {
   // send room temp, operating info and all information
   heatpumpSettings currentSettings = hp.getSettings();
 
-  const size_t bufferSizeInfo = JSON_OBJECT_SIZE(6);
-  StaticJsonDocument<bufferSizeInfo> rootInfo;
-
+  rootInfo.clear();
   rootInfo["temperature"]     = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
@@ -1294,6 +1292,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 
     if (currentStatus.roomTemperature == 0) return;
 
+    rootInfo.clear();
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
     rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
     rootInfo["fan"]                 = currentSettings.fan;
@@ -1511,7 +1510,7 @@ void haConfig() {
   haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
-  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(8, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
   haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
@@ -1733,7 +1732,7 @@ void loop() {
 	  ESP.restart();
   }
   
-  if (!captive and mqtt_config) {
+  if (!captive) {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
       if (((millis() > (lastHpSync + HP_RETRY_INTERVAL_MS)) or lastHpSync == 0) and (hpConnectionRetries < HP_MAX_RETRIES)) {
@@ -1745,20 +1744,22 @@ void loop() {
         hp.sync();
     }
 
-    //MQTT failed retry to connect
-    if (mqtt_client.state() < MQTT_CONNECTED)
-    {
-      if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
-        mqttConnect();
-      }
-    }
-    //MQTT config problem on MQTT do nothing
-    else if (mqtt_client.state() > MQTT_CONNECTED ) return;
-    //MQTT connected send status
-    else {
-      hpStatusChanged(hp.getStatus());
-      mqtt_client.loop();
-    }
+	if (mqtt_config) {
+		//MQTT failed retry to connect
+		if (mqtt_client.state() < MQTT_CONNECTED)
+		{
+		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
+			mqttConnect();
+		  }
+		}
+		//MQTT config problem on MQTT do nothing
+		else if (mqtt_client.state() > MQTT_CONNECTED ) return;
+		//MQTT connected send status
+		else {
+		  hpStatusChanged(hp.getStatus());
+		  mqtt_client.loop();
+		}
+	}
   }
   else {
     dnsServer.processNextRequest();
