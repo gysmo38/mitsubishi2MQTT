@@ -188,7 +188,7 @@ const char html_page_control[] PROGMEM =
             "<form onchange='this.submit()' method='POST'>"
                 "<select name='POWER'>"
                     "<option value='ON' _POWER_ON_>_TXT_F_ON_</option>"
-                    "<option _POWER_OFF_>_TXT_F_OFF_</option>"
+                    "<option value='OFF' _POWER_OFF_>_TXT_F_OFF_</option>"
                 "</select>"
             "</form>"
         "</p>"
