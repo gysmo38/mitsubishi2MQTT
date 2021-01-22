@@ -1705,14 +1705,9 @@ String getTemperatureScale() {
 
 String getId() {
 #ifdef ESP32
+  // NOTE: Don't truncate the MAC address, things don't work well if there's an id collission.
   uint64_t macAddress = ESP.getEfuseMac();
-  uint64_t macAddressTrunc = macAddress << 40;
-  uint32_t chipID = macAddressTrunc >> 40;
-
-  // NOTE: I managed to get a MAC collission; hence using the whole address.
-  uint32_t p1 = ESP.getEfuseMac() >> 40;
-  uint32_t p2 = ESP.getEfuseMac();
-  return String(p1, HEX) + String(p2, HEX);
+  return String((uint32_t) (macAddress >> 32), HEX) + String((uint32_t) macAddress, HEX);
 #else
   uint32_t chipID = ESP.getChipId();
   return String(chipID, HEX);
