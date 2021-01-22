@@ -1708,10 +1708,15 @@ String getId() {
   uint64_t macAddress = ESP.getEfuseMac();
   uint64_t macAddressTrunc = macAddress << 40;
   uint32_t chipID = macAddressTrunc >> 40;
+
+  // NOTE: I managed to get a MAC collission; hence using the whole address.
+  uint32_t p1 = ESP.getEfuseMac() >> 40;
+  uint32_t p2 = ESP.getEfuseMac();
+  return String(p1, HEX) + String(p2, HEX);
 #else
   uint32_t chipID = ESP.getChipId();
-#endif
   return String(chipID, HEX);
+#endif
 }
 
 //Check if header is present and correct
