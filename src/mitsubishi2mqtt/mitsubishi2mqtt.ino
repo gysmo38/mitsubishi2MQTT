@@ -1351,11 +1351,11 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
 void hpSendLocalState() {
 
   //Send dummy MQTT state packet before unit update
-  String mqttOutput;
-  serializeJson(rootInfo, mqttOutput);
-  if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
-  }
+//  String mqttOutput;
+//  serializeJson(rootInfo, mqttOutput);
+//  if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
+//    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
+//  }
 
   // Restart counter for waiting enought time for the unit to update before sending a state packet
   lastTempSend = millis();
@@ -1514,17 +1514,19 @@ void haConfig() {
   haConfig["mode_stat_t"]                   = ha_state_topic;
   haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
-  haConfig["temp_stat_t"]                   = ha_state_topic;
+  haConfig["temperature_state_topic"]       = ha_state_topic;
   //Set default value for fix "Could not parse data for HA"
   String temp_stat_tpl_str                  = F("{% if (value_json is defined and value_json.temperature is defined) %}{% if (value_json.temperature|int > ");
   temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
   temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}{{ value_json.temperature }}";
   temp_stat_tpl_str                        +="{% elif (value_json.temperature|int < " + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + "{% elif (value_json.temperature|int > " + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) +  "{% endif %}{% else %}" + (String)convertCelsiusToLocalUnit(22, useFahrenheit) + "{% endif %}";
-  haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
-  haConfig["curr_temp_t"]                   = ha_state_topic;
+//  haConfig["temperature_state_template"]    = temp_stat_tpl_str;
+  haConfig["temperature_state_template"]    = "{{ value_json.temperature }}";
+  haConfig["current_temperature_topic"]     = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
   curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
-  haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
+//  haConfig["current_temperature_template"]  = curr_temp_tpl_str;
+  haConfig["current_temperature_template"]  = "{{ value_json.roomTemperature }}";
   haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
