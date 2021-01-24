@@ -168,6 +168,7 @@ void setup() {
 
       if (others_haa) {
         ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
+        ha_sensor_config_topic = others_haa_topic + "/sensor/" + mqtt_fn + "-t/config";
       }
       // startup mqtt connection
       initMqtt();
@@ -1572,6 +1573,20 @@ void haConfig() {
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
   mqtt_client.print(mqttOutput);
+  mqtt_client.endPublish();
+
+  DynamicJsonDocument haSensorConfig(capacity);
+  haSensorConfig["name"]                          = mqtt_fn + " Temperature";
+  haSensorConfig["unique_id"]                     = getId() + "-t";
+  haSensorConfig["device_class"] = "temperature";
+  haSensorConfig["state_topic"] = ha_state_topic;
+  haSensorConfig["value_template"] = "{{ value_json.roomTemperature }}";
+  haSensorConfig["unit_of_measurement"]              = useFahrenheit ? "°F" : "°C";
+
+  String o2;
+  serializeJson(haSensorConfig, o2);
+  mqtt_client.beginPublish(ha_sensor_config_topic.c_str(), o2.length(), true);
+  mqtt_client.print(o2);
   mqtt_client.endPublish();
 }
 

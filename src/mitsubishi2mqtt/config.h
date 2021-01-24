@@ -75,6 +75,7 @@ String ha_state_topic;
 String ha_debug_topic;
 String ha_debug_set_topic;
 String ha_config_topic;
+String ha_sensor_config_topic;
 String ha_discovery_topic;
 String ha_custom_packet;
 String hvac_name;
