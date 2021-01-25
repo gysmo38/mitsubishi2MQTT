@@ -1160,11 +1160,11 @@ void handleUploadLoop() {
       return;
     }
   } else if (!uploaderror && (upload.status == UPLOAD_FILE_END)) {
-    if (Update.end(
-            true)) {  // true to set the size to the current progress
-                      // snprintf_P(log, sizeof(log), PSTR("Upload: Successful
-                      // %u bytes. Restarting"), upload.totalSize);
-                      //      Serial.printl(log)
+    if (Update.end(true)) {
+      // true to set the size to the current progress
+      // snprintf_P(log, sizeof(log), PSTR("Upload: Successful
+      // %u bytes. Restarting"), upload.totalSize);
+      //      Serial.printl(log)
     } else {
       // Update.printError(Serial);
       uploaderror = 6;
@@ -1303,11 +1303,8 @@ String hpGetAction(boolean hpoperating, String hppower, String hpmode) {
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
-  if (millis() >
-      (lastTempSend +
-       SEND_ROOM_TEMP_INTERVAL_MS)) {  // only send the temperature every
-                                       // SEND_ROOM_TEMP_INTERVAL_MS
-
+  // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS
+  if (millis() > (lastTempSend + SEND_ROOM_TEMP_INTERVAL_MS)) {
     // send room temp, operating info and all information
     heatpumpSettings currentSettings = hp.getSettings();
 
@@ -1464,9 +1461,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     hp.setRemoteTemperature(
         convertLocalUnitToCelsius(temperature, useFahrenheit));
     hp.update();
-  } else if (strcmp(topic, ha_debug_set_topic.c_str()) ==
-             0) {  // if the incoming message is on the heatpump_debug_set_topic
-                   // topic...
+  } else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) {
+    // if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
       _debugMode = true;
       mqtt_client.publish(ha_debug_topic.c_str(),
@@ -1476,8 +1472,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
       mqtt_client.publish(ha_debug_topic.c_str(),
                           (char *)("Debug mode disabled"));
     }
-  } else if (strcmp(topic, ha_custom_packet.c_str()) ==
-             0) {  // send custom packet for advance user
+  } else if (strcmp(topic, ha_custom_packet.c_str()) == 0) {
+    // send custom packet for advance user
     String custom = message;
 
     // copy custom packet to char array
@@ -1531,12 +1527,10 @@ void haConfig() {
 
   haConfig["mode_cmd_t"] = ha_mode_set_topic;
   haConfig["mode_stat_t"] = ha_state_topic;
-  haConfig["mode_stat_tpl"] = F(
-      "{{ value_json.mode if (value_json is defined and value_json.mode is "
-      "defined and value_json.mode|length) else 'off' }}");  // Set default
-                                                             // value for fix
-                                                             // "Could not parse
-                                                             // data for HA"
+  // Set default value for fix "Could not parse data for HA"
+  haConfig["mode_stat_tpl"] =
+      F("{{ value_json.mode if (value_json is defined and value_json.mode is "
+        "defined and value_json.mode|length) else 'off' }}");
   haConfig["temp_cmd_t"] = ha_temp_set_topic;
   haConfig["temperature_state_topic"] = ha_state_topic;
   // Set default value for fix "Could not parse data for HA"
@@ -1565,12 +1559,11 @@ void haConfig() {
       F("{{ value_json.roomTemperature if (value_json is defined and "
         "value_json.roomTemperature is defined and "
         "value_json.roomTemperature|int > ");
+  // Set default value for fix "Could not parse data for HA"
   curr_temp_tpl_str +=
       (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" +
-      (String)convertCelsiusToLocalUnit(26, useFahrenheit) +
-      "' }}";  // Set default value for fix "Could not parse data for HA"
-               //  haConfig["current_temperature_template"]  =
-               //  curr_temp_tpl_str;
+      (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}";
+  //  haConfig["current_temperature_template"]  = curr_temp_tpl_str;
   haConfig["current_temperature_template"] = "{{ value_json.roomTemperature }}";
   haConfig["min_temp"] = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"] = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
@@ -1588,12 +1581,10 @@ void haConfig() {
 
   haConfig["fan_mode_cmd_t"] = ha_fan_set_topic;
   haConfig["fan_mode_stat_t"] = ha_state_topic;
-  haConfig["fan_mode_stat_tpl"] = F(
-      "{{ value_json.fan if (value_json is defined and value_json.fan is "
-      "defined and value_json.fan|length) else 'AUTO' }}");  // Set default
-                                                             // value for fix
-                                                             // "Could not parse
-                                                             // data for HA"
+  // Set default value for fix "Could not parse data for HA"
+  haConfig["fan_mode_stat_tpl"] =
+      F("{{ value_json.fan if (value_json is defined and value_json.fan is "
+        "defined and value_json.fan|length) else 'AUTO' }}");
 
   JsonArray haConfigSwing_modes = haConfig.createNestedArray("swing_modes");
   haConfigSwing_modes.add("AUTO");
@@ -1606,20 +1597,15 @@ void haConfig() {
 
   haConfig["swing_mode_cmd_t"] = ha_vane_set_topic;
   haConfig["swing_mode_stat_t"] = ha_state_topic;
-  haConfig["swing_mode_stat_tpl"] = F(
-      "{{ value_json.vane if (value_json is defined and value_json.vane is "
-      "defined and value_json.vane|length) else 'AUTO' }}");  // Set default
-                                                              // value for fix
-                                                              // "Could not parse
-                                                              // data for HA"
+  // Set default value for fix "Could not parse data for HA"
+  haConfig["swing_mode_stat_tpl"] =
+      F("{{ value_json.vane if (value_json is defined and value_json.vane is "
+        "defined and value_json.vane|length) else 'AUTO' }}");
   haConfig["action_topic"] = ha_state_topic;
+  // Set default value for fix "Could not parse data  for HA"
   haConfig["action_template"] = F(
       "{{ value_json.action if (value_json is defined and value_json.action is "
-      "defined and value_json.action|length) else 'idle' }}");  // Set default
-                                                                // value for fix
-                                                                // "Could not
-                                                                // parse data for
-                                                                // HA"
+      "defined and value_json.action|length) else 'idle' }}");
 
   JsonObject haConfigDevice = haConfig.createNestedObject("device");
 
@@ -1746,7 +1732,8 @@ bool connectWifi() {
     return false;
   }
   //   Serial.println(WiFi.localIP());
-  // ticker.detach(); // Stop blinking the LED because now we are connected:)
+  // ticker.detach();
+  // Stop blinking the LED because now we are connected:)
   // keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
   return true;
