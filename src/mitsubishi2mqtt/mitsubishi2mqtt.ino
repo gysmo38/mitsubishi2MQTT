@@ -176,6 +176,8 @@ void setup() {
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
     hp.setPacketCallback(hpPacketDebug);
+    // Allow Remote/Panel
+    hp.enableExternalUpdate();
     hp.connect(&Serial);
     heatpumpStatus currentStatus = hp.getStatus();
     heatpumpSettings currentSettings = hp.getSettings();
