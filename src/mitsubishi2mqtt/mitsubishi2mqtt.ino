@@ -1367,6 +1367,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     if (modeUpper == "OFF") {
       hp.setPowerSetting("OFF");
       hp.update();
+    } else if (modeUpper == "ON") {
+      hp.setPowerSetting("ON");
+      hp.update();
     }
   }
   else if (strcmp(topic, ha_mode_set_topic.c_str()) == 0) {
