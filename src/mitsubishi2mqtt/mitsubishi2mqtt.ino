@@ -269,22 +269,22 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
-  if (tempUnit == '\0') tempUnit = "cel";
+  if (tempUnit.isEmpty()) tempUnit = "cel";
   doc["unit_tempUnit"]   = tempUnit;
   // if minTemp is empty, we use default 16
-  if (minTemp == '\0') minTemp = 16;
+  if (minTemp.isEmpty()) minTemp = 16;
   doc["min_temp"]   = minTemp;
   // if maxTemp is empty, we use default 31
-  if (maxTemp == '\0') maxTemp = 31;
+  if (maxTemp.isEmpty()) maxTemp = 31;
   doc["max_temp"]   = maxTemp;
   // if tempStep is empty, we use default 1
-  if (tempStep == '\0') tempStep = 1;
+  if (tempStep.isEmpty()) tempStep = 1;
   doc["temp_step"] = tempStep;
   // if support mode is empty, we use default all mode
-  if (supportMode == '\0') supportMode = "all";
+  if (supportMod.isEmpty()) supportMode = "all";
   doc["support_mode"]   = supportMode;
   // if login password is empty, we use empty
-  if (loginPassword == '\0') loginPassword = "";
+  if (loginPassword.isEmpty()) loginPassword = "";
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
