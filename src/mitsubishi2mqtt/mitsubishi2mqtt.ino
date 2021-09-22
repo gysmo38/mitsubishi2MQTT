@@ -180,7 +180,8 @@ void setup() {
     hp.setStatusChangedCallback(hpStatusChanged);
     hp.setPacketCallback(hpPacketDebug);
     hp.enableExternalUpdate();
-    hp.connect(&Serial1);
+    hp.connect(&Serial);
+
     heatpumpStatus currentStatus = hp.getStatus();
     heatpumpSettings currentSettings = hp.getSettings();
     rootInfo["roomTemperature"] =
