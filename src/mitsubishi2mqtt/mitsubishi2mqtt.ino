@@ -568,7 +568,8 @@ void handleNotFound() {
 }
 
 void handleSaveWifi() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   // Serial.println(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
@@ -581,6 +582,8 @@ void handleSaveWifi() {
 }
 
 void handleReboot() {
+  if (!checkLogin()) return;
+  
   String initRebootPage = FPSTR(html_init_reboot);
   initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
   sendWrappedHTML(initRebootPage);
@@ -589,7 +592,8 @@ void handleReboot() {
 }
 
 void handleRoot() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
@@ -631,7 +635,8 @@ void handleInitSetup() {
 }
 
 void handleSetup() {
-  checkLogin();
+  if (!checkLogin()) return;
+
   if (server.hasArg("RESET")) {
     String pageReset = FPSTR(html_page_reset);
     String ssid = hostnamePrefix;
@@ -671,7 +676,8 @@ void rebootAndSendPage() {
 }
 
 void handleOthers() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("Debug"));
     rebootAndSendPage();
@@ -705,7 +711,8 @@ void handleOthers() {
 }
 
 void handleMqtt() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     rebootAndSendPage();
@@ -732,7 +739,8 @@ void handleMqtt() {
 }
 
 void handleUnit() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
@@ -767,7 +775,8 @@ void handleUnit() {
 }
 
 void handleWifi() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     rebootAndSendPage();
@@ -795,6 +804,8 @@ void handleWifi() {
 }
 
 void handleStatus() {
+  if (!checkLogin()) return;
+  
   String statusPage =  FPSTR(html_page_status);
   statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
   statusPage.replace("_TXT_STATUS_TITLE_", FPSTR(txt_status_title));
@@ -824,7 +835,8 @@ void handleStatus() {
 
 
 void handleControl() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   //not connected to hp, redirect to status page
   if (!hp.isConnected()) {
     server.sendHeader("Location", "/status");
@@ -980,10 +992,6 @@ void handleLogin() {
   loginPage.replace("_TXT_LOGIN_PASSWORD_", FPSTR(txt_login_password));
   loginPage.replace("_TXT_LOGIN_", FPSTR(txt_login));
 
-  if (server.hasHeader("Cookie")) {
-    //Found cookie;
-    String cookie = server.header("Cookie");
-  }
   if (server.hasArg("USERNAME") || server.hasArg("PASSWORD") || server.hasArg("LOGOUT")) {
     if (server.hasArg("LOGOUT")) {
       //logout
@@ -1012,8 +1020,7 @@ void handleLogin() {
         //Log in Failed;
       }
     }
-  }
-  else {
+  } else {
     if (is_authenticated() or login_password.length() == 0) {
       server.sendHeader("Location", "/");
       server.sendHeader("Cache-Control", "no-cache");
@@ -1034,8 +1041,9 @@ void handleLogin() {
   sendWrappedHTML(loginPage);
 }
 
-void handleUpgrade()
-{
+void handleUpgrade() {
+  if (!checkLogin()) return;
+  
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
   upgradePage.replace("_TXT_B_UPGRADE_",FPSTR(txt_upgrade));
@@ -1047,8 +1055,7 @@ void handleUpgrade()
   sendWrappedHTML(upgradePage);
 }
 
-void handleUploadDone()
-{
+void handleUploadDone() {
   //Serial.printl(PSTR("HTTP: Firmware upload done"));
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
@@ -1100,8 +1107,9 @@ void handleUploadDone()
   }
 }
 
-void handleUploadLoop()
-{
+void handleUploadLoop() {
+  if (!checkLogin()) return;
+  
   // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
   //char log[200];
   if (uploaderror) {
@@ -1702,7 +1710,7 @@ bool is_authenticated() {
   return false;
 }
 
-void checkLogin() {
+bool checkLogin() {
   if (!is_authenticated() and login_password.length() > 0) {
     server.sendHeader("Location", "/login");
     server.sendHeader("Cache-Control", "no-cache");
@@ -1715,8 +1723,9 @@ void checkLogin() {
     redirectPage += F("</script>");
     redirectPage += F("</body></html>");
     server.send(302, F("text/html"), redirectPage);
-    return;
+    return false;
   }
+  return true;
 }
 
 void loop() {
