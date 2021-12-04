@@ -186,8 +186,8 @@ void setup() {
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings.power, currentSettings.mode);
-    rootInfo["action"]              = hpGetAction(currentStatus.operating, currentSettings.power, currentSettings.mode);
+    rootInfo["mode"]                = hpGetMode(currentSettings);
+    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     lastTempSend = millis();
   }
@@ -1218,8 +1218,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
   return settings;
 }
 
-void hpSettingsChanged() {
-  // send room temp, operating info and all information
+void readHeatPumpSettings() {
   heatpumpSettings currentSettings = hp.getSettings();
 
   rootInfo.clear();
@@ -1227,26 +1226,12 @@ void hpSettingsChanged() {
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
+  rootInfo["mode"]            = hpGetMode(currentSettings);
+}
 
-  String hppower = String(currentSettings.power);
-  String hpmode = String(currentSettings.mode);
-
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-
-  if (hpmode == "fan") {
-    rootInfo["mode"] = "fan_only";
-  }
-  else if (hpmode == "auto") {
-    rootInfo["mode"] = "heat_cool";
-  }
-  else {
-    rootInfo["mode"] = hpmode.c_str();
-  }
-
-  if (hppower == "off") {
-    rootInfo["mode"] = "off";
-  }
+void hpSettingsChanged() {
+  // send room temp, operating info and all information
+  readHeatPumpSettings();  
 
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
@@ -1258,32 +1243,42 @@ void hpSettingsChanged() {
   hpStatusChanged(hp.getStatus());
 }
 
-String hpGetMode(String hppower, String hpmode) {
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-  String result = hpmode;
-  if (hppower == "off")         result = "off";
-  else {
-    if (hpmode == "fan")        result = "fan_only";
-    else if (hpmode == "auto")  result = "heat_cool";
+String hpGetMode(heatpumpSettings hpSettings) {
+  // Map the heat pump state to one of HA's HVAC_MODE_* values.
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L3-L23
+  
+  String hppower = String(hpSettings.power); 
+  if (hppower.equalsIgnoreCase("off")){
+    return "off";
   }
-  return result;
+
+  String hpmode = String(hpSettings.mode);
+  hpmode.toLowerCase();
+
+  if (hpmode == "fan")       return "fan_only";
+  else if (hpmode == "auto") return "heat_cool";
+  else                       return hpmode; // cool, heat, dry
 }
 
-String hpGetAction(boolean hpoperating, String hppower, String hpmode) {
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-  String result = "unknown";
-  if (hppower == "off")         result = "off";
-  else if (hpmode == "fan")     result = "fan";
-  else if (!hpoperating)        result = "idle";
-  else {
-    if (hpmode == "auto")       result = "idle";
-    else if (hpmode == "cool")  result = "cooling";
-    else if (hpmode == "heat")  result = "heating";
-    else if (hpmode == "dry")   result = "drying";
+String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
+  // Map heat pump state to one of HA's CURRENT_HVAC_* values.
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L80-L86
+  
+  String hppower = String(hpSettings.power);
+  if (hppower.equalsIgnoreCase("off")) {
+    return "off";
   }
-  return result;
+
+  String hpmode = String(hpSettings.mode);
+  hpmode.toLowerCase();
+
+  if (hpmode == "fan")          return "fan";
+  else if (!hpStatus.operating) return "idle";
+  else if (hpmode == "auto")    return "idle";
+  else if (hpmode == "cool")    return "cooling";
+  else if (hpmode == "heat")    return "heating";
+  else if (hpmode == "dry")     return "drying";
+  else                          return hpmode; // unknown
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
@@ -1300,8 +1295,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings.power, currentSettings.mode);
-    rootInfo["action"]              = hpGetAction(currentStatus.operating, currentSettings.power, currentSettings.mode);
+    rootInfo["mode"]                = hpGetMode(currentSettings);
+    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     String mqttOutput;
     serializeJson(rootInfo, mqttOutput);
@@ -1752,7 +1747,7 @@ void loop() {
 		if (mqtt_client.state() < MQTT_CONNECTED)
 		{
 		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
-			mqttConnect();
+		    mqttConnect();
 		  }
 		}
 		//MQTT config problem on MQTT do nothing
