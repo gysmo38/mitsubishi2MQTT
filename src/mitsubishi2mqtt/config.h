@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "0.7.3";
+const PROGMEM char* m2mqtt_version = "2022.01";
 
 //Define global variables for files
 #ifdef ESP32
@@ -43,7 +43,7 @@ const PROGMEM char* hostnamePrefix = "HVAC_";
 const PROGMEM uint32_t WIFI_RETRY_INTERVAL_MS = 300000;
 int wifi_timeout;
 bool wifi_config_exists;
-String hostname = "";
+String hostname = "HVAC";
 String ap_ssid;
 String ap_pwd;
 String ota_pwd;

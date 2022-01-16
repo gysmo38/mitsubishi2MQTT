@@ -24,12 +24,13 @@
 WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
+#include <WiFiClient.h>
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
 #include <ESP8266WebServer.h> // webServer for ESP8266
 ESP8266WebServer server(80);  // ESP8266 web
 #endif
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
-#include <PubSubClient.h>     // MQTT: PubSubClient 2.7.0
+#include <PubSubClient.h>     // MQTT: PubSubClient 2.8.0
 #include <DNSServer.h>        // DNS for captive portal
 #include <math.h>             // for rounding to Fahrenheit values
 
@@ -282,7 +283,7 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   if (tempStep.isEmpty()) tempStep = 1;
   doc["temp_step"] = tempStep;
   // if support mode is empty, we use default all mode
-  if (supportMod.isEmpty()) supportMode = "all";
+  if (supportMode.isEmpty()) supportMode = "all";
   doc["support_mode"]   = supportMode;
   // if login password is empty, we use empty
   if (loginPassword.isEmpty()) loginPassword = "";
@@ -518,6 +519,7 @@ boolean initWifi() {
   WiFi.mode(WIFI_AP);
   wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
+  WiFi.softAPConfig(apIP, apIP, netMsk);
   if (!connectWifiSuccess and login_password != "") {
     // Set AP password when falling back to AP on fail
     WiFi.softAP(hostname.c_str(), login_password);
@@ -527,7 +529,7 @@ boolean initWifi() {
     WiFi.softAP(hostname.c_str());
   }
   delay(2000); // VERY IMPORTANT
-  WiFi.softAPConfig(apIP, apIP, netMsk);
+
   // Serial.print(F("IP address: "));
   // Serial.println(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
