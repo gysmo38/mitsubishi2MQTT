@@ -282,7 +282,7 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   if (tempStep.isEmpty()) tempStep = 1;
   doc["temp_step"] = tempStep;
   // if support mode is empty, we use default all mode
-  if (supportMod.isEmpty()) supportMode = "all";
+  if (supportMode.isEmpty()) supportMode = "all";
   doc["support_mode"]   = supportMode;
   // if login password is empty, we use empty
   if (loginPassword.isEmpty()) loginPassword = "";
