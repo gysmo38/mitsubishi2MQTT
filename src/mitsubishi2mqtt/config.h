@@ -43,7 +43,7 @@ const PROGMEM char* hostnamePrefix = "HVAC_";
 const PROGMEM uint32_t WIFI_RETRY_INTERVAL_MS = 300000;
 int wifi_timeout;
 bool wifi_config_exists;
-String hostname = "HVAC";
+String hostname = "";
 String ap_ssid;
 String ap_pwd;
 String ota_pwd;
