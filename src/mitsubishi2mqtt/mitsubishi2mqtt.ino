@@ -188,8 +188,8 @@ void setup() {
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings.power, currentSettings.mode);
-    rootInfo["action"]              = hpGetAction(currentStatus.operating, currentSettings.power, currentSettings.mode);
+    rootInfo["mode"]                = hpGetMode(currentSettings);
+    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     lastTempSend = millis();
   }
@@ -262,7 +262,6 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   if (!configFile) {
     // Serial.println(F("Failed to open config file for writing"));
   }
-  serializeJson(doc, Serial);
   serializeJson(doc, configFile);
   configFile.close();
 }
@@ -287,12 +286,12 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   doc["support_mode"]   = supportMode;
   // if login password is empty, we use empty
   if (loginPassword.isEmpty()) loginPassword = "";
+
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
     // Serial.println(F("Failed to open config file for writing"));
   }
-  serializeJson(doc, Serial);
   serializeJson(doc, configFile);
   configFile.close();
 }
@@ -308,7 +307,6 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   if (!configFile) {
     // Serial.println(F("Failed to open wifi file for writing"));
   }
-  serializeJson(doc, Serial);
   serializeJson(doc, configFile);
   delay(10);
   configFile.close();
@@ -571,7 +569,8 @@ void handleNotFound() {
 }
 
 void handleSaveWifi() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   // Serial.println(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
@@ -584,6 +583,8 @@ void handleSaveWifi() {
 }
 
 void handleReboot() {
+  if (!checkLogin()) return;
+  
   String initRebootPage = FPSTR(html_init_reboot);
   initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
   sendWrappedHTML(initRebootPage);
@@ -592,7 +593,8 @@ void handleReboot() {
 }
 
 void handleRoot() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
@@ -634,7 +636,8 @@ void handleInitSetup() {
 }
 
 void handleSetup() {
-  checkLogin();
+  if (!checkLogin()) return;
+
   if (server.hasArg("RESET")) {
     String pageReset = FPSTR(html_page_reset);
     String ssid = hostnamePrefix;
@@ -674,7 +677,8 @@ void rebootAndSendPage() {
 }
 
 void handleOthers() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("Debug"));
     rebootAndSendPage();
@@ -708,7 +712,8 @@ void handleOthers() {
 }
 
 void handleMqtt() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     rebootAndSendPage();
@@ -735,7 +740,8 @@ void handleMqtt() {
 }
 
 void handleUnit() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
@@ -770,7 +776,8 @@ void handleUnit() {
 }
 
 void handleWifi() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     rebootAndSendPage();
@@ -798,6 +805,8 @@ void handleWifi() {
 }
 
 void handleStatus() {
+  if (!checkLogin()) return;
+  
   String statusPage =  FPSTR(html_page_status);
   statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
   statusPage.replace("_TXT_STATUS_TITLE_", FPSTR(txt_status_title));
@@ -827,7 +836,8 @@ void handleStatus() {
 
 
 void handleControl() {
-  checkLogin();
+  if (!checkLogin()) return;
+  
   //not connected to hp, redirect to status page
   if (!hp.isConnected()) {
     server.sendHeader("Location", "/status");
@@ -983,10 +993,6 @@ void handleLogin() {
   loginPage.replace("_TXT_LOGIN_PASSWORD_", FPSTR(txt_login_password));
   loginPage.replace("_TXT_LOGIN_", FPSTR(txt_login));
 
-  if (server.hasHeader("Cookie")) {
-    //Found cookie;
-    String cookie = server.header("Cookie");
-  }
   if (server.hasArg("USERNAME") || server.hasArg("PASSWORD") || server.hasArg("LOGOUT")) {
     if (server.hasArg("LOGOUT")) {
       //logout
@@ -1015,8 +1021,7 @@ void handleLogin() {
         //Log in Failed;
       }
     }
-  }
-  else {
+  } else {
     if (is_authenticated() or login_password.length() == 0) {
       server.sendHeader("Location", "/");
       server.sendHeader("Cache-Control", "no-cache");
@@ -1037,8 +1042,9 @@ void handleLogin() {
   sendWrappedHTML(loginPage);
 }
 
-void handleUpgrade()
-{
+void handleUpgrade() {
+  if (!checkLogin()) return;
+  
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
   upgradePage.replace("_TXT_B_UPGRADE_",FPSTR(txt_upgrade));
@@ -1050,8 +1056,7 @@ void handleUpgrade()
   sendWrappedHTML(upgradePage);
 }
 
-void handleUploadDone()
-{
+void handleUploadDone() {
   //Serial.printl(PSTR("HTTP: Firmware upload done"));
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
@@ -1103,8 +1108,9 @@ void handleUploadDone()
   }
 }
 
-void handleUploadLoop()
-{
+void handleUploadLoop() {
+  if (!checkLogin()) return;
+  
   // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
   //char log[200];
   if (uploaderror) {
@@ -1221,8 +1227,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
   return settings;
 }
 
-void hpSettingsChanged() {
-  // send room temp, operating info and all information
+void readHeatPumpSettings() {
   heatpumpSettings currentSettings = hp.getSettings();
 
   rootInfo.clear();
@@ -1230,26 +1235,12 @@ void hpSettingsChanged() {
   rootInfo["fan"]             = currentSettings.fan;
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
+  rootInfo["mode"]            = hpGetMode(currentSettings);
+}
 
-  String hppower = String(currentSettings.power);
-  String hpmode = String(currentSettings.mode);
-
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-
-  if (hpmode == "fan") {
-    rootInfo["mode"] = "fan_only";
-  }
-  else if (hpmode == "auto") {
-    rootInfo["mode"] = "heat_cool";
-  }
-  else {
-    rootInfo["mode"] = hpmode.c_str();
-  }
-
-  if (hppower == "off") {
-    rootInfo["mode"] = "off";
-  }
+void hpSettingsChanged() {
+  // send room temp, operating info and all information
+  readHeatPumpSettings();  
 
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
@@ -1261,32 +1252,42 @@ void hpSettingsChanged() {
   hpStatusChanged(hp.getStatus());
 }
 
-String hpGetMode(String hppower, String hpmode) {
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-  String result = hpmode;
-  if (hppower == "off")         result = "off";
-  else {
-    if (hpmode == "fan")        result = "fan_only";
-    else if (hpmode == "auto")  result = "heat_cool";
+String hpGetMode(heatpumpSettings hpSettings) {
+  // Map the heat pump state to one of HA's HVAC_MODE_* values.
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L3-L23
+  
+  String hppower = String(hpSettings.power); 
+  if (hppower.equalsIgnoreCase("off")){
+    return "off";
   }
-  return result;
+
+  String hpmode = String(hpSettings.mode);
+  hpmode.toLowerCase();
+
+  if (hpmode == "fan")       return "fan_only";
+  else if (hpmode == "auto") return "heat_cool";
+  else                       return hpmode; // cool, heat, dry
 }
 
-String hpGetAction(boolean hpoperating, String hppower, String hpmode) {
-  hppower.toLowerCase();
-  hpmode.toLowerCase();
-  String result = "unknown";
-  if (hppower == "off")         result = "off";
-  else if (hpmode == "fan")     result = "fan";
-  else if (!hpoperating)        result = "idle";
-  else {
-    if (hpmode == "auto")       result = "idle";
-    else if (hpmode == "cool")  result = "cooling";
-    else if (hpmode == "heat")  result = "heating";
-    else if (hpmode == "dry")   result = "drying";
+String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
+  // Map heat pump state to one of HA's CURRENT_HVAC_* values.
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L80-L86
+  
+  String hppower = String(hpSettings.power);
+  if (hppower.equalsIgnoreCase("off")) {
+    return "off";
   }
-  return result;
+
+  String hpmode = String(hpSettings.mode);
+  hpmode.toLowerCase();
+
+  if (hpmode == "fan")          return "fan";
+  else if (!hpStatus.operating) return "idle";
+  else if (hpmode == "auto")    return "idle";
+  else if (hpmode == "cool")    return "cooling";
+  else if (hpmode == "heat")    return "heating";
+  else if (hpmode == "dry")     return "drying";
+  else                          return hpmode; // unknown
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
@@ -1303,8 +1304,8 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     rootInfo["fan"]                 = currentSettings.fan;
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings.power, currentSettings.mode);
-    rootInfo["action"]              = hpGetAction(currentStatus.operating, currentSettings.power, currentSettings.mode);
+    rootInfo["mode"]                = hpGetMode(currentSettings);
+    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     String mqttOutput;
     serializeJson(rootInfo, mqttOutput);
@@ -1717,7 +1718,7 @@ bool is_authenticated() {
   return false;
 }
 
-void checkLogin() {
+bool checkLogin() {
   if (!is_authenticated() and login_password.length() > 0) {
     server.sendHeader("Location", "/login");
     server.sendHeader("Cache-Control", "no-cache");
@@ -1730,8 +1731,9 @@ void checkLogin() {
     redirectPage += F("</script>");
     redirectPage += F("</body></html>");
     server.send(302, F("text/html"), redirectPage);
-    return;
+    return false;
   }
+  return true;
 }
 
 void loop() {
@@ -1762,7 +1764,7 @@ void loop() {
 		if (mqtt_client.state() < MQTT_CONNECTED)
 		{
 		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
-			mqttConnect();
+		    mqttConnect();
 		  }
 		}
 		//MQTT config problem on MQTT do nothing
