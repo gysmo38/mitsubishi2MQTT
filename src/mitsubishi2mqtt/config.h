@@ -22,7 +22,7 @@ const PROGMEM char* m2mqtt_version = "2022.01";
 #ifdef ESP32
 const PROGMEM char* wifi_conf = "/wifi.json";
 const PROGMEM char* mqtt_conf = "/mqtt.json";
-const PROGMEM char* advance_conf = "/advance.json";
+const PROGMEM char* unit_conf = "/unit.json";
 const PROGMEM char* console_file = "/console.log";
 const PROGMEM char* others_conf = "/others.json";
 // pinouts

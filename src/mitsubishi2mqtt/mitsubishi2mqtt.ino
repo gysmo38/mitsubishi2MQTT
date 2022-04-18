@@ -520,7 +520,7 @@ boolean initWifi() {
   WiFi.softAPConfig(apIP, apIP, netMsk);
   if (!connectWifiSuccess and login_password != "") {
     // Set AP password when falling back to AP on fail
-    WiFi.softAP(hostname.c_str(), login_password);
+    WiFi.softAP(hostname.c_str(), login_password.c_str());
   }
   else {
     // First time setup does not require password
