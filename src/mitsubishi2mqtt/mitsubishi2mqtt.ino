@@ -558,7 +558,7 @@ void handleNotFound() {
     initSetupContent.replace("_TXT_SAVE_",FPSTR(txt_save));
     initSetupContent.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
 
-    server.send(200, "text/html", initSetupContent);
+    sendWrappedHTML(initSetupContent);
   }
   else {
     server.sendHeader("Location", "/");
