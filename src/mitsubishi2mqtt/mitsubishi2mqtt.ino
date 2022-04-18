@@ -789,6 +789,12 @@ void handleWifi() {
   }
   else {
     String wifiPage =  FPSTR(html_page_wifi);
+    String str_ap_ssid = ap_ssid;
+    String str_ap_pwd  = ap_pwd;
+    String str_ota_pwd = ota_pwd;
+    str_ap_ssid.replace("'", F("&apos;"));
+    str_ap_pwd.replace("'", F("&apos;"));
+    str_ota_pwd.replace("'", F("&apos;"));
     wifiPage.replace("_TXT_SAVE_", FPSTR(txt_save));
     wifiPage.replace("_TXT_BACK_", FPSTR(txt_back));
     wifiPage.replace("_TXT_WIFI_TITLE_", FPSTR(txt_wifi_title));
@@ -796,9 +802,9 @@ void handleWifi() {
     wifiPage.replace("_TXT_WIFI_SSID_", FPSTR(txt_wifi_SSID));
     wifiPage.replace("_TXT_WIFI_PSK_", FPSTR(txt_wifi_psk));
     wifiPage.replace("_TXT_WIFI_OTAP_", FPSTR(txt_wifi_otap));
-    wifiPage.replace(F("_SSID_"), ap_ssid);
-    wifiPage.replace(F("_PSK_"), ap_pwd);
-    wifiPage.replace(F("_OTA_PWD_"), ota_pwd);
+    wifiPage.replace(F("_SSID_"), str_ap_ssid);
+    wifiPage.replace(F("_PSK_"), str_ap_pwd);
+    wifiPage.replace(F("_OTA_PWD_"), str_ota_pwd);
     sendWrappedHTML(wifiPage);
   }
 
