@@ -106,16 +106,16 @@ void setup() {
   //Define hostname
   hostname += hostnamePrefix;
   hostname += getId();
+  setDefaults();
+  wifi_config_exists = loadWifi();
+  loadOthers();
+  loadUnit();
   mqtt_client_id = hostname;
 #ifdef ESP32
   WiFi.setHostname(hostname.c_str());
 #else
   WiFi.hostname(hostname.c_str());
 #endif
-  setDefaults();
-  wifi_config_exists = loadWifi();
-  loadOthers();
-  loadUnit();
   if (initWifi()) {
     if (SPIFFS.exists(console_file)) {
       SPIFFS.remove(console_file);
