@@ -74,7 +74,8 @@ HeatPump hp;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
 unsigned long lastHpSync;
-unsigned long hpConnectionRetries;
+unsigned int hpConnectionRetries;
+unsigned int hpConnectionTotalRetries;
 
 //Local state
 StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
@@ -147,6 +148,7 @@ void setup() {
     lastMqttRetry = 0;
     lastHpSync = 0;
     hpConnectionRetries = 0;
+    hpConnectionTotalRetries = 0;
     if (loadMqtt()) {
       //write_log("Starting MQTT");
       // setup HA topics
@@ -813,6 +815,7 @@ void handleStatus() {
   statusPage.replace("_TXT_STATUS_HVAC_", FPSTR(txt_status_hvac));
   statusPage.replace("_TXT_STATUS_MQTT_", FPSTR(txt_status_mqtt));
   statusPage.replace("_TXT_STATUS_WIFI_", FPSTR(txt_status_wifi));
+  statusPage.replace("_TXT_RETRIES_HVAC_", FPSTR(txt_retries_hvac));
 
   if (server.hasArg("mrconn")) mqttConnect();
 
@@ -828,6 +831,7 @@ void handleStatus() {
   else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
   if (mqtt_client.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
   else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
+  statusPage.replace(F("_HVAC_RETRIES_"), String(hpConnectionTotalRetries));
   statusPage.replace(F("_MQTT_REASON_"), String(mqtt_client.state()));
   statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
   sendWrappedHTML(statusPage);
@@ -1750,12 +1754,17 @@ void loop() {
   if (!captive) {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
-      if (((millis() > (lastHpSync + HP_RETRY_INTERVAL_MS)) or lastHpSync == 0) and (hpConnectionRetries < HP_MAX_RETRIES)) {
+      // Use exponential backoff for retries, where each retry is double the length of the previous one.
+      unsigned long timeNextSync = (1 << hpConnectionRetries) * HP_RETRY_INTERVAL_MS + lastHpSync;
+      if (((millis() > timeNextSync) or lastHpSync == 0)) {
         lastHpSync = millis();
-        hpConnectionRetries++;
+        // If we've retried more than the max number of tries, keep retrying at that fixed interval, which is several minutes.
+        hpConnectionRetries = min(hpConnectionRetries + 1u, HP_MAX_RETRIES);
+        hpConnectionTotalRetries++;
         hp.sync();
       }
     } else {
+        hpConnectionRetries = 0;
         hp.sync();
     }
 
