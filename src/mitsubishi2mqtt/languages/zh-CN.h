@@ -77,6 +77,7 @@ const char txt_others_debug[] PROGMEM = "调试";
 //Page Status
 const char txt_status_title[] PROGMEM = "状态";
 const char txt_status_hvac[] PROGMEM = "空调状态";
+const char txt_retries_hvac[] PROGMEM = "HVAC Connection Retries";
 const char txt_status_mqtt[] PROGMEM = "MQTT状态";
 const char txt_status_wifi[] PROGMEM = "WIFI信号";
 const char txt_status_connect[] PROGMEM = "已连接";
