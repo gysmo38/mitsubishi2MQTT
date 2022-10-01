@@ -16,13 +16,13 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "2022.01 - magi's edition";
+const PROGMEM char* m2mqtt_version = "2022.01.2 - magi's edition";
 
 //Define global variables for files
 #ifdef ESP32
 const PROGMEM char* wifi_conf = "/wifi.json";
 const PROGMEM char* mqtt_conf = "/mqtt.json";
-const PROGMEM char* advance_conf = "/advance.json";
+const PROGMEM char* unit_conf = "/unit.json";
 const PROGMEM char* console_file = "/console.log";
 const PROGMEM char* others_conf = "/others.json";
 // pinouts
@@ -47,6 +47,7 @@ String hostname = "";
 String ap_ssid;
 String ap_pwd;
 String ota_pwd;
+
 
 // Define global variables for MQTT
 String mqtt_fn;
@@ -94,7 +95,9 @@ bool _debugMode = false;
 const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 15000; // 15 seconds (anything less than 45 seconds may cause problems, but it's faster.)
 const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 seconds
 const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 seconds
-const PROGMEM uint32_t HP_MAX_RETRIES = 5;
+const PROGMEM uint32_t HP_MAX_RETRIES = 10; // Double the interval between retries up to this many times, then keep retrying forever at that maximum interval.
+// Default values give a final retry interval of 1000ms * 2^10, which is 1024 seconds, about 17 minutes. 
+
 
 // Customization
 uint8_t min_temp                    = 16; // Minimum temperature, check value from heatpump remote control
