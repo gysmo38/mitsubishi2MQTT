@@ -48,6 +48,8 @@ String ap_ssid;
 String ap_pwd;
 String ota_pwd;
 
+//CN105Kit Product version
+const PROGMEM char* hardware_version = "CN105Kit V2 (WiFiSerial)";
 
 // Define global variables for MQTT
 String mqtt_fn;
