@@ -52,6 +52,10 @@ const char txt_f_celsius[] PROGMEM = "摄氏";
 const char txt_f_fh[] PROGMEM = "华氏";
 const char txt_f_allmodes[] PROGMEM = "全部模式";
 const char txt_f_noheat[] PROGMEM = "除制暖外全部模式";
+const char txt_f_15s[] PROGMEM = "15秒";
+const char txt_f_30s[] PROGMEM = "30秒";
+const char txt_f_45s[] PROGMEM = "45秒";
+const char txt_f_60s[] PROGMEM = "60秒";
 
 
 //Page Reboot, save & Resseting
@@ -72,12 +76,12 @@ const char txt_mqtt_topic[] PROGMEM = "主题";
 const char txt_others_title[] PROGMEM = "其他参数";
 const char txt_others_haauto[] PROGMEM = "HA 自动发现";
 const char txt_others_hatopic[] PROGMEM = "HA 自动发现主题";
+const char txt_others_availability_report[] PROGMEM = "HA 可用性报告";
 const char txt_others_debug[] PROGMEM = "调试";
 
 //Page Status
 const char txt_status_title[] PROGMEM = "状态";
 const char txt_status_hvac[] PROGMEM = "空调状态";
-const char txt_retries_hvac[] PROGMEM = "HVAC Connection Retries";
 const char txt_status_mqtt[] PROGMEM = "MQTT状态";
 const char txt_status_wifi[] PROGMEM = "WIFI信号";
 const char txt_status_connect[] PROGMEM = "已连接";
@@ -107,6 +111,7 @@ const char txt_unit_maxtemp[] PROGMEM = "最大温度";
 const char txt_unit_mintemp[] PROGMEM = "最小温度";
 const char txt_unit_steptemp[] PROGMEM = "温度步长";
 const char txt_unit_modes[] PROGMEM = "支持模式";
+const char txt_unit_update_interval[] PROGMEM = "更新间隔";
 const char txt_unit_password[] PROGMEM = "网页密码";
 
 //Page Login
