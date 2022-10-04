@@ -52,6 +52,10 @@ const char txt_f_celsius[] PROGMEM = "Celsius";
 const char txt_f_fh[] PROGMEM = "Fahrenheit";
 const char txt_f_allmodes[] PROGMEM = "Tutte le modalità";
 const char txt_f_noheat[] PROGMEM = "Tutte le modalità escluso riscaldamento";
+const char txt_f_15s[] PROGMEM = "15 secondi";
+const char txt_f_30s[] PROGMEM = "30 secondi";
+const char txt_f_45s[] PROGMEM = "45 secondi";
+const char txt_f_60s[] PROGMEM = "60 secondi";
 
 
 //Page Reboot, save & Resseting
@@ -72,6 +76,7 @@ const char txt_mqtt_topic[] PROGMEM = "Topic";
 const char txt_others_title[] PROGMEM = "Altri parametetri";
 const char txt_others_haauto[] PROGMEM = "HA Autodiscovery";
 const char txt_others_hatopic[] PROGMEM = "HA Autodiscovery topic";
+const char txt_others_availability_report[] PROGMEM = "HA Availability report";
 const char txt_others_debug[] PROGMEM = "Debug";
 
 //Page Status
@@ -107,6 +112,7 @@ const char txt_unit_maxtemp[] PROGMEM = "Temperatura massima";
 const char txt_unit_mintemp[] PROGMEM = "Temperatura minima";
 const char txt_unit_steptemp[] PROGMEM = "Step temperatura";
 const char txt_unit_modes[] PROGMEM = "Modalità supportate";
+const char txt_unit_update_interval[] PROGMEM = "Intervallo di aggiornamento";
 const char txt_unit_password[] PROGMEM = "Password Web";
 
 //Page Login

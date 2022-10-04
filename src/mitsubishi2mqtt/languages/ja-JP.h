@@ -50,7 +50,10 @@ const char txt_f_celsius[] PROGMEM = "摂氏";
 const char txt_f_fh[] PROGMEM = "華氏";
 const char txt_f_allmodes[] PROGMEM = "全ての機能";
 const char txt_f_noheat[] PROGMEM = "暖房以外の全ての機能";
-
+const char txt_f_15s[] PROGMEM = "15秒";
+const char txt_f_30s[] PROGMEM = "30秒";
+const char txt_f_45s[] PROGMEM = "45秒";
+const char txt_f_60s[] PROGMEM = "60秒";
 
 //Page Reboot, save & Resseting
 const char txt_m_reboot[] PROGMEM = "再起動中";
@@ -70,6 +73,7 @@ const char txt_mqtt_topic[] PROGMEM = "トピック";
 const char txt_others_title[] PROGMEM = "その他設定";
 const char txt_others_haauto[] PROGMEM = "HA自動検出";
 const char txt_others_hatopic[] PROGMEM = "HA自動検出トピック";
+const char txt_others_availability_report[] PROGMEM = "可用性レポート";
 const char txt_others_debug[] PROGMEM = "デバッグ";
 
 //Page Status
@@ -105,6 +109,7 @@ const char txt_unit_maxtemp[] PROGMEM = "最高設定温度";
 const char txt_unit_mintemp[] PROGMEM = "最低設定温度";
 const char txt_unit_steptemp[] PROGMEM = "設定温度単位";
 const char txt_unit_modes[] PROGMEM = "対応機能";
+const char txt_unit_update_interval[] PROGMEM = "アップデート間隔";
 const char txt_unit_password[] PROGMEM = "Webパスワード";
 
 //Page Login

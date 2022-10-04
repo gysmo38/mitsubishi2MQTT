@@ -52,6 +52,10 @@ const char txt_f_celsius[] PROGMEM = "Celsus";
 const char txt_f_fh[] PROGMEM = "Fahrenheit";
 const char txt_f_allmodes[] PROGMEM = "Clim réversible";
 const char txt_f_noheat[] PROGMEM = "Uniquement climatiseur";
+const char txt_f_15s[] PROGMEM = "15 secondes";
+const char txt_f_30s[] PROGMEM = "30 secondes";
+const char txt_f_45s[] PROGMEM = "45 secondes";
+const char txt_f_60s[] PROGMEM = "60 secondes";
 
 //Message Reboot, save & Resseting
 const char txt_m_reboot[] PROGMEM = "Redémarrage... Rafraichisement dans";
@@ -71,6 +75,7 @@ const char txt_mqtt_topic[] PROGMEM = "Topic";
 const char txt_others_title[] PROGMEM = "Autres Paramétres";
 const char txt_others_haauto[] PROGMEM = "HA Découverte automatique";
 const char txt_others_hatopic[] PROGMEM = "HA Topic Découverte automatique";
+const char txt_others_availability_report[] PROGMEM = "HA Availability report";
 const char txt_others_debug[] PROGMEM = "Debug";
 
 //Page Status
@@ -106,6 +111,7 @@ const char txt_unit_maxtemp[] PROGMEM = "Température maximun";
 const char txt_unit_mintemp[] PROGMEM = "Température minimun";
 const char txt_unit_steptemp[] PROGMEM = "Graduation température";
 const char txt_unit_modes[] PROGMEM = "Modes disponible";
+const char txt_unit_update_interval[] PROGMEM = "Intervalle de mise à jour";
 const char txt_unit_password[] PROGMEM = "Mot de passe web";
 
 //Page Login
