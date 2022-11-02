@@ -1717,18 +1717,21 @@ void mqttConnect() {
 }
 
 bool connectWifi() {
-#ifdef ESP32
-  WiFi.setHostname(hostname.c_str());
-#else
-  WiFi.hostname(hostname.c_str());
-#endif
+
   if (WiFi.getMode() != WIFI_STA) {
     WiFi.mode(WIFI_STA);
     delay(10);
   }
-#ifdef ESP32
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
-#endif
+  #ifdef ESP32
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  #endif
+
+  #ifdef ESP32
+    WiFi.setHostname(hostname.c_str());
+  #else
+    WiFi.hostname(hostname.c_str());
+  #endif
+
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   // Serial.println("Connecting to " + ap_ssid);
   wifi_timeout = millis() + 30000;
