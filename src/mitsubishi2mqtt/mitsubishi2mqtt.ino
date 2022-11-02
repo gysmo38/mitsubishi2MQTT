@@ -15,12 +15,15 @@
 */
 
 #include "FS.h"               // SPIFFS for store config
+#include <ESP_DoubleResetDetector.h>
+
 #ifdef ESP32
 #include <WiFi.h>             // WIFI for ESP32
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>          // mDNS for ESP32
 #include <WebServer.h>        // webServer for ESP32
 #include "SPIFFS.h"           // ESP32 SPIFFS for store config
+
 WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
@@ -83,7 +86,24 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 //Web OTA
 int uploaderror = 0;
 
+//Double reset 
+// Number of seconds after reset during which a 
+// subseqent reset will be considered a double reset.
+#define DRD_TIMEOUT 5
+
+// RTC Memory Address for the DoubleResetDetector to use
+#define DRD_ADDRESS 0
+
+DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
+
 void setup() {
+  pinMode(blueLedPin, OUTPUT);
+  digitalWrite(blueLedPin, LOW);
+  if(drd.detectDoubleReset()){
+    wifiFactoryReset();
+  }
+  delay(1500);
+  drd.stop();
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
@@ -100,8 +120,7 @@ void setup() {
       // Serial.println(F("Mounted file system after formating"));
   }
   //set led pin as output
-  pinMode(blueLedPin, OUTPUT);
-  digitalWrite(blueLedPin, LOW);
+
   /*
     ticker.attach(0.6, tick);
   */
@@ -111,6 +130,7 @@ void setup() {
   if (!digitalRead(0)){
     testMode();
   }
+
 
   //Define hostname
   hostname += hostnamePrefix;
@@ -241,6 +261,23 @@ void testMode(){
       digitalWrite(blueLedPin, LOW);
       delay(1000);
   }
+  
+}
+
+
+void wifiFactoryReset(){
+  for (int i = 0; i <10; i++){
+    digitalWrite(blueLedPin, HIGH);
+    delay(100);
+    digitalWrite(blueLedPin, LOW);
+    delay(100);
+  }
+  
+  SPIFFS.format();
+
+  digitalWrite(blueLedPin, HIGH);
+  delay(2000);
+  ESP.restart();
   
 }
 
