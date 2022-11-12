@@ -9,12 +9,11 @@ Features:
  - Homeassistant autodiscovery and control with MQTT
 
 *** 
-Release Notes:
-    - 2022.11
-        - Test with last version of SwiCago Heat Pump Library (commit d6a2913)
-        - Home Assitant autodiscovery add Visit URL to point to unit webpage
-        - use enableAutoUpdate() instead of update()
-        - power on and off the unit with topic mode
+Release Notes (2022.11.0):
+ -  Test with last version of SwiCago Heat Pump Library (commit d6a2913)
+ - Home Assitant autodiscovery add Visit URL to point to unit webpage
+ - use enableAutoUpdate() instead of update()
+ - power on and off the unit with topic mode
 ***
 Screenshots:
 
