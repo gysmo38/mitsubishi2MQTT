@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "2022.01";
+const PROGMEM char* m2mqtt_version = "2022.11";
 
 //Define global variables for files
 #ifdef ESP32
@@ -95,7 +95,7 @@ uint8_t max_temp                    = 31; // Maximum temperature, in your select
 String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
-const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 45000; // 45 seconds (anything less may cause bouncing)
+const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 45 seconds (anything less may cause bouncing)
 const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 second
 const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 second
 const PROGMEM uint32_t HP_MAX_RETRIES = 10; // Double the interval between retries up to this many times, then keep retrying forever at that maximum interval.

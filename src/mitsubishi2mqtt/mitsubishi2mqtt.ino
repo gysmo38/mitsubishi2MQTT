@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -52,8 +52,6 @@ ESP8266WebServer server(80);  // ESP8266 web
   #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
   #include INCLUDE_FILE(MY_LANGUAGE)
 #endif
-
-//Ticker ticker;
 
 // wifi, mqtt and heatpump client instances
 WiFiClient espClient;
@@ -164,7 +162,7 @@ void setup() {
       ha_debug_topic           = mqtt_topic + "/" + mqtt_fn + "/debug";
       ha_debug_set_topic       = mqtt_topic + "/" + mqtt_fn + "/debug/set";
       ha_custom_packet         = mqtt_topic + "/" + mqtt_fn + "/custom/send";
-      ha_availability_topic = mqtt_topic + "/" + mqtt_fn + "/availability";
+      ha_availability_topic    = mqtt_topic + "/" + mqtt_fn + "/availability";
 
       if (others_haa) {
         ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
@@ -182,6 +180,7 @@ void setup() {
     hp.setPacketCallback(hpPacketDebug);
     // Allow Remote/Panel
     hp.enableExternalUpdate();
+    hp.enableAutoUpdate();
     hp.connect(&Serial);
     heatpumpStatus currentStatus = hp.getStatus();
     heatpumpSettings currentSettings = hp.getSettings();
@@ -201,14 +200,6 @@ void setup() {
   }
   initOTA();
 }
-
-/*
-  void tick()
-  {
-  //toggle state
-  int state = digitalRead(blueLedPin);  // get the current state of GPIO2 pin
-  digitalWrite(blueLedPin, !state);     // set pin to the opposite state
-  }*/
 
 bool loadWifi() {
   ap_ssid = "";
@@ -245,8 +236,123 @@ bool loadWifi() {
   }
   return true;
 }
+bool loadMqtt() {
+  if (!SPIFFS.exists(mqtt_conf)) {
+    Serial.println(F("MQTT config file not exist!"));
+    return false;
+  }
+  //write_log("Loading MQTT configuration");
+  File configFile = SPIFFS.open(mqtt_conf, "r");
+  if (!configFile) {
+    //write_log("Failed to open MQTT config file");
+    return false;
+  }
 
+  size_t size = configFile.size();
+  if (size > 1024) {
+    //write_log("Config file size is too large");
+    return false;
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
 
+  configFile.readBytes(buf.get(), size);
+  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
+  DynamicJsonDocument doc(capacity);
+  deserializeJson(doc, buf.get());
+  mqtt_fn             = doc["mqtt_fn"].as<String>();
+  mqtt_server         = doc["mqtt_host"].as<String>();
+  mqtt_port           = doc["mqtt_port"].as<String>();
+  mqtt_username       = doc["mqtt_user"].as<String>();
+  mqtt_password       = doc["mqtt_pwd"].as<String>();
+  mqtt_topic          = doc["mqtt_topic"].as<String>();
+
+  //write_log("=== START DEBUG MQTT ===");
+  //write_log("Friendly Name" + mqtt_fn);
+  //write_log("IP Server " + mqtt_server);
+  //write_log("IP Port " + mqtt_port);
+  //write_log("Username " + mqtt_username);
+  //write_log("Password " + mqtt_password);
+  //write_log("Topic " + mqtt_topic);
+  //write_log("=== END DEBUG MQTT ===");
+
+  mqtt_config = true;
+  return true;
+}
+
+bool loadUnit() {
+  if (!SPIFFS.exists(unit_conf)) {
+    // Serial.println(F("Unit config file not exist!"));
+    return false;
+  }
+  File configFile = SPIFFS.open(unit_conf, "r");
+  if (!configFile) {
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    return false;
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  configFile.readBytes(buf.get(), size);
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+  DynamicJsonDocument doc(capacity);
+  deserializeJson(doc, buf.get());
+  //unit
+  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
+  if (unit_tempUnit == "fah") useFahrenheit = true;
+  min_temp              = doc["min_temp"].as<uint8_t>();
+  max_temp              = doc["max_temp"].as<uint8_t>();
+  temp_step             = doc["temp_step"].as<String>();
+  //mode
+  String supportMode = doc["support_mode"].as<String>();
+  if (supportMode == "nht") supportHeatMode = false;
+  //prevent login password is "null" if not exist key
+  if (doc.containsKey("login_password")) {
+    login_password = doc["login_password"].as<String>();
+  } else {
+    login_password = "";
+  }
+  return true;
+}
+
+bool loadOthers() {
+  if (!SPIFFS.exists(others_conf)) {
+    // Serial.println(F("Others config file not exist!"));
+    return false;
+  }
+  File configFile = SPIFFS.open(others_conf, "r");
+  if (!configFile) {
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024) {
+    return false;
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
+
+  configFile.readBytes(buf.get(), size);
+  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+  DynamicJsonDocument doc(capacity);
+  deserializeJson(doc, buf.get());
+  //unit
+  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
+  if (unit_tempUnit == "fah") useFahrenheit = true;
+  others_haa_topic              = doc["haat"].as<String>();
+  String haa              = doc["haa"].as<String>();
+  String debug             = doc["debug"].as<String>();
+
+  if (strcmp(haa.c_str(), "OFF") == 0) {
+    others_haa = false;
+  }
+  if (strcmp(debug.c_str(), "ON") == 0) {
+    _debugMode = true;
+  }
+
+  return true;
+}
 void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
               String mqttPwd, String mqttTopic) {
 
@@ -372,126 +478,6 @@ void initOTA() {
   });
   ArduinoOTA.begin();
 }
-
-bool loadMqtt() {
-  if (!SPIFFS.exists(mqtt_conf)) {
-    Serial.println(F("MQTT config file not exist!"));
-    return false;
-  }
-  //write_log("Loading MQTT configuration");
-  File configFile = SPIFFS.open(mqtt_conf, "r");
-  if (!configFile) {
-    //write_log("Failed to open MQTT config file");
-    return false;
-  }
-
-  size_t size = configFile.size();
-  if (size > 1024) {
-    //write_log("Config file size is too large");
-    return false;
-  }
-  std::unique_ptr<char[]> buf(new char[size]);
-
-  configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
-  DynamicJsonDocument doc(capacity);
-  deserializeJson(doc, buf.get());
-  mqtt_fn             = doc["mqtt_fn"].as<String>();
-  mqtt_server         = doc["mqtt_host"].as<String>();
-  mqtt_port           = doc["mqtt_port"].as<String>();
-  mqtt_username       = doc["mqtt_user"].as<String>();
-  mqtt_password       = doc["mqtt_pwd"].as<String>();
-  mqtt_topic          = doc["mqtt_topic"].as<String>();
-
-  //write_log("=== START DEBUG MQTT ===");
-  //write_log("Friendly Name" + mqtt_fn);
-  //write_log("IP Server " + mqtt_server);
-  //write_log("IP Port " + mqtt_port);
-  //write_log("Username " + mqtt_username);
-  //write_log("Password " + mqtt_password);
-  //write_log("Topic " + mqtt_topic);
-  //write_log("=== END DEBUG MQTT ===");
-
-  mqtt_config = true;
-  return true;
-}
-
-bool loadUnit() {
-  if (!SPIFFS.exists(unit_conf)) {
-    // Serial.println(F("Unit config file not exist!"));
-    return false;
-  }
-  File configFile = SPIFFS.open(unit_conf, "r");
-  if (!configFile) {
-    return false;
-  }
-
-  size_t size = configFile.size();
-  if (size > 1024) {
-    return false;
-  }
-  std::unique_ptr<char[]> buf(new char[size]);
-
-  configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
-  DynamicJsonDocument doc(capacity);
-  deserializeJson(doc, buf.get());
-  //unit
-  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
-  if (unit_tempUnit == "fah") useFahrenheit = true;
-  min_temp              = doc["min_temp"].as<uint8_t>();
-  max_temp              = doc["max_temp"].as<uint8_t>();
-  temp_step             = doc["temp_step"].as<String>();
-  //mode
-  String supportMode = doc["support_mode"].as<String>();
-  if (supportMode == "nht") supportHeatMode = false;
-  //prevent login password is "null" if not exist key
-  if (doc.containsKey("login_password")) {
-    login_password = doc["login_password"].as<String>();
-  } else {
-    login_password = "";
-  }
-  return true;
-}
-
-
-bool loadOthers() {
-  if (!SPIFFS.exists(others_conf)) {
-    // Serial.println(F("Others config file not exist!"));
-    return false;
-  }
-  File configFile = SPIFFS.open(others_conf, "r");
-  if (!configFile) {
-    return false;
-  }
-
-  size_t size = configFile.size();
-  if (size > 1024) {
-    return false;
-  }
-  std::unique_ptr<char[]> buf(new char[size]);
-
-  configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
-  DynamicJsonDocument doc(capacity);
-  deserializeJson(doc, buf.get());
-  //unit
-  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
-  if (unit_tempUnit == "fah") useFahrenheit = true;
-  others_haa_topic              = doc["haat"].as<String>();
-  String haa              = doc["haa"].as<String>();
-  String debug             = doc["debug"].as<String>();
-
-  if (strcmp(haa.c_str(), "OFF") == 0) {
-    others_haa = false;
-  }
-  if (strcmp(debug.c_str(), "ON") == 0) {
-    _debugMode = true;
-  }
-
-  return true;
-}
-
 void setDefaults() {
   ap_ssid = "";
   ap_pwd  = "";
@@ -1231,7 +1217,6 @@ heatpumpSettings change_states(heatpumpSettings settings) {
     }
     if (update) {
       hp.setSettings(settings);
-      hp.update();
     }
   }
   return settings;
@@ -1344,18 +1329,20 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     root[packetDirection] = message;
     String mqttOutput;
     serializeJson(root, mqttOutput);
-    if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
+    // TODO REMOVE to get packet cpature on debug
+    /*if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
       mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
-    }
+    }*/
   }
 }
 
 // Used to send a dummy packet in state topic to validate action in HA interface
+// HA change GUI appareance before having a valid state from the unit
 void hpSendLocalState() {
 
-  //Send dummy MQTT state packet before unit update
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
+  mqtt_client.publish(ha_debug_topic.c_str(),  mqttOutput.c_str(), false);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
     if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
   }
@@ -1376,17 +1363,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   // HA topics
   // Receive power topic
   if (strcmp(topic, ha_power_set_topic.c_str()) == 0) {
+    mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Get Power message"));
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "OFF") {
-      hp.setPowerSetting("OFF");
-      hp.update();
+      //hp.setPowerSetting("OFF");
     } else if (modeUpper == "ON") {
-      hp.setPowerSetting("ON");
-      hp.update();
+      //hp.setPowerSetting("ON");
     }
+    
   }
   else if (strcmp(topic, ha_mode_set_topic.c_str()) == 0) {
+    mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Get Mode message"));
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "OFF") {
@@ -1419,7 +1407,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       hp.setPowerSetting("ON");
       hp.setModeSetting(modeUpper.c_str());
     }
-    hp.update();
   }
   else if (strcmp(topic, ha_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
@@ -1432,30 +1419,25 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
     hpSendLocalState();
     hp.setTemperature(temperature_c);
-    hp.update();
   }
   else if (strcmp(topic, ha_fan_set_topic.c_str()) == 0) {
     rootInfo["fan"] = (String) message;
     hpSendLocalState();
     hp.setFanSpeed(message);
-    hp.update();
   }
   else if (strcmp(topic, ha_vane_set_topic.c_str()) == 0) {
     rootInfo["vane"] = (String) message;
     hpSendLocalState();
     hp.setVaneSetting(message);
-    hp.update();
   }
   else if (strcmp(topic, ha_wideVane_set_topic.c_str()) == 0) {
     rootInfo["wideVane"] = (String) message;
     hpSendLocalState();
     hp.setWideVaneSetting(message);
-    hp.update();
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
     hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
-    hp.update();
   }
   else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
@@ -1532,7 +1514,7 @@ void haConfig() {
   haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
   haConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
-  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
+  curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") }}"; //Set default value for fix "Could not parse data for HA"
   haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
   haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
@@ -1574,7 +1556,8 @@ void haConfig() {
   haConfigDevice["sw"]    = "Mitsubishi2MQTT " + String(m2mqtt_version);
   haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
-
+  haConfigDevice["configuration_url"]    = "http://"+WiFi.localIP().toString();
+  
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
