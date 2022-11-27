@@ -1329,10 +1329,9 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     root[packetDirection] = message;
     String mqttOutput;
     serializeJson(root, mqttOutput);
-    // TODO REMOVE to get packet cpature on debug
-    /*if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
+    if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
       mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
-    }*/
+    }
   }
 }
 
@@ -1363,7 +1362,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   // HA topics
   // Receive power topic
   if (strcmp(topic, ha_power_set_topic.c_str()) == 0) {
-    mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Get Power message"));
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "OFF") {
@@ -1374,7 +1372,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     
   }
   else if (strcmp(topic, ha_mode_set_topic.c_str()) == 0) {
-    mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Get Mode message"));
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "OFF") {
