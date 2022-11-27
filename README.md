@@ -12,13 +12,10 @@ Features:
 
 Screenshots:
 
-Main Page
-![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/main_page.png)
+![Main page](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/main_page.png)
 
-Control page
 ![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/control_page.png)
 
-Setup menu : MQTT, WIFI, Unit, Others (HA and debug) and reset unit
 ![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/config_page.png)
 
 ***
