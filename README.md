@@ -7,14 +7,9 @@ Features:
  - Initial config:  WIFI AP mode and web portal
  - Web interface for configuration, status and control, firmware upgrade
  - Homeassistant autodiscovery and control with MQTT
+ - Control with MQTT
+ - Multilanguages
 
-*** 
-Release Notes (2022.11.0):
- -  Test with last version of SwiCago Heat Pump Library (commit d6a2913)
- - Home Assitant autodiscovery add Visit URL to point to unit webpage
- - use enableAutoUpdate() instead of update()
- - power on and off the unit with topic mode
-***
 Screenshots:
 
 Main Page
@@ -23,7 +18,7 @@ Main Page
 Control page
 ![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/control_page.png)
 
-Config page
+Setup menu : MQTT, WIFI, Unit, Others (HA and debug) and reset unit
 ![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/config_page.png)
 
 ***
