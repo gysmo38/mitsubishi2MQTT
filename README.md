@@ -45,3 +45,6 @@ For nodered fans MQTT topic use cases
 - topic/debug
 - topic/debug/set on off
 - topic/custom/send as example "fc 42 01 30 10 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7b " see https://github.com/SwiCago/HeatPump/blob/master/src/HeatPump.h
+***
+If you like my work and use it ;)
+<a href="https://www.buymeacoffee.com/gysmo"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=gysmo&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
