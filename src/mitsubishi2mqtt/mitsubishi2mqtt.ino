@@ -99,11 +99,11 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 void setup() {
   pinMode(blueLedPin, OUTPUT);
   digitalWrite(blueLedPin, LOW);
-  if(drd.detectDoubleReset()){
-    wifiFactoryReset();
-  }
-  delay(1500);
-  drd.stop();
+  // if(drd.detectDoubleReset()){
+  //   wifiFactoryReset();
+  // }
+  // delay(1500);
+  // drd.stop();
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
@@ -127,6 +127,7 @@ void setup() {
 
   //set test mode
   pinMode(0, INPUT_PULLUP);
+  delay(1000);
   if (!digitalRead(0)){
     testMode();
   }
