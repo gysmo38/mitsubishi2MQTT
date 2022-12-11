@@ -39,9 +39,12 @@ For nodered fans MQTT topic use cases
 - topic/wideVane/set << < | > >>
 - topic/settings
 - topic/state
-- topic/debug
-- topic/debug/set on off
+- topic/debug/packets
+- topic/debug/packets/set on off
+- topic/debug/logs
+- topic/debug/logs/set on off
 - topic/custom/send as example "fc 42 01 30 10 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7b " see https://github.com/SwiCago/HeatPump/blob/master/src/HeatPump.h
+- topic/system/set reboot 
 ***
 If you like my work and use it ;)<br>
 
