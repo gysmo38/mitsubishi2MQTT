@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -72,7 +72,8 @@ const char txt_mqtt_topic[] PROGMEM = "Topic";
 const char txt_others_title[] PROGMEM = "Others Parameters";
 const char txt_others_haauto[] PROGMEM = "HA Autodiscovery";
 const char txt_others_hatopic[] PROGMEM = "HA Autodiscovery topic";
-const char txt_others_debug[] PROGMEM = "Debug";
+const char txt_others_debug_packets[] PROGMEM = "MQTT topic debug packets";
+const char txt_others_debug_log[] PROGMEM = "MQTT topic debug logs";
 
 //Page Status
 const char txt_status_title[] PROGMEM = "Status";

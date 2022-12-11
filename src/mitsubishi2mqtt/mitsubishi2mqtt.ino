@@ -159,10 +159,13 @@ void setup() {
       ha_wideVane_set_topic    = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
       ha_settings_topic        = mqtt_topic + "/" + mqtt_fn + "/settings";
       ha_state_topic           = mqtt_topic + "/" + mqtt_fn + "/state";
-      ha_debug_topic           = mqtt_topic + "/" + mqtt_fn + "/debug";
-      ha_debug_set_topic       = mqtt_topic + "/" + mqtt_fn + "/debug/set";
+      ha_debug_pckts_topic     = mqtt_topic + "/" + mqtt_fn + "/debug/packets";
+      ha_debug_pckts_set_topic = mqtt_topic + "/" + mqtt_fn + "/debug/packets/set";
+      ha_debug_logs_topic      = mqtt_topic + "/" + mqtt_fn + "/debug/logs";
+      ha_debug_logs_set_topic  = mqtt_topic + "/" + mqtt_fn + "/debug/logs/set";
       ha_custom_packet         = mqtt_topic + "/" + mqtt_fn + "/custom/send";
       ha_availability_topic    = mqtt_topic + "/" + mqtt_fn + "/availability";
+      ha_system_set_topic      = mqtt_topic + "/" + mqtt_fn + "/system/set";
 
       if (others_haa) {
         ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
@@ -334,23 +337,25 @@ bool loadOthers() {
   std::unique_ptr<char[]> buf(new char[size]);
 
   configFile.readBytes(buf.get(), size);
-  const size_t capacity = JSON_OBJECT_SIZE(3) + 200;
+  const size_t capacity = JSON_OBJECT_SIZE(4) + 200;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
   //unit
-  String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
+  String unit_tempUnit    = doc["unit_tempUnit"].as<String>();
   if (unit_tempUnit == "fah") useFahrenheit = true;
-  others_haa_topic              = doc["haat"].as<String>();
+  others_haa_topic        = doc["haat"].as<String>();
   String haa              = doc["haa"].as<String>();
-  String debug             = doc["debug"].as<String>();
-
+  String debugPckts       = doc["debugPckts"].as<String>();
+  String debugLogs        = doc["debugLogs"].as<String>();
   if (strcmp(haa.c_str(), "OFF") == 0) {
     others_haa = false;
   }
-  if (strcmp(debug.c_str(), "ON") == 0) {
-    _debugMode = true;
+  if (strcmp(debugPckts.c_str(), "ON") == 0) {
+    _debugModePckts = true;
   }
-
+  if (strcmp(debugLogs.c_str(), "ON") == 0) {
+    _debugModeLogs = true;
+  }
   return true;
 }
 void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
@@ -420,12 +425,13 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   configFile.close();
 }
 
-void saveOthers(String haa, String haat, String debug) {
-  const size_t capacity = JSON_OBJECT_SIZE(3) + 130;
+void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
+  const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   doc["haa"] = haa;
   doc["haat"] = haat;
-  doc["debug"] = debug;
+  doc["debugPckts"] = debugPckts;
+  doc["debugLogs"] = debugLogs;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
     // Serial.println(F("Failed to open wifi file for writing"));
@@ -668,7 +674,7 @@ void handleOthers() {
   if (!checkLogin()) return;
   
   if (server.method() == HTTP_POST) {
-    saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("Debug"));
+    saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("DebugPckts"),server.arg("DebugLogs"));
     rebootAndSendPage();
   }
   else {
@@ -680,7 +686,8 @@ void handleOthers() {
     othersPage.replace("_TXT_OTHERS_TITLE_", FPSTR(txt_others_title));
     othersPage.replace("_TXT_OTHERS_HAAUTO_", FPSTR(txt_others_haauto));
     othersPage.replace("_TXT_OTHERS_HATOPIC_", FPSTR(txt_others_hatopic));
-    othersPage.replace("_TXT_OTHERS_DEBUG_", FPSTR(txt_others_debug));
+    othersPage.replace("_TXT_OTHERS_DEBUG_PCKTS_",FPSTR(txt_others_debug_packets));
+    othersPage.replace("_TXT_OTHERS_DEBUG_LOGS_",FPSTR(txt_others_debug_log));
 
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
@@ -689,11 +696,17 @@ void handleOthers() {
     else {
       othersPage.replace("_HAA_OFF_", "selected");
     }
-    if (_debugMode) {
-      othersPage.replace("_DEBUG_ON_", "selected");
+    if (_debugModePckts) {
+      othersPage.replace("_DEBUG_PCKTS_ON_", "selected");
     }
     else {
-      othersPage.replace("_DEBUG_OFF_", "selected");
+      othersPage.replace("_DEBUG_PCKTS_OFF_", "selected");
+    }
+    if (_debugModeLogs) {
+      othersPage.replace("_DEBUG_LOGS_ON_", "selected");
+    }
+    else {
+      othersPage.replace("_DEBUG_LOGS_OFF_", "selected");
     }
     sendWrappedHTML(othersPage);
   }
@@ -1241,7 +1254,7 @@ void hpSettingsChanged() {
   serializeJson(rootInfo, mqttOutput);
 
   if (!mqtt_client.publish(ha_settings_topic.c_str(), mqttOutput.c_str(), true)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp settings"));
+    if (_debugModeLogs) mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Failed to publish hp settings"));
   }
 
   hpStatusChanged(hp.getStatus());
@@ -1306,7 +1319,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     serializeJson(rootInfo, mqttOutput);
 
     if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-      if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish hp status change"));
+      if (_debugModeLogs) mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Failed to publish hp status change"));
     }
 
     lastTempSend = millis();
@@ -1314,7 +1327,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
 }
 
 void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirection) {
-  if (_debugMode) {
+  if (_debugModePckts) {
     String message;
     for (unsigned int idx = 0; idx < length; idx++) {
       if (packet[idx] < 16) {
@@ -1329,8 +1342,8 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     root[packetDirection] = message;
     String mqttOutput;
     serializeJson(root, mqttOutput);
-    if (!mqtt_client.publish(ha_debug_topic.c_str(), mqttOutput.c_str())) {
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
+    if (!mqtt_client.publish(ha_debug_pckts_topic.c_str(), mqttOutput.c_str())) {
+      mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
     }
   }
 }
@@ -1341,9 +1354,9 @@ void hpSendLocalState() {
 
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
-  mqtt_client.publish(ha_debug_topic.c_str(),  mqttOutput.c_str(), false);
+  mqtt_client.publish(ha_debug_pckts_topic.c_str(),  mqttOutput.c_str(), false);
   if (!mqtt_client.publish_P(ha_state_topic.c_str(), mqttOutput.c_str(), false)) {
-    if (_debugMode) mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
+    if (_debugModeLogs) mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Failed to publish dummy hp status change"));
   }
 
   // Restart counter for waiting enought time for the unit to update before sending a state packet
@@ -1436,13 +1449,27 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     float temperature = strtof(message, NULL);
     hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
   }
-  else if (strcmp(topic, ha_debug_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
+  else if (strcmp(topic, ha_system_set_topic.c_str()) == 0) { // We receive command for board
+    if (strcmp(message, "reboot") == 0) { // We receive reboot command
+      ESP.restart();
+    }
+  }
+  else if (strcmp(topic, ha_debug_pckts_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
     if (strcmp(message, "on") == 0) {
-      _debugMode = true;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char*)("Debug mode enabled"));
+      _debugModePckts = true;
+      mqtt_client.publish(ha_debug_pckts_topic.c_str(), (char*)("Debug packets mode enabled"));
     } else if (strcmp(message, "off") == 0) {
-      _debugMode = false;
-      mqtt_client.publish(ha_debug_topic.c_str(), (char *)("Debug mode disabled"));
+      _debugModePckts = false;
+      mqtt_client.publish(ha_debug_pckts_topic.c_str(), (char *)("Debug packets mode disabled"));
+    }
+  }
+  else if (strcmp(topic, ha_debug_logs_set_topic.c_str()) == 0) { //if the incoming message is on the heatpump_debug_set_topic topic...
+    if (strcmp(message, "on") == 0) {
+      _debugModeLogs = true;
+      mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Debug logs mode enabled"));
+    } else if (strcmp(message, "off") == 0) {
+      _debugModeLogs = false;
+      mqtt_client.publish(ha_debug_logs_topic.c_str(), (char *)("Debug logs mode disabled"));
     }
   }
   else if(strcmp(topic, ha_custom_packet.c_str()) == 0) { //send custom packet for advance user
@@ -1470,7 +1497,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       hp.sendCustomPacket(bytes, byteCount);
   }
   else {
-    mqtt_client.publish(ha_debug_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
+    mqtt_client.publish(ha_debug_logs_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
   }
 }
 
@@ -1585,7 +1612,9 @@ void mqttConnect() {
     }
     // We are connected
     else    {
-      mqtt_client.subscribe(ha_debug_set_topic.c_str());
+      mqtt_client.subscribe(ha_system_set_topic.c_str());
+      mqtt_client.subscribe(ha_debug_pckts_set_topic.c_str());
+      mqtt_client.subscribe(ha_debug_logs_set_topic.c_str());
       mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
       mqtt_client.subscribe(ha_fan_set_topic.c_str());

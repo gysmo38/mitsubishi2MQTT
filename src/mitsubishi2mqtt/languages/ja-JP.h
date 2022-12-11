@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2019 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -27,12 +27,14 @@ const char txt_WIFI[] PROGMEM = "WIFI";
 const char txt_unit[] PROGMEM = "エアコン本体";
 const char txt_others[] PROGMEM = "その他";
 const char txt_reset[] PROGMEM = "初期化";
+const char txt_reset_confirm[] PROGMEM = "Do you really want to reset this unit?";
 
 //Buttons
 const char txt_back[] PROGMEM = "戻る";
 const char txt_save[] PROGMEM = "保存して再起動";
 const char txt_logout[] PROGMEM = "ログアウト";
 const char txt_upgrade[] PROGMEM = "アップデート開始";
+const char txt_login[] PROGMEM = "LOGIN";
 
 //Form choices
 const char txt_f_on[] PROGMEM = "オン";
@@ -70,7 +72,8 @@ const char txt_mqtt_topic[] PROGMEM = "トピック";
 const char txt_others_title[] PROGMEM = "その他設定";
 const char txt_others_haauto[] PROGMEM = "HA自動検出";
 const char txt_others_hatopic[] PROGMEM = "HA自動検出トピック";
-const char txt_others_debug[] PROGMEM = "デバッグ";
+const char txt_others_debug_packets[] PROGMEM = "MQTT topic debug packets";
+const char txt_others_debug_log[] PROGMEM = "MQTT topic debug logs";
 
 //Page Status
 const char txt_status_title[] PROGMEM = "ステータス";

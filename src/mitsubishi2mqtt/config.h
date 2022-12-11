@@ -14,9 +14,9 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-//#define MY_LANGUAGE fr-FR // define your language
+#define MY_LANGUAGE zh-CN // define your language
 
-const PROGMEM char* m2mqtt_version = "2022.11.1";
+const PROGMEM char* m2mqtt_version = "2022.12.0";
 
 //Define global variables for files
 #ifdef ESP32
@@ -64,6 +64,7 @@ bool others_haa;
 String others_haa_topic;
 
 // Define global variables for HA topics
+String ha_system_set_topic;
 String ha_power_set_topic;
 String ha_mode_set_topic;
 String ha_temp_set_topic;
@@ -73,8 +74,10 @@ String ha_vane_set_topic;
 String ha_wideVane_set_topic;
 String ha_settings_topic;
 String ha_state_topic;
-String ha_debug_topic;
-String ha_debug_set_topic;
+String ha_debug_pckts_topic;
+String ha_debug_pckts_set_topic;
+String ha_debug_logs_topic;  
+String ha_debug_logs_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
 String ha_custom_packet;
@@ -85,9 +88,12 @@ String hvac_name;
 String login_username = "admin";
 String login_password;
 
-// debug mode, when true, will send all packets received from the heatpump to topic heatpump_debug_topic
+// debug mode logs, when true, will send all debug messages to topic heatpump_debug_logs_topic
 // this can also be set by sending "on" to heatpump_debug_set_topic
-bool _debugMode = false;
+bool _debugModeLogs = false;
+// debug mode packets, when true, will send all packets received from the heatpump to topic heatpump_debug_packets_topic
+// this can also be set by sending "on" to heatpump_debug_set_topic
+bool _debugModePckts = false;
 
 // Customization
 uint8_t min_temp                    = 16; // Minimum temperature, in your selected unit, check value from heatpump remote control
