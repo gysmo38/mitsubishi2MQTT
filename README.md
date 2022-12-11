@@ -45,4 +45,4 @@ For nodered fans MQTT topic use cases
 ***
 If you like my work and use it ;)<br>
 
-<a href="https://www.buymeacoffee.com/gysmo"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=gysmo&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+<a href='https://ko-fi.com/L3L0GSF7X' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
