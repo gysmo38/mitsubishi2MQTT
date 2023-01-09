@@ -15,8 +15,6 @@
 */
 
 #include "FS.h"               // SPIFFS for store config
-#include <ESP_DoubleResetDetector.h>
-
 #ifdef ESP32
 #include <WiFi.h>             // WIFI for ESP32
 #include <WiFiUdp.h>
@@ -56,6 +54,51 @@ ESP8266WebServer server(80);  // ESP8266 web
   #include INCLUDE_FILE(MY_LANGUAGE)
 #endif
 
+/* Multi Reset Detector*/
+#ifdef ESP8266
+  #define ESP8266_MRD_USE_RTC     false   //true
+#endif
+
+#define ESP_MRD_USE_LITTLEFS    false
+#define ESP_MRD_USE_SPIFFS      false
+#define ESP_MRD_USE_EEPROM      true
+
+// These definitions must be placed before #include <ESP_MultiResetDetector.h> to be used
+// Otherwise, default values (MRD_TIMES = 3, MRD_TIMEOUT = 10 seconds and MRD_ADDRESS = 0) will be used
+// Number of subsequent resets during MRD_TIMEOUT to activate
+#define MRD_TIMES               5           //Press reset button for 5 times
+
+// Number of seconds after reset during which a 
+// subsequent reset will be considered a multi reset.
+#define MRD_TIMEOUT             10
+
+// RTC/EEPROM Memory Address for the MultiResetDetector to use
+#define MRD_ADDRESS             0
+
+#include <ESP_MultiResetDetector.h>      //https://github.com/khoih-prog/ESP_MultiResetDetector
+
+MultiResetDetector* mrd;
+
+#ifdef ESP32
+
+  // For ESP32
+  #ifndef LED_BUILTIN
+    #define LED_BUILTIN       2         // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, control on-board LED
+  #endif
+
+  #define LED_OFF     LOW
+  #define LED_ON      HIGH
+
+#else
+
+  // For ESP8266
+  #define LED_ON      LOW
+  #define LED_OFF     HIGH
+
+#endif
+/* End Multi Reset Detector*/
+
+
 //Ticker ticker;
 
 // wifi, mqtt and heatpump client instances
@@ -86,24 +129,28 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 //Web OTA
 int uploaderror = 0;
 
-//Double reset 
-// Number of seconds after reset during which a 
-// subseqent reset will be considered a double reset.
-#define DRD_TIMEOUT 5
+//Check multiple reset detector.
+void checkMRD(){
+  
+  mrd = new MultiResetDetector(MRD_TIMEOUT, MRD_ADDRESS);
 
-// RTC Memory Address for the DoubleResetDetector to use
-#define DRD_ADDRESS 0
+  if (mrd->detectMultiReset()) 
+  {
+    wifiFactoryReset();
+  } 
 
-DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
+}
+
 
 void setup() {
   pinMode(blueLedPin, OUTPUT);
   digitalWrite(blueLedPin, LOW);
-  // if(drd.detectDoubleReset()){
-  //   wifiFactoryReset();
-  // }
-  // delay(1500);
-  // drd.stop();
+  checkMRD();
+  delay(2000);
+
+  mrd->stop();
+
+
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
@@ -267,7 +314,7 @@ void testMode(){
 
 
 void wifiFactoryReset(){
-  for (int i = 0; i <10; i++){
+  for (int i = 0; i <20; i++){
     digitalWrite(blueLedPin, HIGH);
     delay(100);
     digitalWrite(blueLedPin, LOW);
@@ -281,7 +328,7 @@ void wifiFactoryReset(){
   ESP.restart();
   
 }
-
+  
 /*
   void tick()
   {
