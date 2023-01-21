@@ -564,7 +564,7 @@ void handleNotFound() {
 
 void handleSaveWifi() {
   if (!checkLogin()) return;
-  
+
   // Serial.println(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
@@ -578,7 +578,7 @@ void handleSaveWifi() {
 
 void handleReboot() {
   if (!checkLogin()) return;
-  
+
   String initRebootPage = FPSTR(html_init_reboot);
   initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
   sendWrappedHTML(initRebootPage);
@@ -588,7 +588,7 @@ void handleReboot() {
 
 void handleRoot() {
   if (!checkLogin()) return;
-  
+
   if (server.hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
@@ -672,7 +672,7 @@ void rebootAndSendPage() {
 
 void handleOthers() {
   if (!checkLogin()) return;
-  
+
   if (server.method() == HTTP_POST) {
     saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("DebugPckts"),server.arg("DebugLogs"));
     rebootAndSendPage();
@@ -714,7 +714,7 @@ void handleOthers() {
 
 void handleMqtt() {
   if (!checkLogin()) return;
-  
+
   if (server.method() == HTTP_POST) {
     saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
     rebootAndSendPage();
@@ -742,7 +742,7 @@ void handleMqtt() {
 
 void handleUnit() {
   if (!checkLogin()) return;
-  
+
   if (server.method() == HTTP_POST) {
     saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
@@ -778,7 +778,7 @@ void handleUnit() {
 
 void handleWifi() {
   if (!checkLogin()) return;
-  
+
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
     rebootAndSendPage();
@@ -813,7 +813,7 @@ void handleWifi() {
 
 void handleStatus() {
   if (!checkLogin()) return;
-  
+
   String statusPage =  FPSTR(html_page_status);
   statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
   statusPage.replace("_TXT_STATUS_TITLE_", FPSTR(txt_status_title));
@@ -846,7 +846,7 @@ void handleStatus() {
 
 void handleControl() {
   if (!checkLogin()) return;
-  
+
   //not connected to hp, redirect to status page
   if (!hp.isConnected()) {
     server.sendHeader("Location", "/status");
@@ -1053,7 +1053,7 @@ void handleLogin() {
 
 void handleUpgrade() {
   if (!checkLogin()) return;
-  
+
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
   upgradePage.replace("_TXT_B_UPGRADE_",FPSTR(txt_upgrade));
@@ -1119,7 +1119,7 @@ void handleUploadDone() {
 
 void handleUploadLoop() {
   if (!checkLogin()) return;
-  
+
   // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
   //char log[200];
   if (uploaderror) {
@@ -1248,7 +1248,7 @@ void readHeatPumpSettings() {
 
 void hpSettingsChanged() {
   // send room temp, operating info and all information
-  readHeatPumpSettings();  
+  readHeatPumpSettings();
 
   String mqttOutput;
   serializeJson(rootInfo, mqttOutput);
@@ -1263,8 +1263,8 @@ void hpSettingsChanged() {
 String hpGetMode(heatpumpSettings hpSettings) {
   // Map the heat pump state to one of HA's HVAC_MODE_* values.
   // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L3-L23
-  
-  String hppower = String(hpSettings.power); 
+
+  String hppower = String(hpSettings.power);
   if (hppower.equalsIgnoreCase("off")){
     return "off";
   }
@@ -1280,7 +1280,7 @@ String hpGetMode(heatpumpSettings hpSettings) {
 String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
   // Map heat pump state to one of HA's CURRENT_HVAC_* values.
   // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L80-L86
-  
+
   String hppower = String(hpSettings.power);
   if (hppower.equalsIgnoreCase("off")) {
     return "off";
@@ -1527,7 +1527,7 @@ void haConfig() {
   haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
   haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
   haConfig["temp_stat_t"]                   = ha_state_topic;
-  haConfig["avty_t"]                        = ha_availability_topic; // MQTT last will (status) messages topic 
+  haConfig["avty_t"]                        = ha_availability_topic; // MQTT last will (status) messages topic
   haConfig["pl_not_avail"]                  = mqtt_payload_unavailable; // MQTT offline message payload
   haConfig["pl_avail"]                      = mqtt_payload_available; // MQTT online message payload
   //Set default value for fix "Could not parse data for HA"
@@ -1757,14 +1757,14 @@ bool checkLogin() {
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
-  
+
   //reset board to attempt to connect to wifi again if in ap mode or wifi dropped out and time limit passed
   if (WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED) {
 	  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   } else if (wifi_config_exists and millis() > wifi_timeout) {
 	  ESP.restart();
   }
-  
+
   if (!captive) {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
