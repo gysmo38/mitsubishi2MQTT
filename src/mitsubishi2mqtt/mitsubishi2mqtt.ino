@@ -66,6 +66,7 @@ DNSServer dnsServer;
 boolean captive = false;
 boolean mqtt_config = false;
 boolean wifi_config = false;
+boolean remoteTempActive = false;
 
 //HVAC
 HeatPump hp;
@@ -74,6 +75,7 @@ unsigned long lastMqttRetry;
 unsigned long lastHpSync;
 unsigned int hpConnectionRetries;
 unsigned int hpConnectionTotalRetries;
+unsigned long lastRemoteTemp;
 
 //Local state
 StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
@@ -1299,8 +1301,7 @@ String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
-  if (millis() > (lastTempSend + SEND_ROOM_TEMP_INTERVAL_MS)) { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS
-
+  if (millis() - lastTempSend > SEND_ROOM_TEMP_INTERVAL_MS) { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS (millis rollover tolerant)
     // send room temp, operating info and all information
     heatpumpSettings currentSettings = hp.getSettings();
 
@@ -1325,6 +1326,16 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     lastTempSend = millis();
   }
 }
+
+void hpCheckRemoteTemp(){
+    if (remoteTempActive && (millis() - lastRemoteTemp > CHECK_REMOTE_TEMP_INTERVAL_MS)) { //if it's been 5 minutes since last remote_temp message, revert back to HP internal temp sensor
+     remoteTempActive = false;
+     float temperature = 0;
+     hp.setRemoteTemperature(temperature);
+     hp.update();
+    }
+}
+
 
 void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirection) {
   if (_debugModePckts) {
@@ -1447,6 +1458,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (strcmp(topic, ha_remote_temp_set_topic.c_str()) == 0) {
     float temperature = strtof(message, NULL);
+    if (temperature == 0){ //Remote temp disabled by mqtt topic set
+      remoteTempActive = false; //clear the remote temp flag
+    }
+    else {
+      remoteTempActive = true; //Remote temp has been pushed.
+      lastRemoteTemp = millis(); //Note time
+    }
     hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
   }
   else if (strcmp(topic, ha_system_set_topic.c_str()) == 0) { // We receive command for board
@@ -1795,6 +1813,7 @@ void loop() {
 		//MQTT connected send status
 		else {
 		  hpStatusChanged(hp.getStatus());
+		  hpCheckRemoteTemp();
 		  mqtt_client.loop();
 		}
 	}
