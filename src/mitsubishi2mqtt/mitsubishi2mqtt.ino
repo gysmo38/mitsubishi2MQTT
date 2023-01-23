@@ -1462,12 +1462,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     float temperature = strtof(message, NULL);
     if (temperature == 0){ //Remote temp disabled by mqtt topic set
       remoteTempActive = false; //clear the remote temp flag
+      hp.setRemoteTemperature(0.0);
     }
     else {
       remoteTempActive = true; //Remote temp has been pushed.
       lastRemoteTemp = millis(); //Note time
+      hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
     }
-    hp.setRemoteTemperature(convertLocalUnitToCelsius(temperature, useFahrenheit));
   }
   else if (strcmp(topic, ha_system_set_topic.c_str()) == 0) { // We receive command for board
     if (strcmp(message, "reboot") == 0) { // We receive reboot command
@@ -1789,8 +1790,8 @@ void loop() {
     // Sync HVAC UNIT
     if (!hp.isConnected()) {
       // Use exponential backoff for retries, where each retry is double the length of the previous one.
-      unsigned long timeNextSync = (1 << hpConnectionRetries) * HP_RETRY_INTERVAL_MS + lastHpSync;
-      if (((millis() > timeNextSync) or lastHpSync == 0)) {
+      unsigned long durationNextSync = (1 << hpConnectionRetries) * HP_RETRY_INTERVAL_MS;
+      if (((millis() - lastHpSync > durationNextSync) or lastHpSync == 0)) {
         lastHpSync = millis();
         // If we've retried more than the max number of tries, keep retrying at that fixed interval, which is several minutes.
         hpConnectionRetries = min(hpConnectionRetries + 1u, HP_MAX_RETRIES);
