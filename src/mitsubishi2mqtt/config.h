@@ -16,7 +16,7 @@
 
 /*#define MY_LANGUAGE zh-CN // define your language*/
 
-const PROGMEM char* m2mqtt_version = "2022.12.0";
+const PROGMEM char* m2mqtt_version = "2023.1.0";
 
 //Define global variables for files
 #ifdef ESP32
