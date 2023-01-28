@@ -152,7 +152,7 @@ void setup() {
 
 
   // Start serial for debug before HVAC connect to serial
-  Serial.begin(115200);
+  Serial.begin(9600);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
@@ -297,18 +297,35 @@ void testMode(){
   hp.setModeSetting("FAN");
   hp.setPowerSetting("ON");
   hp.update();
-  delay(5000);
+  delay(3000);
   hp.setPowerSetting("OFF");
   hp.update();
-  
+
   SPIFFS.format();
 
-  while (1){
-      digitalWrite(blueLedPin, HIGH);
-      delay(1000);
-      digitalWrite(blueLedPin, LOW);
-      delay(1000);
+  Serial.println("format_done");
+
+  while (1)
+  {
+    digitalWrite(blueLedPin, millis()/1000 % 2);
+    if (Serial.available()){
+      String cmd  = Serial.readStringUntil('\n');
+      if (cmd == "mac"){
+        Serial.println("mac");
+        Serial.println(WiFi.macAddress());
+      }
+      if (cmd == "wlan"){
+        int numberOfNetworks = WiFi.scanNetworks();
+        String wlan_list = "";
+        for(int i =0; i<numberOfNetworks; i++){
+            wlan_list += WiFi.SSID(i) + "\t" + String(WiFi.RSSI(i)) + "\n";
+        }
+        Serial.println("wlan");
+        Serial.println(wlan_list);
+      }
+    }
   }
+  
   
 }
 
