@@ -150,7 +150,6 @@ void setup() {
     if (loadMqtt()) {
       //write_log("Starting MQTT");
       // setup HA topics
-      ha_power_set_topic       = mqtt_topic + "/" + mqtt_fn + "/power/set";
       ha_mode_set_topic        = mqtt_topic + "/" + mqtt_fn + "/mode/set";
       ha_temp_set_topic        = mqtt_topic + "/" + mqtt_fn + "/temp/set";
       ha_remote_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/remote_temp/set";
@@ -1374,17 +1373,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // HA topics
   // Receive power topic
-  if (strcmp(topic, ha_power_set_topic.c_str()) == 0) {
-    String modeUpper = message;
-    modeUpper.toUpperCase();
-    if (modeUpper == "OFF") {
-      //hp.setPowerSetting("OFF");
-    } else if (modeUpper == "ON") {
-      //hp.setPowerSetting("ON");
-    }
-    
-  }
-  else if (strcmp(topic, ha_mode_set_topic.c_str()) == 0) {
+  if (strcmp(topic, ha_mode_set_topic.c_str()) == 0) {
     String modeUpper = message;
     modeUpper.toUpperCase();
     if (modeUpper == "OFF") {
@@ -1543,7 +1532,6 @@ void haConfig() {
   haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
   haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
   haConfig["temp_step"]                     = temp_step;
-  haConfig["pow_cmd_t"]                     = ha_power_set_topic;
   haConfig["temperature_unit"]              = useFahrenheit ? "F" : "C";
 
   JsonArray haConfigFan_modes = haConfig.createNestedArray("fan_modes");
@@ -1615,7 +1603,6 @@ void mqttConnect() {
       mqtt_client.subscribe(ha_system_set_topic.c_str());
       mqtt_client.subscribe(ha_debug_pckts_set_topic.c_str());
       mqtt_client.subscribe(ha_debug_logs_set_topic.c_str());
-      mqtt_client.subscribe(ha_power_set_topic.c_str());
       mqtt_client.subscribe(ha_mode_set_topic.c_str());
       mqtt_client.subscribe(ha_fan_set_topic.c_str());
       mqtt_client.subscribe(ha_temp_set_topic.c_str());
