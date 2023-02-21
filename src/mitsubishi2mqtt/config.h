@@ -65,7 +65,6 @@ String others_haa_topic;
 
 // Define global variables for HA topics
 String ha_system_set_topic;
-String ha_power_set_topic;
 String ha_mode_set_topic;
 String ha_temp_set_topic;
 String ha_remote_temp_set_topic;
