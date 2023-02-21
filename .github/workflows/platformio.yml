@@ -1,0 +1,41 @@
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build WEMOS_D1_Mini
+        run: |
+          pio run -e WEMOS_D1_Mini
+          mv .pio/build/WEMOS_D1_Mini/firmware.bin mitsubishi2MQTT_WEMOS_D1_Mini.bin
+
+      - name: Build esp32dev
+        run: |
+          pio run -e esp32dev
+          mv .pio/build/esp32dev/firmware.bin mitsubishi2MQTT_esp32dev.bin
+
+      - name: Upload esp32dev artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: mitsubishi2MQTT_esp32dev.bin
+          path: mitsubishi2MQTT_esp32dev.bin
+
+      - name: Upload WEMOS_D1_Mini artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
+          path: mitsubishi2MQTT_WEMOS_D1_Mini.bin
