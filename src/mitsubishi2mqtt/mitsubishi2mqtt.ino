@@ -242,7 +242,10 @@ void setup() {
       ha_availability_topic = mqtt_topic + "/" + mqtt_fn + "/availability";
 
       if (others_haa) {
-        ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
+        ha_climate_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
+        ha_sensor_room_temp_config_topic       = others_haa_topic + "/sensor/" + mqtt_fn + "/room_temp/config";
+        ha_select_vane_vertical_config_topic      = others_haa_topic + "/select/" + mqtt_fn + "/vane_vertical/config";
+        ha_select_vane_horizontal_config_topic      = others_haa_topic + "/select/" + mqtt_fn + "/vane_horizontal/config";
       }
       // startup mqtt connection
       initMqtt();
@@ -279,7 +282,7 @@ void setup() {
 }
 
 void testMode(){
-  for (int i = 0; i <10; i++){
+  for (int i = 0; i <5; i++){
     digitalWrite(blueLedPin, HIGH);
     delay(100);
     digitalWrite(blueLedPin, LOW);
@@ -297,7 +300,7 @@ void testMode(){
   hp.setModeSetting("FAN");
   hp.setPowerSetting("ON");
   hp.update();
-  delay(3000);
+  delay(1000);
   hp.setPowerSetting("OFF");
   hp.update();
 
@@ -491,6 +494,7 @@ void initCaptivePortal() {
 void initMqtt() {
   mqtt_client.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
   mqtt_client.setCallback(mqttCallback);
+  mqtt_client.setKeepAlive(120);
   mqttConnect();
 }
 
@@ -927,6 +931,7 @@ void handleUnit() {
     unitPage.replace("_TXT_F_FH_", FPSTR(txt_f_fh));
     unitPage.replace("_TXT_F_ALLMODES_", FPSTR(txt_f_allmodes));
     unitPage.replace("_TXT_F_NOHEAT_", FPSTR(txt_f_noheat));
+    unitPage.replace("_TXT_F_5_S", FPSTR(txt_f_5s));
     unitPage.replace("_TXT_F_15_S", FPSTR(txt_f_15s));
     unitPage.replace("_TXT_F_30_S", FPSTR(txt_f_30s));
     unitPage.replace("_TXT_F_45_S", FPSTR(txt_f_45s));
@@ -943,6 +948,9 @@ void handleUnit() {
     unitPage.replace(F("_LOGIN_PASSWORD_"), login_password);
 
     switch (update_int){
+      case (5000):
+          unitPage.replace(F("_UPDATE_5S_") , F("selected"));
+          break;
       case (15000):
           unitPage.replace(F("_UPDATE_15S_") , F("selected"));
           break;
@@ -1689,13 +1697,14 @@ void haConfig() {
 
   // send HA config packet
   // setup HA payload device
-  const size_t capacity = JSON_ARRAY_SIZE(7) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(24) + 2048;
-  DynamicJsonDocument haConfig(capacity);
+  const size_t capacityClimateConfig = JSON_ARRAY_SIZE(7) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(25) + 2048;
+  DynamicJsonDocument haClimateConfig(capacityClimateConfig);
 
-  haConfig["name"]                          = mqtt_fn;
-  haConfig["unique_id"]                     = getId();
+  haClimateConfig["name"]                          = mqtt_fn;
+  haClimateConfig["unique_id"]                     = getId();
+  haClimateConfig["icon"]                          = HA_AC_icon;
 
-  JsonArray haConfigModes = haConfig.createNestedArray("modes");
+  JsonArray haConfigModes = haClimateConfig.createNestedArray("modes");
   haConfigModes.add("heat_cool"); //native AUTO mode
   haConfigModes.add("cool");
   haConfigModes.add("dry");
@@ -1706,34 +1715,34 @@ void haConfig() {
   haConfigModes.add("off");
 
 
-  haConfig["mode_cmd_t"]                    = ha_mode_set_topic;
-  haConfig["mode_stat_t"]                   = ha_state_topic;
-  haConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
-  haConfig["temp_cmd_t"]                    = ha_temp_set_topic;
-  haConfig["temp_stat_t"]                   = ha_state_topic;
+  haClimateConfig["mode_cmd_t"]                    = ha_mode_set_topic;
+  haClimateConfig["mode_stat_t"]                   = ha_state_topic;
+  haClimateConfig["mode_stat_tpl"]                 = F("{{ value_json.mode if (value_json is defined and value_json.mode is defined and value_json.mode|length) else 'off' }}"); //Set default value for fix "Could not parse data for HA"
+  haClimateConfig["temp_cmd_t"]                    = ha_temp_set_topic;
+  haClimateConfig["temp_stat_t"]                   = ha_state_topic;
 
   if (others_avail_report){
-    haConfig["avty_t"]                        = ha_availability_topic; // MQTT last will (status) messages topic 
-    haConfig["pl_not_avail"]                  = mqtt_payload_unavailable; // MQTT offline message payload
-    haConfig["pl_avail"]                      = mqtt_payload_available; // MQTT online message payload
+    haClimateConfig["avty_t"]                        = ha_availability_topic; // MQTT last will (status) messages topic 
+    haClimateConfig["pl_not_avail"]                  = mqtt_payload_unavailable; // MQTT offline message payload
+    haClimateConfig["pl_avail"]                      = mqtt_payload_available; // MQTT online message payload
   }
   //Set default value for fix "Could not parse data for HA"
   String temp_stat_tpl_str                  = F("{% if (value_json is defined and value_json.temperature is defined) %}{% if (value_json.temperature|int > ");
   temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + " and value_json.temperature|int < ";
   temp_stat_tpl_str                        +=(String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}{{ value_json.temperature }}";
   temp_stat_tpl_str                        +="{% elif (value_json.temperature|int < " + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(min_temp, useFahrenheit) + "{% elif (value_json.temperature|int > " + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) + ") %}" + (String)convertCelsiusToLocalUnit(max_temp, useFahrenheit) +  "{% endif %}{% else %}" + (String)convertCelsiusToLocalUnit(22, useFahrenheit) + "{% endif %}";
-  haConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
-  haConfig["curr_temp_t"]                   = ha_state_topic;
+  haClimateConfig["temp_stat_tpl"]                 = temp_stat_tpl_str;
+  haClimateConfig["curr_temp_t"]                   = ha_state_topic;
   String curr_temp_tpl_str                  = F("{{ value_json.roomTemperature if (value_json is defined and value_json.roomTemperature is defined and value_json.roomTemperature|int > ");
   curr_temp_tpl_str                        += (String)convertCelsiusToLocalUnit(1, useFahrenheit) + ") else '" + (String)convertCelsiusToLocalUnit(26, useFahrenheit) + "' }}"; //Set default value for fix "Could not parse data for HA"
-  haConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
-  haConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
-  haConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
-  haConfig["temp_step"]                     = temp_step;
-  haConfig["pow_cmd_t"]                     = ha_power_set_topic;
-  haConfig["temperature_unit"]              = useFahrenheit ? "F" : "C";
+  haClimateConfig["curr_temp_tpl"]                 = curr_temp_tpl_str;
+  haClimateConfig["min_temp"]                      = convertCelsiusToLocalUnit(min_temp, useFahrenheit);
+  haClimateConfig["max_temp"]                      = convertCelsiusToLocalUnit(max_temp, useFahrenheit);
+  haClimateConfig["temp_step"]                     = temp_step;
+  haClimateConfig["pow_cmd_t"]                     = ha_power_set_topic;
+  haClimateConfig["temperature_unit"]              = useFahrenheit ? "F" : "C";
 
-  JsonArray haConfigFan_modes = haConfig.createNestedArray("fan_modes");
+  JsonArray haConfigFan_modes = haClimateConfig.createNestedArray("fan_modes");
   haConfigFan_modes.add("AUTO");
   haConfigFan_modes.add("QUIET");
   haConfigFan_modes.add("1");
@@ -1741,11 +1750,11 @@ void haConfig() {
   haConfigFan_modes.add("3");
   haConfigFan_modes.add("4");
 
-  haConfig["fan_mode_cmd_t"]                = ha_fan_set_topic;
-  haConfig["fan_mode_stat_t"]               = ha_state_topic;
-  haConfig["fan_mode_stat_tpl"]             = F("{{ value_json.fan if (value_json is defined and value_json.fan is defined and value_json.fan|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
+  haClimateConfig["fan_mode_cmd_t"]                = ha_fan_set_topic;
+  haClimateConfig["fan_mode_stat_t"]               = ha_state_topic;
+  haClimateConfig["fan_mode_stat_tpl"]             = F("{{ value_json.fan if (value_json is defined and value_json.fan is defined and value_json.fan|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
 
-  JsonArray haConfigSwing_modes = haConfig.createNestedArray("swing_modes");
+  JsonArray haConfigSwing_modes = haClimateConfig.createNestedArray("swing_modes");
   haConfigSwing_modes.add("AUTO");
   haConfigSwing_modes.add("1");
   haConfigSwing_modes.add("2");
@@ -1754,13 +1763,13 @@ void haConfig() {
   haConfigSwing_modes.add("5");
   haConfigSwing_modes.add("SWING");
 
-  haConfig["swing_mode_cmd_t"]              = ha_vane_set_topic;
-  haConfig["swing_mode_stat_t"]             = ha_state_topic;
-  haConfig["swing_mode_stat_tpl"]           = F("{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
-  haConfig["action_topic"]                  = ha_state_topic;
-  haConfig["action_template"]               = F("{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"); //Set default value for fix "Could not parse data for HA"
+  haClimateConfig["swing_mode_cmd_t"]              = ha_vane_set_topic;
+  haClimateConfig["swing_mode_stat_t"]             = ha_state_topic;
+  haClimateConfig["swing_mode_stat_tpl"]           = F("{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
+  haClimateConfig["action_topic"]                  = ha_state_topic;
+  haClimateConfig["action_template"]               = F("{{ value_json.action if (value_json is defined and value_json.action is defined and value_json.action|length) else 'idle' }}"); //Set default value for fix "Could not parse data for HA"
 
-  JsonObject haConfigDevice = haConfig.createNestedObject("device");
+  JsonObject haConfigDevice = haClimateConfig.createNestedObject("device");
 
   haConfigDevice["ids"]   = mqtt_fn;
   haConfigDevice["name"]  = mqtt_fn;
@@ -1772,10 +1781,113 @@ void haConfig() {
 
 
   String mqttOutput;
-  serializeJson(haConfig, mqttOutput);
-  mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
+  serializeJson(haClimateConfig, mqttOutput);
+  mqtt_client.beginPublish(ha_climate_config_topic.c_str(), mqttOutput.length(), true);
   mqtt_client.print(mqttOutput);
   mqtt_client.endPublish();
+
+  //Sensor config
+  const size_t capacitySensorConfig = JSON_OBJECT_SIZE(7) + JSON_OBJECT_SIZE(8) + 2048;;
+  DynamicJsonDocument haSensorConfig(capacitySensorConfig);
+  haSensorConfig["name"]                          = "Room temperature";
+  haSensorConfig["unique_id"]                     = getId() + "_room_temp";
+  haSensorConfig["icon"]                          = HA_thermometer_icon;
+  haSensorConfig["unit_of_measurement"]           = useFahrenheit ? "°F" : "°C";
+  haSensorConfig["device_class"]                  = "Temperature";
+  haSensorConfig["state_topic"]                   = ha_state_topic;
+  haSensorConfig["value_template"]                = curr_temp_tpl_str;
+
+  haConfigDevice = haSensorConfig.createNestedObject("device");
+
+  haConfigDevice["ids"]   = mqtt_fn;
+  haConfigDevice["name"]  = mqtt_fn;
+  haConfigDevice["sw"]    = "Mitsubishi2MQTT " + String(m2mqtt_version);
+  haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
+  haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
+  haConfigDevice["hw"]    = hardware_version;
+  haConfigDevice["cu"]    = "http://" + WiFi.localIP().toString();
+
+
+  mqttOutput.clear();
+  serializeJson(haSensorConfig, mqttOutput);
+  mqtt_client.beginPublish(ha_sensor_room_temp_config_topic.c_str(), mqttOutput.length(), true);
+  mqtt_client.print(mqttOutput);
+  mqtt_client.endPublish();
+
+  //Vane vertical config
+  const size_t capacityVaneVerticalConfig = JSON_ARRAY_SIZE(8) + JSON_OBJECT_SIZE(7) + JSON_OBJECT_SIZE(8) + 2048;
+  DynamicJsonDocument haVaneVerticalConfig(capacityVaneVerticalConfig);
+  haVaneVerticalConfig["name"]                          = "Vane Vertical";
+  haVaneVerticalConfig["unique_id"]                     = getId()+ "_vane_vertical";
+  haVaneVerticalConfig["icon"]                          = HA_vane_vertical_icon;
+  haVaneVerticalConfig["state_topic"]                   = ha_state_topic;
+  haVaneVerticalConfig["value_template"]                = F("{{ value_json.vane if (value_json is defined and value_json.vane is defined and value_json.vane|length) else 'AUTO' }}"); //Set default value for fix "Could not parse data for HA"
+  haVaneVerticalConfig["command_topic"]              = ha_vane_set_topic;
+  JsonArray haConfighVaneVerticalOptions = haVaneVerticalConfig.createNestedArray("options");
+  haConfighVaneVerticalOptions.add("AUTO");
+  haConfighVaneVerticalOptions.add("1");
+  haConfighVaneVerticalOptions.add("2");
+  haConfighVaneVerticalOptions.add("3");
+  haConfighVaneVerticalOptions.add("4");
+  haConfighVaneVerticalOptions.add("5");
+  haConfighVaneVerticalOptions.add("SWING");
+
+  haConfigDevice = haVaneVerticalConfig.createNestedObject("device");
+
+  haConfigDevice["ids"]   = mqtt_fn;
+  haConfigDevice["name"]  = mqtt_fn;
+  haConfigDevice["sw"]    = "Mitsubishi2MQTT " + String(m2mqtt_version);
+  haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
+  haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
+  haConfigDevice["hw"]    = hardware_version;
+  haConfigDevice["cu"]    = "http://" + WiFi.localIP().toString();
+
+
+  mqttOutput.clear();
+  serializeJson(haVaneVerticalConfig, mqttOutput);
+  mqtt_client.beginPublish(ha_select_vane_vertical_config_topic.c_str(), mqttOutput.length(), true);
+  mqtt_client.print(mqttOutput);
+  mqtt_client.endPublish();
+
+
+  //Vane horizontal config
+  const size_t capacityVaneHorizontalConfig = JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(7) + JSON_OBJECT_SIZE(8) + 2048;
+  DynamicJsonDocument haVaneHorizontalConfig(capacityVaneHorizontalConfig);
+  haVaneHorizontalConfig["name"]                          = "Vane Horizontal";
+  haVaneHorizontalConfig["unique_id"]                     = getId()+ "_vane_horizontal";
+  haVaneHorizontalConfig["icon"]                          = HA_vane_horizontal_icon;
+  haVaneHorizontalConfig["state_topic"]                   = ha_state_topic;
+  haVaneHorizontalConfig["value_template"]                = F("{{ value_json.wideVane if (value_json is defined and value_json.wideVane is defined and value_json.wideVane|length) else 'SWING' }}"); //Set default value for fix "Could not parse data for HA"
+  haVaneHorizontalConfig["command_topic"]              = ha_wideVane_set_topic;
+  JsonArray haConfigVaneHorizontalOptions = haVaneHorizontalConfig.createNestedArray("options");
+  haConfigVaneHorizontalOptions.add("<<");
+  haConfigVaneHorizontalOptions.add("<");
+  haConfigVaneHorizontalOptions.add("|");
+  haConfigVaneHorizontalOptions.add(">");
+  haConfigVaneHorizontalOptions.add(">>");
+  haConfigVaneHorizontalOptions.add("SWING");
+
+  haConfigDevice = haVaneHorizontalConfig.createNestedObject("device");
+
+  haConfigDevice["ids"]   = mqtt_fn;
+  haConfigDevice["name"]  = mqtt_fn;
+  haConfigDevice["sw"]    = "Mitsubishi2MQTT " + String(m2mqtt_version);
+  haConfigDevice["mdl"]   = "HVAC MITSUBISHI";
+  haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
+  haConfigDevice["hw"]    = hardware_version;
+  haConfigDevice["cu"]    = "http://" + WiFi.localIP().toString();
+
+
+  mqttOutput.clear();
+  serializeJson(haVaneHorizontalConfig, mqttOutput);
+  mqtt_client.beginPublish(ha_select_vane_horizontal_config_topic.c_str(), mqttOutput.length(), true);
+  mqtt_client.print(mqttOutput);
+  mqtt_client.endPublish();
+
+
+
+
+
 }
 
 void mqttConnect() {

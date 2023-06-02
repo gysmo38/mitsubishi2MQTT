@@ -52,6 +52,7 @@ const char txt_f_celsius[] PROGMEM = "Celsus";
 const char txt_f_fh[] PROGMEM = "Fahrenheit";
 const char txt_f_allmodes[] PROGMEM = "Clim réversible";
 const char txt_f_noheat[] PROGMEM = "Uniquement climatiseur";
+const char txt_f_5s[] PROGMEM = "5 secondes (experimental)";
 const char txt_f_15s[] PROGMEM = "15 secondes";
 const char txt_f_30s[] PROGMEM = "30 secondes";
 const char txt_f_45s[] PROGMEM = "45 secondes";

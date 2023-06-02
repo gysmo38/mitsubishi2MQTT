@@ -51,6 +51,7 @@ const char txt_f_celsius[] PROGMEM = "Celsius";
 const char txt_f_fh[] PROGMEM = "Fahrenheit";
 const char txt_f_allmodes[] PROGMEM = "All modes";
 const char txt_f_noheat[] PROGMEM = "All modes execept heat";
+const char txt_f_5s[] PROGMEM = "5 seconds (experimental)";
 const char txt_f_15s[] PROGMEM = "15 seconds";
 const char txt_f_30s[] PROGMEM = "30 seconds";
 const char txt_f_45s[] PROGMEM = "45 seconds";

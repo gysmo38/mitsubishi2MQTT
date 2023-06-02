@@ -320,6 +320,7 @@ const char html_page_unit[] PROGMEM =
             "<p>"
                 "<b>_TXT_UNIT_UPDATE_INTERVAL_</b>"
                 "<select name='update_int'>"
+                    "<option value='5' _UPDATE_5S_>_TXT_F_5_S</option>"
                     "<option value='15' _UPDATE_15S_>_TXT_F_15_S</option>"
                     "<option value='30' _UPDATE_30S_>_TXT_F_30_S</option>"
                     "<option value='45' _UPDATE_45S_>_TXT_F_45_S</option>"

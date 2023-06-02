@@ -52,6 +52,7 @@ const char txt_f_celsius[] PROGMEM = "摄氏";
 const char txt_f_fh[] PROGMEM = "华氏";
 const char txt_f_allmodes[] PROGMEM = "全部模式";
 const char txt_f_noheat[] PROGMEM = "除制暖外全部模式";
+const char txt_f_5s[] PROGMEM = "5秒";
 const char txt_f_15s[] PROGMEM = "15秒";
 const char txt_f_30s[] PROGMEM = "30秒";
 const char txt_f_45s[] PROGMEM = "45秒";

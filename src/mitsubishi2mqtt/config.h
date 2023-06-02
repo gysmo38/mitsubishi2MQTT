@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "2022.01.6 - magi's edition";
+const PROGMEM char* m2mqtt_version = "2022.01.7 - magi's edition";
 
 //Define global variables for files
 #ifdef ESP32
@@ -62,6 +62,12 @@ String mqtt_client_id;
 const PROGMEM char* mqtt_payload_available = "online";
 const PROGMEM char* mqtt_payload_unavailable = "offline";
 
+//icons
+const PROGMEM char* HA_AC_icon = "mdi:air-conditioner";
+const PROGMEM char* HA_thermometer_icon = "mdi:thermometer";
+const PROGMEM char* HA_vane_vertical_icon = "mdi:arrow-up-down";
+const PROGMEM char* HA_vane_horizontal_icon = "mdi:arrow-left-right";
+
 //Define global variables for Others settings
 bool others_haa;
 bool others_avail_report;
@@ -79,7 +85,10 @@ String ha_settings_topic;
 String ha_state_topic;
 String ha_debug_topic;
 String ha_debug_set_topic;
-String ha_config_topic;
+String ha_climate_config_topic;
+String ha_sensor_room_temp_config_topic;
+String ha_select_vane_vertical_config_topic;
+String ha_select_vane_horizontal_config_topic;
 String ha_discovery_topic;
 String ha_custom_packet;
 String ha_availability_topic;

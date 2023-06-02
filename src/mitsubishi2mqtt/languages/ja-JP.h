@@ -50,6 +50,7 @@ const char txt_f_celsius[] PROGMEM = "摂氏";
 const char txt_f_fh[] PROGMEM = "華氏";
 const char txt_f_allmodes[] PROGMEM = "全ての機能";
 const char txt_f_noheat[] PROGMEM = "暖房以外の全ての機能";
+const char txt_f_5s[] PROGMEM = "5秒 (experimental)";
 const char txt_f_15s[] PROGMEM = "15秒";
 const char txt_f_30s[] PROGMEM = "30秒";
 const char txt_f_45s[] PROGMEM = "45秒";
