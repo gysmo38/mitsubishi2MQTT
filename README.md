@@ -28,6 +28,8 @@ How to use:
  - Step 6: (optional): Set MQTT information for use with Home Assistant
  - Step 7: (optional): Set Login password to prevent unwanted access in SETUP->ADVANCE->Login Password
 
+Nightly builds are available for select platforms via GitHub Actions. Go to [the platformio action](https://github.com/gysmo38/mitsubishi2MQTT/actions/workflows/platformio.yml), select the latest build, then check the **Artifacts** section. 
+
 ***
 For nodered fans MQTT topic use cases
 - topic/power/set OFF
