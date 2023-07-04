@@ -118,6 +118,7 @@ boolean wifi_config = false;
 //HVAC
 HeatPump hp;
 unsigned long lastTempSend;
+unsigned long lastCommandSend;
 unsigned long lastMqttRetry;
 unsigned long lastHpSync;
 unsigned int hpConnectionRetries;
@@ -1426,6 +1427,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       digitalWrite(blueLedPin, LOW);
       hp.setSettings(settings);
       hp.update();
+      lastCommandSend = millis();
       digitalWrite(blueLedPin, HIGH);
     }
   }
@@ -1496,7 +1498,7 @@ String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
 }
 
 void hpStatusChanged(heatpumpStatus currentStatus) {
-  if (millis() > (lastTempSend + update_int)) { // only send the temperature every update_int interval
+  if ((millis() > (lastTempSend + update_int)) && (millis() > (lastCommandSend + POLL_DELAY_AFTER_SET_MS))) { // only send the temperature every update_int interval and not just sent command to A/C.
 
     // send room temp, operating info and all information
     heatpumpSettings currentSettings = hp.getSettings();
@@ -1689,7 +1691,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   else {
     mqtt_client.publish(ha_debug_topic.c_str(), strcat((char *)"heatpump: wrong mqtt topic: ", topic));
   }
-
+  lastCommandSend = millis();
   digitalWrite(blueLedPin, HIGH);
 }
 
