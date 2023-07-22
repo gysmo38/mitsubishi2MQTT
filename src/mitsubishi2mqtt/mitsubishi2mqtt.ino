@@ -664,10 +664,12 @@ boolean initWifi() {
   if (ap_ssid[0] != '\0') {
     connectWifiSuccess = wifi_config = connectWifi();
     if (connectWifiSuccess) {
+      digitalWrite(blueLedPin, HIGH);
       return true;
     }
     else
     {
+      digitalWrite(blueLedPin, LOW);
       // reset hostname back to default before starting AP mode for privacy
       hostname = hostnamePrefix;
       hostname += getId();
