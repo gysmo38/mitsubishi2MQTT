@@ -16,7 +16,7 @@
  8. ปรับตำแหน่งสวิตช์ไปที่ตำแหน่ง **normal mode**
  9. ถอดสายออกแล้วเชื่อมต่อไปที่เครื่องปรับอากาศ
 
-*ไม่สามารถใช้การ updata แบบ OTA ได้
+*ตัวโมดูล CN105Kit V2.1 (ใช้ชิพ ESP-12E) สามารถอัปเกรดผ่าน OTA ได้
 
 ### Update Guide for CN105Kit V2 (Wifiserial) Hardware
 
@@ -35,4 +35,5 @@
 7. Flash the firmware and wait for the process to be completed.
 8. Change the position of the switch to **normal mode**
 9. Unplug from the computer and re-connect to A/C.
-*OTA Update is not possible
+    
+*OTA Update is only possible for CN105Kit V2.1 Hardware (using ESP-12E Chip)
