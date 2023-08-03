@@ -1518,7 +1518,7 @@ void haConfig() {
   const size_t capacity = JSON_ARRAY_SIZE(5) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(24) + 2048;
   DynamicJsonDocument haConfig(capacity);
 
-  haConfig["name"]                          = mqtt_fn;
+  haConfig["name"]                          = nullptr;
   haConfig["unique_id"]                     = getId();
 
   JsonArray haConfigModes = haConfig.createNestedArray("modes");
