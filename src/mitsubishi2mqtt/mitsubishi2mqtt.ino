@@ -43,6 +43,7 @@ ESP8266WebServer server(80);  // ESP8266 web
 #include "html_init.h"    // code html for initial config
 #include "html_menu.h"    // code html for menu
 #include "html_pages.h"   // code html for pages
+#include "html_metrics.h" // prometheus metrics
 // Languages
 #ifndef MY_LANGUAGE
   #include "languages/en-GB.h" // default language English
@@ -132,6 +133,7 @@ void setup() {
     server.on("/unit", handleUnit);
     server.on("/status", handleStatus);
     server.on("/others", handleOthers);
+    server.on("/metrics", handleMetrics);
     server.onNotFound(handleNotFound);
     if (login_password.length() > 0) {
       server.on("/login", handleLogin);
@@ -992,6 +994,54 @@ void handleControl() {
   // Signal the end of the content
   server.sendContent("");
   //delay(100);
+}
+
+void handleMetrics(){
+  String metrics =    FPSTR(html_metrics);
+
+  heatpumpSettings currentSettings = hp.getSettings();
+  heatpumpStatus currentStatus = hp.getStatus();
+
+  String hppower = currentSettings.power == "ON" ? "1" : "0";
+
+  String hpfan = currentSettings.fan;
+  if(hpfan == "AUTO") hpfan = "-1";
+  if(hpfan == "QUIET") hpfan = "0";
+
+  String hpvane = currentSettings.vane;
+  if(hpvane == "AUTO") hpvane = "-1";
+  if(hpvane == "SWING") hpvane = "0";
+
+  String hpwidevane = "-2";
+  if(currentSettings.wideVane == "SWING") hpwidevane = "0";
+  if(currentSettings.wideVane == "<<") hpwidevane = "1";
+  if(currentSettings.wideVane == "<") hpwidevane = "2";
+  if(currentSettings.wideVane == "|") hpwidevane = "3";
+  if(currentSettings.wideVane == ">") hpwidevane = "4";
+  if(currentSettings.wideVane == ">>") hpwidevane = "5";
+  if(currentSettings.wideVane == "<>") hpwidevane = "6";
+
+  String hpmode = "-2";
+  if(currentSettings.mode == "AUTO") hpmode = "-1";
+  if(currentSettings.mode == "COOL") hpmode = "1";
+  if(currentSettings.mode == "DRY") hpmode = "2";
+  if(currentSettings.mode == "HEAT") hpmode = "3";
+  if(currentSettings.mode == "FAN") hpmode = "4";
+  if(hppower == "0") hpmode = "0";
+
+  metrics.replace("_UNIT_NAME_", hostname);
+  metrics.replace("_VERSION_", m2mqtt_version);
+  metrics.replace("_POWER_", hppower);
+  metrics.replace("_ROOMTEMP_", (String)currentStatus.roomTemperature);
+  metrics.replace("_TEMP_", (String)currentSettings.temperature);
+  metrics.replace("_FAN_", hpfan);
+  metrics.replace("_VANE_", hpvane);
+  metrics.replace("_WIDEVANE_", hpwidevane);
+  metrics.replace("_MODE_", hpmode);
+  metrics.replace("_OPER_", (String)currentStatus.operating);
+  metrics.replace("_COMPFREQ_", (String)currentStatus.compressorFrequency);
+  server.send(200, F("text/plain"), metrics);
+
 }
 
 //login page, also called for logout
