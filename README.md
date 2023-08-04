@@ -1,6 +1,6 @@
 # mitsubishi2MQTT
 Use MQTT and ESP8266/ESP32 module to control Mitsubishi HVAC unit.
-It use SwiCago librairies: https://github.com/SwiCago/HeatPump
+It use SwiCago libraries: https://github.com/SwiCago/HeatPump
 
 ***
 Features:
