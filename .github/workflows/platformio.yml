@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload esp8266 artifacts
         uses: actions/upload-artifact@v3
-         with:
+        with:
           name: mitsubishi2MQTT_ESP8266-ESP01.bin
           path: mitsubishi2MQTT_ESP8266-ESP01.bin
 
