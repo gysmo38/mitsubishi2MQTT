@@ -32,13 +32,13 @@ jobs:
           mv .pio/build/esp32dev/firmware.bin mitsubishi2MQTT_esp32dev.bin
 
       - name: Upload esp32dev artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: mitsubishi2MQTT_esp32dev.bin
           path: mitsubishi2MQTT_esp32dev.bin
 
       - name: Upload WEMOS_D1_Mini artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
           path: mitsubishi2MQTT_WEMOS_D1_Mini.bin
