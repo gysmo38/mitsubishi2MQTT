@@ -21,6 +21,11 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
+      - name: Build Generic8266(ESP-01)
+        run: |
+          pio run -e ESP8266-ESP01
+          mv .pio/build/ESP8266-ESP01/firmware.bin mitsubishi2MQTT_ESP8266-ESP01.bin
+
       - name: Build WEMOS_D1_Mini
         run: |
           pio run -e WEMOS_D1_Mini
@@ -31,6 +36,12 @@ jobs:
           pio run -e esp32dev
           mv .pio/build/esp32dev/firmware.bin mitsubishi2MQTT_esp32dev.bin
 
+      - name: Upload esp8266 artifacts
+          uses: actions/upload-artifact@v3
+          with:
+            name: mitsubishi2MQTT_ESP8266-ESP01.bin
+            path: mitsubishi2MQTT_ESP8266-ESP01.bin
+            
       - name: Upload esp32dev artifacts
         uses: actions/upload-artifact@v3
         with:
