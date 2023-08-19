@@ -2094,7 +2094,8 @@ void loop() {
 		//MQTT failed retry to connect
 		if (mqtt_client.state() < MQTT_CONNECTED)
 		{      digitalWrite(blueLedPin,LOW);
-		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
+
+		  if ((millis() - lastMqttRetry > MQTT_RETRY_INTERVAL_MS) or lastMqttRetry == 0) {
 		    mqttConnect();
 		  }
 		}
