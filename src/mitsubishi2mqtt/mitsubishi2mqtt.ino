@@ -1704,7 +1704,7 @@ void haConfig() {
   const size_t capacityClimateConfig = JSON_ARRAY_SIZE(7) + 2 * JSON_ARRAY_SIZE(6) + JSON_ARRAY_SIZE(7) + JSON_OBJECT_SIZE(25) + 2048;
   DynamicJsonDocument haClimateConfig(capacityClimateConfig);
 
-  haClimateConfig["name"]                          = mqtt_fn;
+  haClimateConfig["name"]                          = nullptr;
   haClimateConfig["unique_id"]                     = getId();
   haClimateConfig["icon"]                          = HA_AC_icon;
 
@@ -2094,7 +2094,8 @@ void loop() {
 		//MQTT failed retry to connect
 		if (mqtt_client.state() < MQTT_CONNECTED)
 		{      digitalWrite(blueLedPin,LOW);
-		  if ((millis() > (lastMqttRetry + MQTT_RETRY_INTERVAL_MS)) or lastMqttRetry == 0) {
+
+		  if ((millis() - lastMqttRetry > MQTT_RETRY_INTERVAL_MS) or lastMqttRetry == 0) {
 		    mqttConnect();
 		  }
 		}
