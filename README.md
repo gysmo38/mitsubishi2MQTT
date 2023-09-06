@@ -48,6 +48,21 @@ For nodered fans MQTT topic use cases
 - topic/custom/send as example "fc 42 01 30 10 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7b " see https://github.com/SwiCago/HeatPump/blob/master/src/HeatPump.h
 - topic/system/set reboot 
 ***
+# Grafana dashboard
+To use Grafana you need to have Prometheus and Grafana (v10 or newer) installed.
+Config for Prometheus:
+```  - job_name: Mitsubishi2mqtt
+    static_configs:
+        - targets:
+            - IP-TO-Mitsubishi2mqtt
+```
+Then add Prometheus as a datasource in Grafana
+Grafana -> Connections -> Add new connection -> Prometheus -> Prometheus server URL: PROMETHEUS-IP:PORT
+
+Then you can import the dashboard in Grafana -> Dashboards -> New -> Import and upload the file https://github.com/Allram/mitsubishi2MQTT/blob/master/Mitsubishi2mqtt.json
+
+![](https://github.com/Allram/mitsubishi2MQTT/blob/master/images/Grafana-screenshot.png)
+
 If you like my work and use it ;)<br>
 
 <a href='https://ko-fi.com/L3L0GSF7X' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
