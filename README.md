@@ -57,11 +57,11 @@ Config for Prometheus:
             - IP-TO-Mitsubishi2mqtt
 ```
 Then add Prometheus as a datasource in Grafana
-Grafana -> Connections -> Add new connection -> Prometheus -> Prometheus server URL: PROMETHEUS-IP:PORT
+Grafana -> Connections -> Add new connection -> Prometheus -> ```Prometheus server URL: PROMETHEUS-IP:PORT```
 
-Then you can import the dashboard in Grafana -> Dashboards -> New -> Import and upload the file https://github.com/Allram/mitsubishi2MQTT/blob/master/Mitsubishi2mqtt.json
+Then you can import the dashboard in Grafana -> Dashboards -> New -> Import and upload the file https://github.com/gysmo38/mitsubishi2MQTT/blob/master/Mitsubishi2mqtt.json
 
-![](https://github.com/Allram/mitsubishi2MQTT/blob/master/images/Grafana-screenshot.png)
+![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/Grafana-screenshot.png)
 
 If you like my work and use it ;)<br>
 
