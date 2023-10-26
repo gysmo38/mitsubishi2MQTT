@@ -84,6 +84,63 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 //Web OTA
 int uploaderror = 0;
 
+// Start header for build with IDF and Platformio
+bool loadWifi();
+bool loadMqtt();
+bool loadUnit();
+bool loadOthers();
+void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser, String mqttPwd, String mqttTopic);
+void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep);
+void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd);
+void saveOthers(String haa, String haat, String debugPckts, String debugLogs);
+void initCaptivePortal();
+void initMqtt();
+void initOTA();
+void setDefaults();
+boolean initWifi();
+void sendWrappedHTML(String content);
+void handleNotFound();
+void handleSaveWifi();
+void handleReboot();
+void handleRoot();
+void handleInitSetup();
+void handleSetup();
+void rebootAndSendPage();
+void handleOthers();
+void handleMqtt();
+void handleUnit();
+void handleWifi();
+void handleStatus();
+void handleControl();
+void handleMetrics();
+void handleLogin();
+void handleUpgrade();
+void handleUploadDone();
+void handleUploadLoop();
+void write_log(String log);
+heatpumpSettings change_states(heatpumpSettings settings);
+void readHeatPumpSettings();
+void hpSettingsChanged();
+String hpGetMode(heatpumpSettings hpSettings);
+String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings);
+void hpStatusChanged(heatpumpStatus currentStatus);
+void hpCheckRemoteTemp();
+void hpPacketDebug(byte *packet, unsigned int length, const char *packetDirection);
+void hpSendLocalState();
+void mqttCallback(char *topic, byte *payload, unsigned int length);
+void haConfig();
+void mqttConnect();
+bool connectWifi();
+float toFahrenheit(float fromCelcius);
+float toCelsius(float fromFahrenheit);
+float convertCelsiusToLocalUnit(float temperature, bool isFahrenheit);
+float convertLocalUnitToCelsius(float temperature, bool isFahrenheit);
+String getTemperatureScale();
+String getId();
+bool is_authenticated();
+bool checkLogin();
+// End  header for build with IDF and Platformio
+
 void setup() {
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
