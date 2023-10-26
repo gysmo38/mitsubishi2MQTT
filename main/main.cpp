@@ -19,16 +19,24 @@
 #include <WiFi.h>             // WIFI for ESP32
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>          // mDNS for ESP32
-#include <WebServer.h>        // webServer for ESP32
+#include <AsyncTCP.h>         // ESPAsyncWebServer for ESP32
 #include "SPIFFS.h"           // ESP32 SPIFFS for store config
-WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
 #include <WiFiClient.h>
 #include <ESP8266mDNS.h>      // mDNS for ESP8266
-#include <ESP8266WebServer.h> // webServer for ESP8266
-ESP8266WebServer server(80);  // ESP8266 web
+#include <ESPAsyncTCP.h>      // ESPAsyncWebServer for ESP8266
+#define U_PART U_FS
 #endif
+
+#include <ESPAsyncWebServer.h>  //ESPAsyncWebServer
+AsyncWebServer server(80);    // Async Web server
+#define WEBSOCKET_ENABLE 1 // Uncomment to enable websocket
+#ifdef WEBSOCKET_ENABLE
+AsyncWebSocket ws("/ws"); // Async Web socket
+#endif
+AsyncEventSource events("/events"); // Create an Event Source on /events
+
 #include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.8.0
 #include <DNSServer.h>        // DNS for captive portal
@@ -83,6 +91,7 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 
 //Web OTA
 int uploaderror = 0;
+size_t ota_content_len;
 
 // Start header for build with IDF and Platformio
 bool loadWifi();
@@ -98,27 +107,27 @@ void initMqtt();
 void initOTA();
 void setDefaults();
 boolean initWifi();
-void sendWrappedHTML(String content);
-void handleNotFound();
-void handleSaveWifi();
-void handleReboot();
-void handleRoot();
-void handleInitSetup();
-void handleSetup();
-void rebootAndSendPage();
-void handleOthers();
-void handleMqtt();
-void handleUnit();
-void handleWifi();
-void handleStatus();
-void handleControl();
-void handleMetrics();
-void handleLogin();
-void handleUpgrade();
-void handleUploadDone();
-void handleUploadLoop();
+void sendWrappedHTML(AsyncWebServerRequest *request, const String &content);
+void handleNotFound(AsyncWebServerRequest *request);
+void handleSaveWifi(AsyncWebServerRequest *request);
+void handleReboot(AsyncWebServerRequest *request);
+void handleRoot(AsyncWebServerRequest *request);
+void handleInitSetup(AsyncWebServerRequest *request);
+void handleSetup(AsyncWebServerRequest *request);
+void rebootAndSendPage(AsyncWebServerRequest *request);
+void handleOthers(AsyncWebServerRequest *request);
+void handleMqtt(AsyncWebServerRequest *request);
+void handleUnit(AsyncWebServerRequest *request);
+void handleWifi(AsyncWebServerRequest *request);
+void handleStatus(AsyncWebServerRequest *request);
+void handleControl(AsyncWebServerRequest *request);
+void handleMetrics(AsyncWebServerRequest *request);
+void handleLogin(AsyncWebServerRequest *request);
+void handleUpgrade(AsyncWebServerRequest *request);
+void handleUploadDone(AsyncWebServerRequest *request);
+void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 void write_log(String log);
-heatpumpSettings change_states(heatpumpSettings settings);
+heatpumpSettings change_states(AsyncWebServerRequest *request, heatpumpSettings settings);
 void readHeatPumpSettings();
 void hpSettingsChanged();
 String hpGetMode(heatpumpSettings hpSettings);
@@ -137,9 +146,17 @@ float convertCelsiusToLocalUnit(float temperature, bool isFahrenheit);
 float convertLocalUnitToCelsius(float temperature, bool isFahrenheit);
 String getTemperatureScale();
 String getId();
-bool is_authenticated();
-bool checkLogin();
+bool is_authenticated(AsyncWebServerRequest *request);
+bool checkLogin(AsyncWebServerRequest *request);
 // End  header for build with IDF and Platformio
+
+#ifdef ESP8266
+#define ESP_LOGE(tag, format, ...)
+#define ESP_LOGW(tag, format, ...)
+#define ESP_LOGI(tag, format, ...)
+#define ESP_LOGD(tag, format, ...)
+#define ESP_LOGV(tag, format, ...)
+#endif
 
 void setup() {
   // Start serial for debug before HVAC connect to serial
@@ -198,10 +215,9 @@ void setup() {
       const char * headerkeys[] = {"User-Agent", "Cookie"} ;
       size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
       //ask server to track these headers
-      server.collectHeaders(headerkeys, headerkeyssize);
     }
     server.on("/upgrade", handleUpgrade);
-    server.on("/upload", HTTP_POST, handleUploadDone, handleUploadLoop);
+    server.on("/upload", HTTP_ASYNC_ANY, handleUploadDone, handleUploadLoop);
 
     server.begin();
     lastMqttRetry = 0;
@@ -591,16 +607,21 @@ boolean initWifi() {
 
 // Handler webserver response
 
-void sendWrappedHTML(String content) {
+void sendWrappedHTML(AsyncWebServerRequest *request, const String &content)
+{
   String headerContent = FPSTR(html_common_header);
   String footerContent = FPSTR(html_common_footer);
-  String toSend = headerContent + content + footerContent;
+  String toSend(headerContent);
+  toSend += content;
+  toSend += footerContent;
   toSend.replace(F("_UNIT_NAME_"), hostname);
   toSend.replace(F("_VERSION_"), m2mqtt_version);
-  server.send(200, F("text/html"), toSend);
+  request->send_P(200, "text/html", toSend.c_str());
+  headerContent = "";
+  footerContent = "";
 }
 
-void handleNotFound() {
+void handleNotFound(AsyncWebServerRequest *request) {
   if (captive) {
     String initSetupContent = FPSTR(html_init_setup);
     initSetupContent.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
@@ -612,48 +633,49 @@ void handleNotFound() {
     initSetupContent.replace("_TXT_SAVE_",FPSTR(txt_save));
     initSetupContent.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
 
-    sendWrappedHTML(initSetupContent);
+    sendWrappedHTML(request, initSetupContent);
   }
   else {
-    server.sendHeader("Location", "/");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.send(302);
-    return;
+    String menuRootPage = FPSTR(html_menu_root);
+    menuRootPage.replace(F("_SHOW_LOGOUT_"), (String)(login_password.length() > 0));
+    // not show control button if hp not connected
+    menuRootPage.replace(F("_SHOW_CONTROL_"), (String)(hp.isConnected()));
+    sendWrappedHTML(request, menuRootPage);
   }
 }
 
-void handleSaveWifi() {
-  if (!checkLogin()) return;
+void handleSaveWifi(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
   // Serial.println(F("Saving wifi config"));
-  if (server.method() == HTTP_POST) {
-    saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
+  if (request->hasArg("submit")) {
+    saveWifi(request->arg("ssid"), request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
   }
   String initSavePage =  FPSTR(html_init_save);
   initSavePage.replace("_TXT_INIT_REBOOT_MESS_",FPSTR(txt_init_reboot_mes));
-  sendWrappedHTML(initSavePage);
+  sendWrappedHTML(request, initSavePage);
   delay(500);
   ESP.restart();
 }
 
-void handleReboot() {
-  if (!checkLogin()) return;
+void handleReboot(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
   String initRebootPage = FPSTR(html_init_reboot);
   initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
-  sendWrappedHTML(initRebootPage);
+  sendWrappedHTML(request, initRebootPage);
   delay(500);
   ESP.restart();
 }
 
-void handleRoot() {
-  if (!checkLogin()) return;
+void handleRoot(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.hasArg("REBOOT")) {
+  if (request->hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
     rebootPage.replace("_TXT_M_REBOOT_",FPSTR(txt_m_reboot));
-    sendWrappedHTML(rebootPage + countDown);
+    sendWrappedHTML(request, rebootPage + countDown);
     delay(500);
 #ifdef ESP32
     ESP.restart();
@@ -672,11 +694,11 @@ void handleRoot() {
     menuRootPage.replace("_TXT_FW_UPGRADE_",FPSTR(txt_firmware_upgrade));
     menuRootPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
     menuRootPage.replace("_TXT_LOGOUT_",FPSTR(txt_logout));
-    sendWrappedHTML(menuRootPage);
+    sendWrappedHTML(request, menuRootPage);
   }
 }
 
-void handleInitSetup() {
+void handleInitSetup(AsyncWebServerRequest *request) {
   String initSetupPage = FPSTR(html_init_setup);
   initSetupPage.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
   initSetupPage.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
@@ -686,19 +708,19 @@ void handleInitSetup() {
   initSetupPage.replace("_TXT_SAVE_",FPSTR(txt_save));
   initSetupPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
 
-  sendWrappedHTML(initSetupPage);
+  sendWrappedHTML(request, initSetupPage);
 }
 
-void handleSetup() {
-  if (!checkLogin()) return;
+void handleSetup(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.hasArg("RESET")) {
+  if (request->hasArg("RESET")) {
     String pageReset = FPSTR(html_page_reset);
     String ssid = hostnamePrefix;
     ssid += getId();
     pageReset.replace("_TXT_M_RESET_",FPSTR(txt_m_reset));
     pageReset.replace("_SSID_",ssid);
-    sendWrappedHTML(pageReset);
+    sendWrappedHTML(request, pageReset);
     SPIFFS.format();
     delay(500);
 #ifdef ESP32
@@ -716,26 +738,27 @@ void handleSetup() {
     menuSetupPage.replace("_TXT_RESET_",FPSTR(txt_reset));
     menuSetupPage.replace("_TXT_BACK_",FPSTR(txt_back));
     menuSetupPage.replace("_TXT_RESETCONFIRM_",FPSTR(txt_reset_confirm));
-    sendWrappedHTML(menuSetupPage);
+    sendWrappedHTML(request, menuSetupPage);
   }
 
 }
 
-void rebootAndSendPage() {
+void rebootAndSendPage(AsyncWebServerRequest *request) {
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
     saveRebootPage.replace("_TXT_M_SAVE_",FPSTR(txt_m_save));
-    sendWrappedHTML(saveRebootPage + countDown);
+    sendWrappedHTML(request, saveRebootPage + countDown);
     delay(500);
     ESP.restart();
 }
 
-void handleOthers() {
-  if (!checkLogin()) return;
+void handleOthers(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.method() == HTTP_POST) {
-    saveOthers(server.arg("HAA"), server.arg("haat"), server.arg("DebugPckts"),server.arg("DebugLogs"));
-    rebootAndSendPage();
+  if (request->hasArg("save"))
+  {
+    saveOthers(request->arg("HAA"), request->arg("haat"), request->arg("DebugPckts"),request->arg("DebugLogs"));
+    rebootAndSendPage(request);
   }
   else {
     String othersPage =  FPSTR(html_page_others);
@@ -768,16 +791,17 @@ void handleOthers() {
     else {
       othersPage.replace("_DEBUG_LOGS_OFF_", "selected");
     }
-    sendWrappedHTML(othersPage);
+    sendWrappedHTML(request, othersPage);
   }
 }
 
-void handleMqtt() {
-  if (!checkLogin()) return;
+void handleMqtt(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.method() == HTTP_POST) {
-    saveMqtt(server.arg("fn"), server.arg("mh"), server.arg("ml"), server.arg("mu"), server.arg("mp"), server.arg("mt"));
-    rebootAndSendPage();
+  if (request->hasArg("save"))
+  {
+    saveMqtt(request->arg("fn"), request->arg("mh"), request->arg("ml"), request->arg("mu"), request->arg("mp"), request->arg("mt"));
+    rebootAndSendPage(request);
   }
   else {
     String mqttPage =  FPSTR(html_page_mqtt);
@@ -796,16 +820,17 @@ void handleMqtt() {
     mqttPage.replace(F("_MQTT_USER_"), mqtt_username);
     mqttPage.replace(F("_MQTT_PASSWORD_"), mqtt_password);
     mqttPage.replace(F("_MQTT_TOPIC_"), mqtt_topic);
-    sendWrappedHTML(mqttPage);
+    sendWrappedHTML(request, mqttPage);
   }
 }
 
-void handleUnit() {
-  if (!checkLogin()) return;
+void handleUnit(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.method() == HTTP_POST) {
-    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
-    rebootAndSendPage();
+  if (request->hasArg("save"))
+  {
+    saveUnit(request->arg("tu"), request->arg("md"), request->arg("lpw"), (String)convertLocalUnitToCelsius(request->arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(request->arg("max_temp").toInt(), useFahrenheit), request->arg("temp_step"));
+    rebootAndSendPage(request);
   }
   else {
     String unitPage =  FPSTR(html_page_unit);
@@ -832,16 +857,17 @@ void handleUnit() {
     if (supportHeatMode) unitPage.replace(F("_MD_ALL_"), F("selected"));
     else unitPage.replace(F("_MD_NONHEAT_"), F("selected"));
     unitPage.replace(F("_LOGIN_PASSWORD_"), login_password);
-    sendWrappedHTML(unitPage);
+    sendWrappedHTML(request, unitPage);
   }
 }
 
-void handleWifi() {
-  if (!checkLogin()) return;
+void handleWifi(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
-  if (server.method() == HTTP_POST) {
-    saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
-    rebootAndSendPage();
+  if (request->hasArg("save"))
+  {
+    saveWifi(request->arg("ssid"), request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
+    rebootAndSendPage(request);
 #ifdef ESP32
     ESP.restart();
 #else
@@ -866,13 +892,13 @@ void handleWifi() {
     wifiPage.replace(F("_SSID_"), str_ap_ssid);
     wifiPage.replace(F("_PSK_"), str_ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), str_ota_pwd);
-    sendWrappedHTML(wifiPage);
+    sendWrappedHTML(request, wifiPage);
   }
 
 }
 
-void handleStatus() {
-  if (!checkLogin()) return;
+void handleStatus(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
   String statusPage =  FPSTR(html_page_status);
   statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
@@ -882,7 +908,7 @@ void handleStatus() {
   statusPage.replace("_TXT_STATUS_WIFI_", FPSTR(txt_status_wifi));
   statusPage.replace("_TXT_RETRIES_HVAC_", FPSTR(txt_retries_hvac));
 
-  if (server.hasArg("mrconn")) mqttConnect();
+  if (request->hasArg("mrconn")) mqttConnect();
 
   String connected = F("<span style='color:#47c266'><b>");
   connected += FPSTR(txt_status_connect);
@@ -899,23 +925,25 @@ void handleStatus() {
   statusPage.replace(F("_HVAC_RETRIES_"), String(hpConnectionTotalRetries));
   statusPage.replace(F("_MQTT_REASON_"), String(mqtt_client.state()));
   statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
-  sendWrappedHTML(statusPage);
+  sendWrappedHTML(request, statusPage);
 }
 
 
 
-void handleControl() {
-  if (!checkLogin()) return;
+void handleControl(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
   //not connected to hp, redirect to status page
-  if (!hp.isConnected()) {
-    server.sendHeader("Location", "/status");
-    server.sendHeader("Cache-Control", "no-cache");
-    server.send(302);
+  if (!hp.isConnected())
+  {
+    AsyncWebServerResponse *response = request->beginResponse(301);
+    response->addHeader("Location", "/status");
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
     return;
   }
   heatpumpSettings settings = hp.getSettings();
-  settings = change_states(settings);
+  settings = change_states(request, settings);
   String controlPage =  FPSTR(html_page_control);
   String headerContent = FPSTR(html_common_header);
   String footerContent = FPSTR(html_common_footer);
@@ -1041,19 +1069,14 @@ void handleControl() {
   }
   controlPage.replace("_TEMP_", String(convertCelsiusToLocalUnit(hp.getTemperature(), useFahrenheit)));
 
+  sendWrappedHTML(request, controlPage);
+  controlPage = "";
   // We need to send the page content in chunks to overcome
   // a limitation on the maximum size we can send at one
   // time (approx 6k).
-  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/html", headerContent);
-  server.sendContent(controlPage);
-  server.sendContent(footerContent);
-  // Signal the end of the content
-  server.sendContent("");
-  //delay(100);
 }
 
-void handleMetrics(){
+void handleMetrics(AsyncWebServerRequest *request){
   String metrics =    FPSTR(html_metrics);
 
   heatpumpSettings currentSettings = hp.getSettings();
@@ -1097,52 +1120,61 @@ void handleMetrics(){
   metrics.replace("_MODE_", hpmode);
   metrics.replace("_OPER_", (String)currentStatus.operating);
   metrics.replace("_COMPFREQ_", (String)currentStatus.compressorFrequency);
-  server.send(200, F("text/plain"), metrics);
+  sendWrappedHTML(request, metrics);
 
 }
 
-//login page, also called for logout
-void handleLogin() {
+// login page, also called for logout
+void handleLogin(AsyncWebServerRequest *request)
+{
   bool loginSuccess = false;
   String msg;
-  String loginPage =  FPSTR(html_page_login);
+  String loginPage = FPSTR(html_page_login);
+  // localize
   loginPage.replace("_TXT_LOGIN_TITLE_", FPSTR(txt_login_title));
   loginPage.replace("_TXT_LOGIN_PASSWORD_", FPSTR(txt_login_password));
   loginPage.replace("_TXT_LOGIN_", FPSTR(txt_login));
-
-  if (server.hasArg("USERNAME") || server.hasArg("PASSWORD") || server.hasArg("LOGOUT")) {
-    if (server.hasArg("LOGOUT")) {
-      //logout
-      server.sendHeader("Cache-Control", "no-cache");
-      server.sendHeader("Set-Cookie", "M2MSESSIONID=0");
+  if (request->hasHeader("Cookie"))
+  {
+    // Found cookie;
+    String cookie = request->header("Cookie");
+  }
+  if (request->hasArg("USERNAME") || request->hasArg("PASSWORD") || request->hasArg("LOGOUT"))
+  {
+    if (request->hasArg("LOGOUT"))
+    {
+      // logout
       loginSuccess = false;
     }
-    if (server.hasArg("USERNAME") && server.hasArg("PASSWORD")) {
-      if (server.arg("USERNAME") == "admin" &&  server.arg("PASSWORD") == login_password) {
-        server.sendHeader("Cache-Control", "no-cache");
-        server.sendHeader("Set-Cookie", "M2MSESSIONID=1");
+    if (request->hasArg("USERNAME") && request->hasArg("PASSWORD"))
+    {
+      if (request->arg("USERNAME") == login_username && request->arg("PASSWORD") == login_password)
+      {
         loginSuccess = true;
-        msg = F("<span style='color:#47c266;font-weight:bold;'>");
+        msg = F("<b><font color='red'>");
         msg += FPSTR(txt_login_sucess);
-        msg += F("<span>");
+        msg += F("</font></b>");
         loginPage += F("<script>");
         loginPage += F("setTimeout(function () {");
         loginPage += F("window.location.href= '/';");
         loginPage += F("}, 3000);");
         loginPage += F("</script>");
-        //Log in Successful;
-      } else {
-        msg = F("<span style='color:#d43535;font-weight:bold;'>");
+        // Log in Successful;
+      }
+      else
+      {
+        msg = F("<b><font color='red'>");
         msg += FPSTR(txt_login_fail);
-        msg += F("</span>");
-        //Log in Failed;
+        msg += F("</font></b>");
+        // Log in Failed;
       }
     }
-  } else {
-    if (is_authenticated() or login_password.length() == 0) {
-      server.sendHeader("Location", "/");
-      server.sendHeader("Cache-Control", "no-cache");
-      //use javascript in the case browser disable redirect
+  }
+  else
+  {
+    if (is_authenticated(request) or login_password.length() == 0)
+    {
+      // use javascript in the case browser disable redirect
       String redirectPage = F("<html lang=\"en\" class=\"\"><head><meta charset='utf-8'>");
       redirectPage += F("<script>");
       redirectPage += F("setTimeout(function () {");
@@ -1150,17 +1182,38 @@ void handleLogin() {
       redirectPage += F("}, 1000);");
       redirectPage += F("</script>");
       redirectPage += F("</body></html>");
-      server.send(302, F("text/html"), redirectPage);
+      AsyncWebServerResponse *response = request->beginResponse(301, "text/html", redirectPage);
+      response->addHeader("Location", "/");
+      response->addHeader("Cache-Control", "no-cache");
+      request->send(response);
       return;
     }
   }
-  loginPage.replace(F("_LOGIN_SUCCESS_"), (String) loginSuccess);
+  loginPage.replace(F("_LOGIN_SUCCESS_"), (String)loginSuccess);
   loginPage.replace(F("_LOGIN_MSG_"), msg);
-  sendWrappedHTML(loginPage);
+
+  String headerContent = FPSTR(html_common_header);
+  String footerContent = FPSTR(html_common_footer);
+  String toSend(headerContent);
+  toSend += loginPage;
+  toSend += footerContent;
+  toSend.replace(F("_UNIT_NAME_"), hostname);
+  AsyncWebServerResponse *response = request->beginResponse(200, "text/html", toSend);
+  if (loginSuccess)
+  {
+    response->addHeader("Set-Cookie", "M2MSESSIONID=1");
+    response->addHeader("Cache-Control", "no-cache");
+  }
+  else
+  {
+    response->addHeader("Set-Cookie", "M2MSESSIONID=0");
+    response->addHeader("Cache-Control", "no-cache");
+  }
+  request->send(response);
 }
 
-void handleUpgrade() {
-  if (!checkLogin()) return;
+void handleUpgrade(AsyncWebServerRequest *request) {
+  if (!checkLogin(request)) return;
 
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
@@ -1170,10 +1223,10 @@ void handleUpgrade() {
   upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
   upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
 
-  sendWrappedHTML(upgradePage);
+  sendWrappedHTML(request, upgradePage);
 }
 
-void handleUploadDone() {
+void handleUploadDone(AsyncWebServerRequest *request) {
   //Serial.printl(PSTR("HTTP: Firmware upload done"));
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
@@ -1214,7 +1267,7 @@ void handleUploadDone() {
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
   uploadDonePage.replace("_TXT_BACK_", FPSTR(txt_back));
-  sendWrappedHTML(uploadDonePage);
+  sendWrappedHTML(request, uploadDonePage);
   if (restartflag) {
     delay(500);
 #ifdef ESP32
@@ -1225,79 +1278,72 @@ void handleUploadDone() {
   }
 }
 
-void handleUploadLoop() {
-  if (!checkLogin()) return;
 
-  // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
-  //char log[200];
-  if (uploaderror) {
+void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+{
+  // Based on https://github.com/lbernstone/asyncUpdate/blob/master/AsyncUpdate.ino
+  if (uploaderror)
+  {
     Update.end();
     return;
   }
-  HTTPUpload& upload = server.upload();
-  if (upload.status == UPLOAD_FILE_START) {
-    if (upload.filename.c_str()[0] == 0)
+  if (filename.c_str()[0] == 0)
+  {
+    uploaderror = 1;
+    return;
+  }
+  if (!index)
+  {
+    ota_content_len = request->contentLength();
+    // if filename includes spiffs, update the spiffs partition
+    int cmd = (filename.indexOf("spiffs") > -1) ? U_PART : U_FLASH;
+    // uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000; // 0x1000 start boot loader
+#ifdef ESP8266
+    Update.runAsync(true);
+    if (!Update.begin(ota_content_len, cmd))
     {
-      uploaderror = 1;
-      return;
-    }
-    //save cpu by disconnect/stop retry mqtt server
-    if (mqtt_client.state() == MQTT_CONNECTED) {
-      mqtt_client.disconnect();
-      lastMqttRetry = millis();
-    }
-    //snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
-    //Serial.printl(log);
-    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-    if (!Update.begin(maxSketchSpace)) {         //start with max available size
-      //Update.printError(Serial);
+#else
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd))
+    {
+#endif
       uploaderror = 2;
       return;
     }
-  } else if (!uploaderror && (upload.status == UPLOAD_FILE_WRITE)) {
-    if (upload.totalSize == 0)
+  }
+  if (!Update.hasError())
+  {
+    if (Update.write(data, len) != len)
     {
-      if (upload.buf[0] != 0xE9) {
-        //Serial.println(PSTR("Upload: File magic header does not start with 0xE9"));
-        uploaderror = 3;
-        return;
-      }
-      uint32_t bin_flash_size = ESP.magicFlashChipSize((upload.buf[3] & 0xf0) >> 4);
-#ifdef ESP32
-      if (bin_flash_size > ESP.getFlashChipSize()) {
-#else
-      if (bin_flash_size > ESP.getFlashChipRealSize()) {
-#endif
-        //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
-        uploaderror = 4;
-        return;
-      }
-      if (ESP.getFlashChipMode() == 3) {
-        upload.buf[2] = 3; // DOUT - ESP8285
-      } else {
-        upload.buf[2] = 2; // DIO - ESP8266
-      }
-    }
-    if (!uploaderror && (Update.write(upload.buf, upload.currentSize) != upload.currentSize)) {
-      //Update.printError(Serial);
       uploaderror = 5;
-      return;
+#ifdef ESP8266
     }
-  } else if (!uploaderror && (upload.status == UPLOAD_FILE_END)) {
-    if (Update.end(true)) { // true to set the size to the current progress
-      //snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
-      //Serial.printl(log)
-    } else {
-      //Update.printError(Serial);
-      uploaderror = 6;
-      return;
+    else
+    {
+#endif
     }
-  } else if (upload.status == UPLOAD_FILE_ABORTED) {
-    //Serial.println(PSTR("Upload: Update was aborted"));
-    uploaderror = 7;
+  }
+  else
+  {
+    uploaderror = Update.getError();
     Update.end();
   }
-  delay(0);
+  if (uploaderror)
+  {
+    Update.end();
+    return;
+  }
+
+  if (final)
+  {
+    if (!Update.end(true))
+    {
+      uploaderror = 6;
+    }
+    else
+    {
+
+    }
+  }
 }
 
 void write_log(String log) {
@@ -1306,34 +1352,34 @@ void write_log(String log) {
   logFile.close();
 }
 
-heatpumpSettings change_states(heatpumpSettings settings) {
-  if (server.hasArg("CONNECT")) {
+heatpumpSettings change_states(AsyncWebServerRequest *request, heatpumpSettings settings) {
+  if (request->hasArg("CONNECT")) {
     hp.connect(&Serial);
   }
   else {
     bool update = false;
-    if (server.hasArg("POWER")) {
-      settings.power = server.arg("POWER").c_str();
+    if (request->hasArg("POWER")) {
+      settings.power = request->arg("POWER").c_str();
       update = true;
     }
-    if (server.hasArg("MODE")) {
-      settings.mode = server.arg("MODE").c_str();
+    if (request->hasArg("MODE")) {
+      settings.mode = request->arg("MODE").c_str();
       update = true;
     }
-    if (server.hasArg("TEMP")) {
-      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toInt(), useFahrenheit);
+    if (request->hasArg("TEMP")) {
+      settings.temperature = convertLocalUnitToCelsius(request->arg("TEMP").toInt(), useFahrenheit);
       update = true;
     }
-    if (server.hasArg("FAN")) {
-      settings.fan = server.arg("FAN").c_str();
+    if (request->hasArg("FAN")) {
+      settings.fan = request->arg("FAN").c_str();
       update = true;
     }
-    if (server.hasArg("VANE")) {
-      settings.vane = server.arg("VANE").c_str();
+    if (request->hasArg("VANE")) {
+      settings.vane = request->arg("VANE").c_str();
       update = true;
     }
-    if (server.hasArg("WIDEVANE")) {
-      settings.wideVane = server.arg("WIDEVANE").c_str();
+    if (request->hasArg("WIDEVANE")) {
+      settings.wideVane = request->arg("WIDEVANE").c_str();
       update = true;
     }
     if (update) {
@@ -1837,25 +1883,28 @@ String getId() {
   return String(chipID, HEX);
 }
 
-//Check if header is present and correct
-bool is_authenticated() {
-  if (server.hasHeader("Cookie")) {
-    //Found cookie;
-    String cookie = server.header("Cookie");
-    if (cookie.indexOf("M2MSESSIONID=1") != -1) {
-      //Authentication Successful
+// Check if header is present and correct
+bool is_authenticated(AsyncWebServerRequest *request)
+{
+  if (request->hasHeader("Cookie"))
+  {
+    // Found cookie;
+    String cookie = String(request->getHeader("Cookie")->value().c_str());
+    if (cookie.indexOf("M2MSESSIONID=1") != -1)
+    {
+      // Authentication Successful
       return true;
     }
   }
-  //Authentication Failed
+  // Authentication Failed
   return false;
 }
 
-bool checkLogin() {
-  if (!is_authenticated() and login_password.length() > 0) {
-    server.sendHeader("Location", "/login");
-    server.sendHeader("Cache-Control", "no-cache");
-    //use javascript in the case browser disable redirect
+bool checkLogin(AsyncWebServerRequest *request)
+{
+  if (!is_authenticated(request) and login_password.length() > 0)
+  {
+    // use javascript in the case browser disable redirect
     String redirectPage = F("<html lang=\"en\" class=\"\"><head><meta charset='utf-8'>");
     redirectPage += F("<script>");
     redirectPage += F("setTimeout(function () {");
@@ -1863,14 +1912,16 @@ bool checkLogin() {
     redirectPage += F("}, 1000);");
     redirectPage += F("</script>");
     redirectPage += F("</body></html>");
-    server.send(302, F("text/html"), redirectPage);
-    return false;
+    AsyncWebServerResponse *response = request->beginResponse(301, "text/html", redirectPage);
+    response->addHeader("Location", "/login");
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
+    return true;
   }
-  return true;
+  return false;
 }
 
 void loop() {
-  server.handleClient();
   ArduinoOTA.handle();
 
   //reset board to attempt to connect to wifi again if in ap mode or wifi dropped out and time limit passed
