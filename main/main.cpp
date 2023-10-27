@@ -1302,7 +1302,8 @@ void handleWifi(AsyncWebServerRequest *request)
     wifiPage.replace(F("_SSID_"), str_ap_ssid);
     wifiPage.replace(F("_PSK_"), str_ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), str_ota_pwd);
-    sendWrappedHTML(request, wifiPage);
+    String fwCheckEvents = FPSTR(fw_check_script_events);
+    sendWrappedHTML(request, fwCheckEvents + wifiPage);
   }
 }
 
