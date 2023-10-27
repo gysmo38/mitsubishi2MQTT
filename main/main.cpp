@@ -14,40 +14,6 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "FS.h"               // SPIFFS for store config
-#ifdef ESP32
-#include <WiFi.h>             // WIFI for ESP32
-#include <WiFiUdp.h>
-#include <ESPmDNS.h>          // mDNS for ESP32
-#include <AsyncTCP.h>         // ESPAsyncWebServer for ESP32
-#include "SPIFFS.h"           // ESP32 SPIFFS for store config
-extern "C" {
-	#include "freertos/FreeRTOS.h" //AsyncMqttClient
-	#include "freertos/timers.h"
-}
-#else
-#include <ESP8266WiFi.h>      // WIFI for ESP8266
-#include <WiFiClient.h>
-#include <ESP8266mDNS.h>      // mDNS for ESP8266
-#include <ESPAsyncTCP.h>      // ESPAsyncWebServer for ESP8266
-#define U_PART U_FS
-#endif
-#include <AsyncMqttClient.h>
-#include <ESPAsyncWebServer.h>  //ESPAsyncWebServer
-AsyncWebServer server(80);    // Async Web server
-#define WEBSOCKET_ENABLE 1 // Uncomment to enable websocket
-#ifdef WEBSOCKET_ENABLE
-AsyncWebSocket ws("/ws"); // Async Web socket
-#endif
-AsyncEventSource events("/events"); // Create an Event Source on /events
-
-#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
-#include <DNSServer.h>        // DNS for captive portal
-#include <math.h>             // for rounding to Fahrenheit values
-
-#include <ArduinoOTA.h>   // for OTA
-#include <HeatPump.h>     // SwiCago library: https://github.com/SwiCago/HeatPump
-#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
 #include "config.h"       // config file
 #include "html_common.h"  // common code HTML (like header, footer)
 #include "javascript_common.h"  // common code javascript (like refresh page)
@@ -56,57 +22,13 @@ AsyncEventSource events("/events"); // Create an Event Source on /events
 #include "html_pages.h"   // code html for pages
 #include "html_metrics.h" // prometheus metrics
 
-// wifi, mqtt and heatpump client instances
-AsyncMqttClient mqttClient;        // AsyncMqtt
-#ifdef ESP32
-TimerHandle_t mqttReconnectTimer;  //timer for esp32 AsyncMqttClient
-TimerHandle_t wifiReconnectTimer;  //timer for esp32 AsyncMqttClient
-#elif defined(ESP8266)
-WiFiEventHandler wifiConnectHandler;
-WiFiEventHandler wifiDisconnectHandler;
-Ticker mqttReconnectTimer;         //timer for esp8266 AsyncMqttClient
-Ticker wifiReconnectTimer;         //timer for esp8266 AsyncMqttClient
-#endif
-
-int mqtt_attempts = 0;
-bool mqtt_connected = false;
-uint8_t mqtt_disconnected_reason;
-
-
-//Captive portal variables, only used for config page
-const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 1, 1);
-IPAddress netMsk(255, 255, 255, 0);
-DNSServer dnsServer;
-
-boolean captive = false;
-boolean mqtt_config = false;
-boolean wifi_config = false;
-boolean remoteTempActive = false;
-
-//HVAC
-HeatPump hp;
-unsigned long lastTempSend;
-unsigned long lastMqttRetry;
-unsigned long lastHpSync;
-unsigned int hpConnectionRetries;
-unsigned int hpConnectionTotalRetries;
-unsigned long lastRemoteTemp;
-
-//Local state
-StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
-
-//Web OTA
-int uploaderror = 0;
-size_t ota_content_len;
-
 // Start header for build with IDF and Platformio
 bool loadWifi();
 bool loadMqtt();
 bool loadUnit();
 bool loadOthers();
 void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser, String mqttPwd, String mqttTopic);
-void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep);
+void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep, String languageIndex);
 void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd);
 void saveOthers(String haa, String haat, String debugPckts, String debugLogs);
 void initCaptivePortal();
@@ -116,7 +38,7 @@ void setDefaults();
 boolean initWifi();
 void sendWrappedHTML(AsyncWebServerRequest *request, const String &content);
 void handleNotFound(AsyncWebServerRequest *request);
-void handleSaveWifi(AsyncWebServerRequest *request);
+void handleSaveWifiAndMqtt(AsyncWebServerRequest *request);
 void handleReboot(AsyncWebServerRequest *request);
 void handleRoot(AsyncWebServerRequest *request);
 void handleInitSetup(AsyncWebServerRequest *request);
@@ -170,6 +92,20 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 void onMqttPublish(uint16_t packetId);
 String getValueBySeparator(String data, char separator, int index);
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+
+void sendRebootRequest(unsigned long nextSeconds);
+void checkRebootRequest();
+void checkHpUpdateRequest();
+void checkWifiScanRequest();
+
+String getWifiOptions(bool send);
+void getWifiList();
+bool isSecureEnable();
+String getBuildDatetime();
+String getAppVersion();
+void initNVS();
+String getUpTime();
+String getCurrentTime();
 // End  header for build with IDF and Platformio
 
 #ifdef ESP8266
@@ -181,6 +117,9 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
 #endif
 
 void setup() {
+#ifdef ESP32
+  initNVS();
+#endif
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
@@ -217,7 +156,7 @@ void setup() {
       ha_remote_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/remote_temp/set";
       ha_fan_set_topic         = mqtt_topic + "/" + mqtt_fn + "/fan/set";
       ha_vane_set_topic        = mqtt_topic + "/" + mqtt_fn + "/vane/set";
-      ha_wideVane_set_topic    = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
+      ha_wide_vane_set_topic    = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
       ha_settings_topic        = mqtt_topic + "/" + mqtt_fn + "/settings";
       ha_state_topic           = mqtt_topic + "/" + mqtt_fn + "/state";
       ha_debug_pckts_topic     = mqtt_topic + "/" + mqtt_fn + "/debug/packets";
@@ -308,7 +247,9 @@ void setup() {
     dnsServer.start(DNS_PORT, "*", apIP);
     initCaptivePortal();
   }
+#ifdef ARDUINO_OTA
   initOTA();
+#endif
 }
 
 bool loadWifi() {
@@ -562,7 +503,7 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
 void initCaptivePortal() {
   // Serial.println(F("Starting captive portal"));
   server.on("/", handleInitSetup);
-  server.on("/save", handleSaveWifi);
+  server.on("/save", handleSaveWifiAndMqtt);
   server.on("/reboot", handleReboot);
   server.onNotFound(handleNotFound);
   server.begin();
@@ -596,6 +537,7 @@ void initMqtt() {
 }
 
 // Enable OTA only when connected as a client.
+#ifdef ARDUINO_OTA
 void initOTA() {
   //write_log("Start OTA Listener");
   ArduinoOTA.setHostname(hostname.c_str());
@@ -621,6 +563,8 @@ void initOTA() {
   });
   ArduinoOTA.begin();
 }
+#endif
+
 void setDefaults() {
   ap_ssid = "";
   ap_pwd  = "";
@@ -714,18 +658,36 @@ void handleNotFound(AsyncWebServerRequest *request) {
   }
 }
 
-void handleSaveWifi(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
-  // Serial.println(F("Saving wifi config"));
-  if (request->hasArg("submit")) {
-    saveWifi(request->arg("ssid"), request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
+void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
+{
+  checkLogin(request);
+  ESP_LOGD(TAG, "Saving wifi and mqtt config");
+  if (request->hasArg("submit"))
+  {
+    String ssid = request->arg("ssid");
+    if (ssid.isEmpty() and request->hasArg("network"))
+    {
+      ssid = request->arg("network"); // auto scan network
+    }
+    saveWifi(ssid, request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
+    if (request->hasArg("mh"))
+    {
+      saveMqtt(request->arg("fn"), request->arg("mh"), request->arg("ml"), request->arg("mu"), request->arg("mp"), request->arg("mt"));
+    }
+    if (request->hasArg("language"))
+    {
+      saveUnit("", "", "", "", "", "", request->arg("language"));
+    }
   }
-  String initSavePage =  FPSTR(html_init_save);
-  initSavePage.replace("_TXT_INIT_REBOOT_MESS_", translatedWord(FL_(txt_init_reboot_mes)));
-  sendWrappedHTML(request, initSavePage);
-  delay(500);
-  ESP.restart();
+  String initSavePage = FPSTR(html_init_save);
+  initSavePage.replace(F("_CONFIG_ADDR_"), hostname + ".local");
+  String countDown = FPSTR(count_down_script_init);
+  countDown.replace(F("_HOST_NAME_"), hostname + ".local");
+  // localize
+  initSavePage.replace("_TXT_INIT_REBOOT_MES_1_", translatedWord(FL_(txt_init_reboot_mes_1)));
+  initSavePage.replace("_TXT_INIT_REBOOT_MES_", translatedWord(FL_(txt_init_reboot_mes)));
+  sendWrappedHTML(request, initSavePage + countDown);
+  sendRebootRequest(2); // Reboot after 1 seconds
 }
 
 void handleReboot(AsyncWebServerRequest *request) {
@@ -768,17 +730,62 @@ void handleRoot(AsyncWebServerRequest *request) {
   }
 }
 
-void handleInitSetup(AsyncWebServerRequest *request) {
+void handleInitSetup(AsyncWebServerRequest *request)
+{
+  getWifiList();
   String initSetupPage = FPSTR(html_init_setup);
+  String unitScriptWs = FPSTR(unit_script_ws);
+  // localize
   initSetupPage.replace("_TXT_INIT_TITLE_", translatedWord(FL_(txt_init_title)));
-  initSetupPage.replace("_TXT_INIT_HOST_", translatedWord(FL_(txt_wifi_hostname)));
-  initSetupPage.replace("_TXT_INIT_SSID_", translatedWord(FL_(txt_wifi_ssid)));
-  initSetupPage.replace("_TXT_INIT_PSK_", translatedWord(FL_(txt_wifi_psk)));
-  initSetupPage.replace("_TXT_INIT_OTA_", translatedWord(FL_(txt_wifi_otap)));
+  initSetupPage.replace("_TXT_WIFI_TITLE_", translatedWord(FL_(txt_wifi_title)));
+  initSetupPage.replace("_TXT_UNIT_LANGUAGE_", translatedWord(FL_(txt_unit_language)));
+  initSetupPage.replace("_TXT_WIFI_SSID_ENTER_", translatedWord(FL_(txt_wifi_ssid_enter)));
+  initSetupPage.replace("_TXT_WIFI_SSID_SELECT_", translatedWord(FL_(txt_wifi_ssid_select)));
+  initSetupPage.replace("_TXT_WIFI_SSID_", translatedWord(FL_(txt_wifi_ssid)));
+  initSetupPage.replace("_TXT_WIFI_PSK_", translatedWord(FL_(txt_wifi_psk)));
+  initSetupPage.replace("_TXT_MQTT_TITLE_", translatedWord(FL_(txt_mqtt_title)));
+  initSetupPage.replace("_TXT_MQTT_PH_USER_", translatedWord(FL_(txt_mqtt_ph_user)));
+  initSetupPage.replace("_TXT_MQTT_PH_PWD_", translatedWord(FL_(txt_mqtt_ph_pwd)));
+  initSetupPage.replace("_TXT_MQTT_HOST_", translatedWord(FL_(txt_mqtt_host)));
+  initSetupPage.replace("_TXT_MQTT_PORT_DESC", translatedWord(FL_(txt_mqtt_port_desc)));
+  initSetupPage.replace("_TXT_MQTT_PORT_", translatedWord(FL_(txt_mqtt_port)));
+  initSetupPage.replace("_TXT_MQTT_USER_", translatedWord(FL_(txt_mqtt_user)));
+  initSetupPage.replace("_TXT_MQTT_PASSWORD_", translatedWord(FL_(txt_mqtt_password)));
   initSetupPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-  initSetupPage.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
-
-  sendWrappedHTML(request, initSetupPage);
+  initSetupPage.replace("_TXT_FIRMWARE_UPGRADE_", translatedWord(FL_(txt_firmware_upgrade)));
+  // set the data
+  // language
+  String language_list;
+  for (uint8_t i = 0; i < NUM_LANGUAGES; i++)
+  {
+    language_list += "<option value='";
+    language_list += i;
+    language_list += "'";
+    if (i == system_language_index)
+    {
+      language_list += "selected";
+    }
+    language_list += ">";
+    language_list += language_names[i];
+    language_list += "</option>";
+  }
+  initSetupPage.replace(F("_LANGUAGE_OPTIONS_"), language_list);
+  // display wifi list
+  String wifiOptions = getWifiOptions(false);
+  if (!wifiOptions.isEmpty())
+  {
+    initSetupPage.replace(F("_WIFI_OPTIONS_"), wifiOptions);
+  }
+  initSetupPage.replace(F("_FRIENDLY_NAME_"), mqtt_fn);
+  initSetupPage.replace(F("_MQTT_HOST_"), mqtt_server);
+  initSetupPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
+  initSetupPage.replace(F("_MQTT_USER_"), mqtt_username);
+  initSetupPage.replace(F("_MQTT_PASSWORD_"), mqtt_password);
+  initSetupPage.replace(F("_MQTT_TOPIC_"), mqtt_topic);
+  initSetupPage.replace(F("_FIRMWARE_UPLOAD_"), isSecureEnable() ? "'hidden' style='display: none;' disabled" : "");
+  // serve the page
+  sendWrappedHTML(request, unitScriptWs + initSetupPage);
+  initSetupPage = "";
 }
 
 void handleSetup(AsyncWebServerRequest *request) {
@@ -1010,7 +1017,7 @@ void handleStatus(AsyncWebServerRequest *request) {
   if (mqttClient.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
   else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
   statusPage.replace(F("_HVAC_RETRIES_"), String(hpConnectionTotalRetries));
-  statusPage.replace(F("_MQTT_REASON_"), String(mqtt_disconnected_reason));
+  statusPage.replace(F("_MQTT_REASON_"), String(mqtt_disconnect_reason));
   statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
   sendWrappedHTML(request, statusPage);
 }
@@ -1701,7 +1708,7 @@ void mqttCallback(char* topic, char* payload, unsigned int length) {
     hpSendLocalState();
     hp.setVaneSetting(message);
   }
-  else if (strcmp(topic, ha_wideVane_set_topic.c_str()) == 0) {
+  else if (strcmp(topic, ha_wide_vane_set_topic.c_str()) == 0) {
     rootInfo["wideVane"] = (String) message;
     hpSendLocalState();
     hp.setWideVaneSetting(message);
@@ -2008,91 +2015,195 @@ bool checkLogin(AsyncWebServerRequest *request)
   return false;
 }
 
-void loop() {
+void loop()
+{
+#ifdef ARDUINO_OTA
   ArduinoOTA.handle();
-
-  //reset board to attempt to connect to wifi again if in ap mode or wifi dropped out and time limit passed
+#endif
+#ifdef WEBSOCKET_ENABLE
+  ws.cleanupClients();
+#endif
+  checkRebootRequest();
+  // reset board to attempt to connect to wifi again if in ap mode or wifi dropped out and time limit passed
   bool wifiConnected = WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED;
-  if (wifiConnected) {
-	  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
-  } else if (wifi_config_exists and millis() > wifi_timeout) {
-	  ESP.restart();
+  if (wifiConnected)
+  {
+    // ESP_LOGD(TAG, "Reset wifi connect timeout");
+    wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
+    if (!mqtt_connected and millis() > mqtt_reconnect_timeout) // retry to connect mqtt
+    {
+      mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
+#ifdef ESP32
+      xTimerStart(mqttReconnectTimer, 0);
+#else
+      mqttReconnectTimer.once(2, mqttConnect);
+#endif
+    }
   }
-
-  if (!captive) {
+  else if (wifi_config_exists and millis() > wifi_timeout)
+  {
+#ifdef ESP32
+    ESP.restart();
+#else
+    ESP.reset();
+#endif
+  }
+  // Sync HVAC UNIT even if mqtt not connected
+  if (!captive)
+  {
+#ifdef ESP8266
+    MDNS.update(); // ESP32 working without call this
+#endif
+    checkHpUpdateRequest();
+    checkWifiScanRequest();
     // Sync HVAC UNIT
-    if (!hp.isConnected()) {
+    if (!hp.isConnected())
+    {
       // Use exponential backoff for retries, where each retry is double the length of the previous one.
       unsigned long durationNextSync = (1 << hpConnectionRetries) * HP_RETRY_INTERVAL_MS;
-      if (((millis() - lastHpSync > durationNextSync) or lastHpSync == 0)) {
+      if (((millis() - lastHpSync > durationNextSync) or lastHpSync == 0))
+      {
         lastHpSync = millis();
         // If we've retried more than the max number of tries, keep retrying at that fixed interval, which is several minutes.
         hpConnectionRetries = min(hpConnectionRetries + 1u, HP_MAX_RETRIES);
         hpConnectionTotalRetries++;
         hp.sync();
       }
-    } else {
-        hpConnectionRetries = 0;
-        hp.sync();
     }
-
-	if (mqtt_config) {
-		//MQTT failed retry to connect
-    if (wifiConnected && !mqtt_connected && ((millis() - lastMqttRetry > MQTT_RETRY_INTERVAL_MS)))
+    else
     {
-      ESP_LOGD(TAG, "MQTT lost connection, retry from loop");
-      mqttConnect();
+      hpConnectionRetries = 0;
+      hp.sync();
     }
-		//MQTT connected send status
-		if(wifiConnected && mqtt_connected)
-    {
-		  hpStatusChanged(hp.getStatus());
-		}
-	}
   }
-  else {
-    dnsServer.processNextRequest();
+  else
+  {
+    dnsServer.processNextRequest(); // for captivate portal
+  }
+  if (!captive and mqtt_config)
+  {
+    if (wifiConnected && mqtt_connected)
+    { // only send the temperature every SEND_ROOM_TEMP_INTERVAL_MS
+      hpStatusChanged(hp.getStatus());
+    }
+  }
+  // delay(10);
+}
+
+// Reboot in nextSeconds in the future
+void sendRebootRequest(unsigned long nextSeconds)
+{
+  requestReboot = true;
+  requestRebootTime = millis() + nextSeconds * 1000L;
+}
+
+void checkRebootRequest()
+{
+  if (requestReboot and (millis() > requestRebootTime + REBOOT_REQUEST_INTERVAL_MS))
+  {
+    requestReboot = false;
+    requestRebootTime = 0;
+#ifdef ESP32
+    ESP.restart();
+#else
+    ESP.reset();
+#endif
+  }
+}
+
+void checkHpUpdateRequest()
+{
+  if (requestHpUpdate and (millis() > requestHpUpdateTime))
+  {
+    requestHpUpdate = false;
+    requestHpUpdateTime = 0;
+    hp.update();
+  }
+}
+
+void checkWifiScanRequest()
+{
+  if (requestWifiScan and (millis() > requestWifiScanTime))
+  {
+    requestWifiScan = false;
+    requestWifiScanTime = 0;
+    WiFi.scanNetworks(true);
+    lastWifiScanMillis = millis();
+  }else {
+    if (wifi_list.isEmpty() and millis() - lastWifiScanMillis > 2000) // waiting 2 seconds for data available
+    {
+      getWifiList();
+      getWifiOptions(true); // send data over web event
+    }
   }
 }
 
 #ifdef ESP32
-void WiFiEvent(WiFiEvent_t event) {
-    ESP_LOGD(TAG, "[WiFi-event] event: %d\n", event);
-    switch(event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
-        ESP_LOGD(TAG, "WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
-        mqttConnect();
-        break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-        ESP_LOGD(TAG, "WiFi lost connection");
-#ifdef ESP32
-        xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
-        xTimerStart(wifiReconnectTimer, 0);
-#else
-        mqttReconnectTimer.detach(); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
-        wifiReconnectTimer.once(2, connectWifi);
-#endif
-        break;
+void WiFiEvent(WiFiEvent_t event)
+{
+  ESP_LOGD(TAG, "[WiFi-event] event: %d\n", event);
+  if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP || event == ARDUINO_EVENT_WIFI_STA_GOT_IP6)
+  {
+    ESP_LOGD(TAG, "WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
+    if (millis() > mqtt_reconnect_timeout)
+    {
+      mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
+      ticker.detach();                                                // Stop blinking the LED because now we are connected:)
+      digitalWrite(blueLedPin, LOW);
+      xTimerStart(mqttReconnectTimer, 0); // start timer to connect to MQTT
+      // init and get the time
+      configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     }
+  }
+  else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
+  {
+    ESP_LOGD(TAG, "WiFi lost connection");
+    if (millis() > wifi_timeout)
+    {
+      ESP_LOGD(TAG, "Starting AP mode");
+      xTimerStop(mqttReconnectTimer, 0);
+      // xTimerStop(wifiReconnectTimer, 0);
+    }
+    else
+    { // retry connect
+      if (millis() > wifi_reconnect_timeout)
+      {
+        wifi_reconnect_timeout = millis() + WIFI_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
+        xTimerStop(mqttReconnectTimer, 0);                              // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
+        // xTimerStart(wifiReconnectTimer, 0);
+      }
+    }
+  }
 }
 #elif defined(ESP8266)
 
-void onWifiConnect(const WiFiEventStationModeGotIP& event) {
-  ESP_LOGD(TAG, "Connected to Wi-Fi.");
-  mqttConnect();
+void onWifiConnect(const WiFiEventStationModeGotIP &event)
+{
+  ESP_LOGD(TAG, "WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
+  if (millis() > mqtt_reconnect_timeout)
+  {
+    mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
+    ticker.detach();                                                // Stop blinking the LED because now we are connected:)
+    digitalWrite(blueLedPin, LOW);
+    mqttConnect();
+    // init and get the time
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  }
 }
 
-void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
+void onWifiDisconnect(const WiFiEventStationModeDisconnected &event)
+{
   ESP_LOGD(TAG, "Disconnected from Wi-Fi.");
+  // TODO crash on esp8266
   mqttReconnectTimer.detach(); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
-  wifiReconnectTimer.once(2, connectWifi);
+  // wifiReconnectTimer.once(2, connectWifi);
 }
 
 #endif
 
-void onMqttConnect(bool sessionPresent) {
-  ESP_LOGD(TAG, "Connected to MQTT.");
-  ESP_LOGD(TAG, "Session present: %d", sessionPresent);
+void onMqttConnect(bool sessionPresent)
+{
+  ESP_LOGD(TAG, "Connected to MQTT. Session present: %d", sessionPresent);
   mqtt_connected = true;
 
   mqttClient.subscribe(ha_system_set_topic.c_str(), 1);
@@ -2102,7 +2213,7 @@ void onMqttConnect(bool sessionPresent) {
   mqttClient.subscribe(ha_fan_set_topic.c_str(), 1);
   mqttClient.subscribe(ha_temp_set_topic.c_str(), 1);
   mqttClient.subscribe(ha_vane_set_topic.c_str(), 1);
-  mqttClient.subscribe(ha_wideVane_set_topic.c_str(), 1);
+  mqttClient.subscribe(ha_wide_vane_set_topic.c_str(), 1);
   mqttClient.subscribe(ha_remote_temp_set_topic.c_str(), 1);
   mqttClient.subscribe(ha_custom_packet.c_str(), 1);
   // send online message
@@ -2112,15 +2223,16 @@ void onMqttConnect(bool sessionPresent) {
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
+  mqtt_disconnect_reason = (uint8_t)reason;
   mqtt_connected = false;
-  mqtt_disconnected_reason = (uint8_t)reason;
-  ESP_LOGE(TAG, "Disconnected from MQTT. reason: %d", reason);
-  if (WiFi.isConnected())
+  ESP_LOGE(TAG, "Disconnected from MQTT. reason: %d", (uint8_t)reason);
+  bool wifiConnected = WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED;
+  if (wifiConnected)
   {
 #ifdef ESP32
-        xTimerStart(mqttReconnectTimer, 0);
+    xTimerStart(mqttReconnectTimer, 0);
 #else
-        mqttReconnectTimer.once(2, mqttConnect);
+    mqttReconnectTimer.once(2, mqttConnect);
 #endif
   }
 }
@@ -2133,7 +2245,8 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 //   ESP_LOGD(TAG, "Unsubscribe acknowledged. packetId:  %d", packetId);
 // }
 
-void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+{
   ESP_LOGD(TAG, "Publish received. topic: %s, qos: %d dup: %d, retain: %d", topic, properties.qos, properties.dup, properties.retain);
   ESP_LOGD(TAG, "Publish received. len: %d, index: %d, total: %d", len, index, total);
   mqttCallback(topic, payload, len);
@@ -2258,6 +2371,167 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
   }
 }
 #endif
+
+String getCurrentTime()
+{
+  time_t now;
+  char strftime_buf[64];
+  struct tm timeinfo;
+
+  time(&now);
+  // Set timezone to Vietnam Standard Time
+  setenv("TZ", "ICT-7", 1);
+  tzset();
+
+  localtime_r(&now, &timeinfo);
+  strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+  return String(strftime_buf);
+}
+
+// Time device running without crash or reboot
+String getUpTime()
+{
+  char uptimeBuffer[64];
+#ifdef ESP32
+  int64_t microSecondsSinceBoot = esp_timer_get_time();
+  int64_t secondsSinceBoot = microSecondsSinceBoot / 1000000;
+#else
+  int32_t milliSecondsSinceBoot = millis(); // 2^32-1 only about 49 day before roll over
+  int32_t secondsSinceBoot = milliSecondsSinceBoot / 1000;
+#endif
+  int seconds = (secondsSinceBoot % 60);
+  int minutes = (secondsSinceBoot % 3600) / 60;
+  int hours = (secondsSinceBoot % 86400) / 3600;
+  int days = (secondsSinceBoot % (86400 * 30)) / 86400;
+  sprintf(uptimeBuffer, "   %02i:%02i:%02i:%02i         ", days, hours, minutes, seconds);
+  return String(uptimeBuffer);
+}
+
+#ifdef ESP32
+void initNVS()
+{
+  // Initialize NVS.
+  esp_err_t err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
+    // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
+    // partition table. This size mismatch may cause NVS initialization to fail.
+    // 2.NVS partition contains data in new format and cannot be recognized by this version of code.
+    // If this happens, we erase NVS partition and initialize NVS again.
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
+
+  ESP_ERROR_CHECK(esp_netif_init());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+}
+#endif
+
+String getAppVersion()
+{
+  if (version.isEmpty())
+  {
+#ifdef ESP32
+    const esp_app_desc_t *app_desc = esp_ota_get_app_description();
+    app_name = strdup(app_desc->project_name);
+    version = String(app_desc->version);
+    version.replace(F("-dirty"), "");
+    return version;
+#endif
+    return m2mqtt_version;
+  }
+  return version;
+}
+
+String getBuildDatetime()
+{
+  if (build_date_time.isEmpty())
+  {
+#ifdef ESP32
+    const esp_app_desc_t *app_desc = esp_ota_get_app_description();
+    build_date_time = String(app_desc->date) + ", " + String(app_desc->time);
+    return build_date_time;
+#else
+    char builDate[64];
+    sprintf(builDate, "%s %s", __DATE__, __TIME__);
+    build_date_time = String(builDate);
+    return build_date_time;
+#endif
+  }
+  return build_date_time;
+}
+
+bool isSecureEnable()
+{
+#ifdef ESP32
+  bool flashEncrypt = esp_flash_encryption_enabled();
+  bool secureBoot = esp_secure_boot_enabled();
+  ESP_LOGW(TAG, "Flash encryption:  %s", flashEncrypt ? "YES" : "NO");
+  ESP_LOGW(TAG, "Secure boot:  %s", secureBoot ? "YES" : "NO");
+  return flashEncrypt && secureBoot;
+#endif
+  return false;
+}
+
+void getWifiList()
+{
+  int n = WiFi.scanComplete();
+  if (n >= 0)
+  {
+    int max = min(5, n);
+    wifi_list = "";
+    for (int i = 0; i < max; ++i) // only first 5 networkd
+    {
+      String ssid = WiFi.SSID(i);
+      if (!ssid.isEmpty())
+      {
+        ESP_LOGI(TAG, "Found %s: ", ssid.c_str());
+        if (i == 0)
+        {
+          wifi_list += ssid;
+        }
+        else
+        {
+          wifi_list += ";" + ssid;
+        }
+      }
+    }
+    WiFi.scanDelete();
+  }
+}
+
+String getWifiOptions(bool send)
+{
+  String wifiOptions = "";
+  if (!getValueBySeparator(wifi_list, ';', 0).isEmpty())
+  {
+    // reset and add fist empty
+    wifiOptions = "";
+    wifiOptions += "<option value='";
+    wifiOptions += "";
+    wifiOptions += "'>";
+    wifiOptions += "";
+    wifiOptions += "</option>";
+    for (int i = 0; i < 5; ++i) // only first 5 network
+    {
+      String ssid = getValueBySeparator(wifi_list, ';', i);
+      if (!ssid.isEmpty())
+      {
+        wifiOptions += "<option value='";
+        wifiOptions += ssid;
+        wifiOptions += "'>";
+        wifiOptions += ssid;
+        wifiOptions += "</option>";
+      }
+    }
+    if (send)
+    {
+      events.send(wifiOptions.c_str(), "wifiOptions", millis(), 20); // send wifi data to browser
+    }
+  }
+  return wifiOptions;
+}
 
 // String  var = getValueBySeparator( StringVar, ',', 2); // if  a,4,D,r  would return D
 String getValueBySeparator(String data, char separator, int index)
