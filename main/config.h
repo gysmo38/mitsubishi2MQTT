@@ -115,6 +115,8 @@ const PROGMEM char* m2mqtt_version = "2023.8.0";
 
 //Define global variables for files
 #ifdef ESP32
+#define HP_TX 26 // define the ESP32 custom TX pin
+#define HP_RX 27 // define the ESP32 custom RX pin
 const PROGMEM char* wifi_conf = "/wifi.json";
 const PROGMEM char* mqtt_conf = "/mqtt.json";
 const PROGMEM char* unit_conf = "/unit.json";
@@ -134,7 +136,10 @@ const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 
 const PROGMEM  uint8_t redLedPin = 0;
 
 // Define global variables for network
-const PROGMEM char* hostnamePrefix = "HVAC_";
+const PROGMEM char *appName = "Mitsubishi2MQTT";
+const PROGMEM char *manufacturer = "MITSUBISHI ELECTRIC";
+const PROGMEM char *model = "HVAC MITSUBISHI";
+const PROGMEM char *hostnamePrefix = "HVAC-";
 
 unsigned long wifi_timeout;
 unsigned long wifi_reconnect_timeout;
@@ -167,6 +172,7 @@ bool others_haa;
 String others_haa_topic;
 
 // Define global variables for HA topics
+String ha_power_set_topic;
 String ha_system_set_topic;
 String ha_mode_set_topic;
 String ha_temp_set_topic;

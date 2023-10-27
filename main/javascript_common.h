@@ -141,3 +141,92 @@ const char unit_script_ws[] PROGMEM =
       "return true;"
     "}"  
 "</script>";
+
+const char control_script_events[] PROGMEM = 
+    "<script>"
+        "const queryParams = (window.location.search.split('?')[1] || '')"
+            ".split('&')"
+            ".reduce((QS, current) => {"
+                "const [key, value] = current.split('=');"
+                "return Object.assign(QS, {[key]: value !== undefined ? value : ''});"
+            "}, {});"
+
+
+        "function setTemp(b) {"
+            "var t = document.getElementById('TEMP');"
+            "if (b && t.value < _MAX_TEMP_) {"
+                "t.value = Number(t.value) + _TEMP_STEP_;"
+            "} else if (!b && t.value > _MIN_TEMP_) {"
+                "t.value = Number(t.value) - _TEMP_STEP_;"
+            "}"
+            "document.getElementById('FTEMP_').submit();"
+        "}"
+ 
+        "window.onload = function() {"
+         "if (queryParams('TEMP')) {"
+          "document.getElementById('TEMP').value = queryParams('TEMP');"
+         "}"
+        "};"
+ 
+        "document.onreadystatechange = function() {"
+         "if (document.readyState === 'complete') {"
+          "if (_HEAT_MODE_SUPPORT_ == 0) {"
+           "var options = document.getElementById('MODE').options;"
+           "options[3].hide = (options[3].value == 'HEAT');"
+          "}"
+          "/*web event*/"
+          "if (!!window.EventSource) {"
+           "var source = new EventSource('/events');"
+ 
+           "source.addEventListener('open', function(e) {"
+            "console.log('Events Connected');"
+           "}, false);"
+           "source.addEventListener('error', function(e) {"
+            "if (e.target.readyState != EventSource.OPEN) {"
+             "console.log('Events Disconnected');"
+            "}"
+           "}, false);"
+ 
+           "source.addEventListener('message', function(e) {"
+            "console.log('message', e.data);"
+           "}, false);"
+ 
+           "source.addEventListener('temperature', function(e) {"
+            "console.log('temperature', e.data);"
+            "document.getElementById('TEMP').value = e.data;"
+           "}, false);"
+ 
+           "source.addEventListener('room_temperature', function(e) {"
+            "console.log('Room temperature', e.data);"
+            "document.getElementById('room_temperature').innerHTML = e.data;"
+           "}, false);"
+ 
+            "source.addEventListener('preset', function(e) {"
+            "console.log('Preset', e.data);"
+            "document.getElementById('PRESET').value = e.data;"
+           "}, false);"
+
+            "source.addEventListener('power', function(e) {"
+            "console.log('POWER', e.data);"
+            "document.getElementById('POWER').checked = (e.data == 'ON' ? true: false);"
+           "}, false);"
+
+            "source.addEventListener('mode', function(e) {"
+            "console.log('Mode', e.data);"
+            "document.getElementById('MODE').value = e.data;"
+           "}, false);"
+ 
+            "source.addEventListener('fan', function(e) {"
+            "console.log('Fan', e.data);"
+            "document.getElementById('FAN').value = e.data;"
+           "}, false);"
+ 
+            "source.addEventListener('vane', function(e) {"
+            "console.log('Vane', e.data);"
+            "document.getElementById('VANE').value = e.data;"
+           "}, false);"
+          "}"
+         "}"
+        "}"
+ 
+    "</script>";
