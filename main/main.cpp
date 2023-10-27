@@ -1635,7 +1635,11 @@ void handleLogin(AsyncWebServerRequest *request)
   String loginPage = FPSTR(html_page_login);
   // localize
   loginPage.replace("_TXT_LOGIN_TITLE_", translatedWord(FL_(txt_login_title)));
+  loginPage.replace("_TXT_LOGIN_PH_USER_", translatedWord(FL_(txt_login_ph_user)));
+  loginPage.replace("_TXT_LOGIN_PH_PWD_", translatedWord(FL_(txt_login_ph_pwd)));
+  loginPage.replace("_TXT_LOGIN_USERNAME_", translatedWord(FL_(txt_login_username)));
   loginPage.replace("_TXT_LOGIN_PASSWORD_", translatedWord(FL_(txt_login_password)));
+  loginPage.replace("_TXT_LOGIN_OPEN_STATUS_", translatedWord(FL_(txt_login_open_status)));
   loginPage.replace("_TXT_LOGIN_", translatedWord(FL_(txt_login)));
   if (request->hasHeader("Cookie"))
   {
@@ -1701,6 +1705,8 @@ void handleLogin(AsyncWebServerRequest *request)
   toSend += loginPage;
   toSend += footerContent;
   toSend.replace(F("_UNIT_NAME_"), hostname);
+  toSend.replace(F("_VERSION_"), getAppVersion());
+  toSend.replace(F("_APP_NAME_"), appName);
   AsyncWebServerResponse *response = request->beginResponse(200, "text/html", toSend);
   if (loginSuccess)
   {
