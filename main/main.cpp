@@ -2552,8 +2552,9 @@ String getTemperatureScale()
 String getId()
 {
 #ifdef ESP32
-  uint64_t macAddress = ESP.getEfuseMac();
-  uint32_t chipID = macAddress >> 24;
+  char chipID[23];
+  snprintf(chipID, 23, "%llX", ESP.getEfuseMac());
+  return String(chipID);
 #else
   uint32_t chipID = ESP.getChipId();
 #endif
@@ -3021,6 +3022,11 @@ String getAppVersion()
     app_name = strdup(app_desc->project_name);
     version = String(app_desc->version);
     version.replace(F("-dirty"), "");
+    if (version.startsWith("esp-idf")){
+      String data = getValueBySeparator(version, ' ', 2);
+      version = String(m2mqtt_version) + "-";
+      version += data;
+    }
     return version;
 #endif
     return m2mqtt_version;
