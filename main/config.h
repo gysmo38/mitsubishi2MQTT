@@ -13,56 +13,61 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#include "FS.h"               // SPIFFS for store config
+#include "FS.h" // SPIFFS for store config
 #ifdef ESP32
-#include <WiFi.h>             // WIFI for ESP32
+#include <WiFi.h> // WIFI for ESP32
 #include <WiFiUdp.h>
-#include <ESPmDNS.h>          // mDNS for ESP32
-#include <AsyncTCP.h>         // ESPAsyncWebServer for ESP32
-#include "SPIFFS.h"           // ESP32 SPIFFS for store config
-extern "C" {
-	#include "freertos/FreeRTOS.h" //AsyncMqttClient
-	#include "freertos/timers.h"
+#include <ESPmDNS.h>  // mDNS for ESP32
+#include <AsyncTCP.h> // ESPAsyncWebServer for ESP32
+#include "SPIFFS.h"   // ESP32 SPIFFS for store config
+#define U_PART U_SPIFFS
+extern "C"
+{
+#include "freertos/FreeRTOS.h" //AsyncMqttClient
+#include "freertos/timers.h"
 }
+#include "esp_ota_ops.h"       // IDF api to get app version
+#include "esp_app_format.h"    // IDF api to get app version infor
+#include "nvs.h"               // nvs ESP IDF to save wifi settings
+#include "nvs_flash.h"         //nvs ESP IDF to save wifi settings
+#include "esp_flash_encrypt.h" //encryption check
+#include "esp_secure_boot.h"   //secure boot check
 #else
-#include <ESP8266WiFi.h>      // WIFI for ESP8266
+#include <ESP8266WiFi.h> // WIFI for ESP8266
 #include <WiFiClient.h>
-#include <ESP8266mDNS.h>      // mDNS for ESP8266
-#include <ESPAsyncTCP.h>      // ESPAsyncWebServer for ESP8266
+#include <ESP8266mDNS.h> // mDNS for ESP8266
+#include <ESPAsyncTCP.h> // ESPAsyncWebServer for ESP8266
 #define U_PART U_FS
 #endif
 #include <AsyncMqttClient.h>
-#include <ESPAsyncWebServer.h>  //ESPAsyncWebServer
-AsyncWebServer server(80);    // Async Web server
-#define WEBSOCKET_ENABLE 1 // Uncomment to enable websocket
+#include <ESPAsyncWebServer.h> //ESPAsyncWebServer
+AsyncWebServer server(80);     // Async Web server
+#define WEBSOCKET_ENABLE 1     // Uncomment to enable websocket
 #ifdef WEBSOCKET_ENABLE
 AsyncWebSocket ws("/ws"); // Async Web socket
 #endif
 AsyncEventSource events("/events"); // Create an Event Source on /events
 
-#include <ArduinoJson.h>      // json to process MQTT: ArduinoJson 6.11.4
-#include <DNSServer.h>        // DNS for captive portal
-#include <math.h>             // for rounding to Fahrenheit values
+#include <ArduinoJson.h> // json to process MQTT: ArduinoJson 6.11.4
+#include <DNSServer.h>   // DNS for captive portal
+#include <math.h>        // for rounding to Fahrenheit values
+#include <ArduinoOTA.h>  // for OTA
+// #define ARDUINO_OTA 1      // Uncomment to enable Arduino OTA over ip
 
-// #define ARDUINO_OTA 1      // Uncomment to enable Arduino OTA
-#ifdef ARDUINO_OTA
-#include <ArduinoOTA.h> // for OTA
-#endif
-
-#include <HeatPump.h>     // SwiCago library: https://github.com/SwiCago/HeatPump
-#include <Ticker.h>     // for LED status (Using a Wemos D1-Mini)
+#include <HeatPump.h> // SwiCago library: https://github.com/SwiCago/HeatPump
+#include <Ticker.h>   // for LED status (Using a Wemos D1-Mini)
 #include "time.h"     // time lib
 
 // wifi, mqtt and heatpump client instances
-AsyncMqttClient mqttClient;        // AsyncMqtt
+AsyncMqttClient mqttClient; // AsyncMqtt
 #ifdef ESP32
-TimerHandle_t mqttReconnectTimer;  //timer for esp32 AsyncMqttClient
-TimerHandle_t wifiReconnectTimer;  //timer for esp32 AsyncMqttClient
+TimerHandle_t mqttReconnectTimer; // timer for esp32 AsyncMqttClient
+TimerHandle_t wifiReconnectTimer; // timer for esp32 AsyncMqttClient
 #elif defined(ESP8266)
 WiFiEventHandler wifiConnectHandler;
 WiFiEventHandler wifiDisconnectHandler;
-Ticker mqttReconnectTimer;         //timer for esp8266 AsyncMqttClient
-Ticker wifiReconnectTimer;         //timer for esp8266 AsyncMqttClient
+Ticker mqttReconnectTimer; // timer for esp8266 AsyncMqttClient
+Ticker wifiReconnectTimer; // timer for esp8266 AsyncMqttClient
 #endif
 
 int mqtt_attempts = 0;
@@ -71,7 +76,7 @@ uint8_t mqtt_disconnect_reason = -1;
 
 Ticker ticker;
 
-//Captive portal variables, only used for config page
+// Captive portal variables, only used for config page
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 1, 1);
 IPAddress netMsk(255, 255, 255, 0);
@@ -82,7 +87,7 @@ boolean mqtt_config = false;
 boolean wifi_config = false;
 boolean remoteTempActive = false;
 
-//HVAC
+// HVAC
 HeatPump hp;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
@@ -91,12 +96,12 @@ unsigned int hpConnectionRetries;
 unsigned int hpConnectionTotalRetries;
 unsigned long lastRemoteTemp;
 
-//Local state
+// Local state
 StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 String wifi_list = "";                            // cache wifi scan result
 const String localApIpUrl = "http://192.168.4.1"; // a string version of the local IP with http, used for redirecting clients to your webpage
 
-//Web OTA
+// Web OTA
 int uploaderror = 0;
 size_t ota_content_len;
 
@@ -112,29 +117,29 @@ unsigned long requestWifiScanTime = 0;
 #define WIFI_SCAN_PERIOD 120000
 unsigned lastWifiScanMillis;
 
-const PROGMEM char* m2mqtt_version = "2023.10.0";
+const PROGMEM char *m2mqtt_version = "2023.10.0";
 
-//Define global variables for files
+// Define global variables for files
 #ifdef ESP32
 #define HP_TX 26 // define the ESP32 custom TX pin
 #define HP_RX 27 // define the ESP32 custom RX pin
-const PROGMEM char* wifi_conf = "/wifi.json";
-const PROGMEM char* mqtt_conf = "/mqtt.json";
-const PROGMEM char* unit_conf = "/unit.json";
-const PROGMEM char* console_file = "/console.log";
-const PROGMEM char* others_conf = "/others.json";
+const PROGMEM char *wifi_conf = "/wifi.json";
+const PROGMEM char *mqtt_conf = "/mqtt.json";
+const PROGMEM char *unit_conf = "/unit.json";
+const PROGMEM char *console_file = "/console.log";
+const PROGMEM char *others_conf = "/others.json";
 // pinouts
-const PROGMEM  uint8_t blueLedPin = 2;            // The ESP32 has an internal blue LED at D2 (GPIO 02)
+const PROGMEM uint8_t blueLedPin = 2; // The ESP32 has an internal blue LED at D2 (GPIO 02)
 #else
-const PROGMEM char* wifi_conf = "wifi.json";
-const PROGMEM char* mqtt_conf = "mqtt.json";
-const PROGMEM char* unit_conf = "unit.json";
-const PROGMEM char* console_file = "console.log";
-const PROGMEM char* others_conf = "others.json";
+const PROGMEM char *wifi_conf = "wifi.json";
+const PROGMEM char *mqtt_conf = "mqtt.json";
+const PROGMEM char *unit_conf = "unit.json";
+const PROGMEM char *console_file = "console.log";
+const PROGMEM char *others_conf = "others.json";
 // pinouts
-const PROGMEM  uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
+const PROGMEM uint8_t blueLedPin = LED_BUILTIN; // Onboard LED = digital pin 2 "D4" (blue LED on WEMOS D1-Mini)
 #endif
-const PROGMEM  uint8_t redLedPin = 0;
+const PROGMEM uint8_t redLedPin = 0;
 
 // Define global variables for network
 const PROGMEM char *appName = "Mitsubishi2MQTT";
@@ -165,10 +170,10 @@ String mqtt_username;
 String mqtt_password;
 String mqtt_topic = "mitsubishi2mqtt";
 String mqtt_client_id;
-const PROGMEM char* mqtt_payload_available = "online";
-const PROGMEM char* mqtt_payload_unavailable = "offline";
+const PROGMEM char *mqtt_payload_available = "online";
+const PROGMEM char *mqtt_payload_unavailable = "offline";
 
-//Define global variables for Others settings
+// Define global variables for Others settings
 bool others_haa;
 String others_haa_topic;
 
@@ -185,7 +190,7 @@ String ha_settings_topic;
 String ha_state_topic;
 String ha_debug_pckts_topic;
 String ha_debug_pckts_set_topic;
-String ha_debug_logs_topic;  
+String ha_debug_logs_topic;
 String ha_debug_logs_set_topic;
 String ha_config_topic;
 String ha_discovery_topic;
@@ -193,7 +198,7 @@ String ha_custom_packet;
 String ha_availability_topic;
 String hvac_name;
 
-//login
+// login
 String login_username = "admin";
 String login_password;
 
@@ -205,20 +210,21 @@ bool _debugModeLogs = false;
 bool _debugModePckts = false;
 
 // Customization
-const uint8_t min_temp                    = 16; // Minimum temperature, in your selected unit, check value from heatpump remote control
-const uint8_t max_temp                    = 31; // Maximum temperature, in your selected unit, check value from heatpump remote control
-String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
+const uint8_t min_temp = 16; // Minimum temperature, in your selected unit, check value from heatpump remote control
+const uint8_t max_temp = 31; // Maximum temperature, in your selected unit, check value from heatpump remote control
+String temp_step = "1";      // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
 const PROGMEM uint32_t SEND_ROOM_TEMP_INTERVAL_MS = 30000; // 45 seconds (anything less may cause bouncing)
 const PROGMEM uint32_t WIFI_RETRY_INTERVAL_MS = 300000;
-const PROGMEM uint32_t CHECK_REMOTE_TEMP_INTERVAL_MS = 300000; //5 minutes
-const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000; // 1 second
-const PROGMEM uint32_t MQTT_RECONNECT_INTERVAL_MS = 10000; // 10 seconds
-const PROGMEM uint32_t REBOOT_REQUEST_INTERVAL_MS = 1000;    // 1 seconds
-const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000; // 1 second
-const PROGMEM uint32_t HP_MAX_RETRIES = 10; // Double the interval between retries up to this many times, then keep retrying forever at that maximum interval.
-// Default values give a final retry interval of 1000ms * 2^10, which is 1024 seconds, about 17 minutes. 
+const PROGMEM uint32_t WIFI_RECONNECT_INTERVAL_MS = 10000;     // 10 seconds
+const PROGMEM uint32_t CHECK_REMOTE_TEMP_INTERVAL_MS = 300000; // 5 minutes
+const PROGMEM uint32_t MQTT_RETRY_INTERVAL_MS = 1000;          // 1 second
+const PROGMEM uint32_t MQTT_RECONNECT_INTERVAL_MS = 10000;     // 10 seconds
+const PROGMEM uint32_t REBOOT_REQUEST_INTERVAL_MS = 1000;      // 1 seconds
+const PROGMEM uint32_t HP_RETRY_INTERVAL_MS = 1000;            // 1 second
+const PROGMEM uint32_t HP_MAX_RETRIES = 10;                    // Double the interval between retries up to this many times, then keep retrying forever at that maximum interval.
+// Default values give a final retry interval of 1000ms * 2^10, which is 1024 seconds, about 17 minutes.
 
 // temp settings
 bool useFahrenheit = false;
@@ -234,7 +240,7 @@ String build_date_time = ""; /* build date time from app desc */
 
 // Multi language support, all store in the flash, just change in the Unit settings
 byte system_language_index = 0; // default language index 0:en
-// #define MITSU2MQTT_EN_ONLY 1   // un comment to enable English only for debug 
+// #define MITSU2MQTT_EN_ONLY 1   // un comment to enable English only for debug
 #include "language_util.h" // Multi languages support
 
 // Languages supported. Note: the order is important and must match locale_translations.h
