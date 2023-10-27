@@ -159,8 +159,6 @@ MAKE_WORD_TRANSLATION(txt_unit_password, en::txt_unit_password, vi::txt_unit_pas
 MAKE_WORD_TRANSLATION(txt_unit_password_confirm, en::txt_unit_password_confirm, vi::txt_unit_password_confirm)       // TODO translate
 MAKE_WORD_TRANSLATION(txt_unit_password_not_match, en::txt_unit_password_not_match, vi::txt_unit_password_not_match) // TODO translate
 MAKE_WORD_TRANSLATION(txt_unit_login_username, en::txt_unit_login_username, vi::txt_unit_login_username)             // TODO translate
-MAKE_WORD_TRANSLATION(txt_unit_1_0_steptemp, en::txt_unit_1_0_steptemp, vi::txt_unit_1_0_steptemp)                   // TODO translate
-MAKE_WORD_TRANSLATION(txt_unit_0_5_steptemp, en::txt_unit_0_5_steptemp, vi::txt_unit_0_5_steptemp)                   // TODO translate
 
 // Page Login
 MAKE_WORD_TRANSLATION(txt_login_title, en::txt_login_title, vi::txt_login_title)                   // TODO translate

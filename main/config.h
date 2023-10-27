@@ -112,7 +112,7 @@ unsigned long requestWifiScanTime = 0;
 #define WIFI_SCAN_PERIOD 120000
 unsigned lastWifiScanMillis;
 
-const PROGMEM char* m2mqtt_version = "2023.8.0";
+const PROGMEM char* m2mqtt_version = "2023.10.0";
 
 //Define global variables for files
 #ifdef ESP32
@@ -205,8 +205,8 @@ bool _debugModeLogs = false;
 bool _debugModePckts = false;
 
 // Customization
-uint8_t min_temp                    = 16; // Minimum temperature, in your selected unit, check value from heatpump remote control
-uint8_t max_temp                    = 31; // Maximum temperature, in your selected unit, check value from heatpump remote control
+const uint8_t min_temp                    = 16; // Minimum temperature, in your selected unit, check value from heatpump remote control
+const uint8_t max_temp                    = 31; // Maximum temperature, in your selected unit, check value from heatpump remote control
 String temp_step                   = "1"; // Temperature setting step, check value from heatpump remote control
 
 // sketch settings
@@ -224,6 +224,8 @@ const PROGMEM uint32_t HP_MAX_RETRIES = 10; // Double the interval between retri
 bool useFahrenheit = false;
 // support heat mode settings, some model do not support heat mode
 bool supportHeatMode = true;
+// support quiet mode for fan settings, some model do not support quite mode: MSZ-GE35VA, MSZ-GE71VA, MSZ-GE25VA https://github.com/SwiCago/HeatPump/issues/162
+bool supportQuietMode = true;
 
 // info in status page
 String version = "";         /* Git version */

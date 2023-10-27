@@ -28,7 +28,7 @@ bool loadMqtt();
 bool loadUnit();
 bool loadOthers();
 void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser, String mqttPwd, String mqttTopic);
-void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep, String languageIndex);
+void saveUnit(String tempUnit, String supportMode, String loginPassword, String tempStep, String languageIndex);
 void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd);
 void saveOthers(String haa, String haat, String debugPckts, String debugLogs);
 void saveCurrentOthers();
@@ -44,7 +44,6 @@ void handleReboot(AsyncWebServerRequest *request);
 void handleRoot(AsyncWebServerRequest *request);
 void handleInitSetup(AsyncWebServerRequest *request);
 void handleSetup(AsyncWebServerRequest *request);
-void rebootAndSendPage(AsyncWebServerRequest *request);
 void handleOthers(AsyncWebServerRequest *request);
 void handleMqtt(AsyncWebServerRequest *request);
 void handleUnit(AsyncWebServerRequest *request);
@@ -77,7 +76,7 @@ float convertLocalUnitToCelsius(float temperature, bool isFahrenheit);
 String getTemperatureScale();
 String getId();
 bool is_authenticated(AsyncWebServerRequest *request);
-bool checkLogin(AsyncWebServerRequest *request);
+void checkLogin(AsyncWebServerRequest *request);
 // AsyncMQTT
 #ifdef ESP32
 void WiFiEvent(WiFiEvent_t event);
@@ -468,12 +467,13 @@ bool loadUnit() {
   //unit
   String unit_tempUnit            = doc["unit_tempUnit"].as<String>();
   if (unit_tempUnit == "fah") useFahrenheit = true;
-  min_temp              = doc["min_temp"].as<uint8_t>();
-  max_temp              = doc["max_temp"].as<uint8_t>();
   temp_step             = doc["temp_step"].as<String>();
   //mode
   String supportMode = doc["support_mode"].as<String>();
   if (supportMode == "nht") supportHeatMode = false;
+  // quiet
+  String quietMode = doc["quiet_mode"].as<String>();
+  if (quietMode == "nqm") supportQuietMode = false;
   //prevent login password is "null" if not exist key
   if (doc.containsKey("login_password")) {
     login_password = doc["login_password"].as<String>();
@@ -569,24 +569,22 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep, String languageIndex) {
+void saveUnit(String tempUnit, String supportMode, String supportFanMode, String loginPassword, String tempStep, String languageIndex) {
   const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
   if (tempUnit.isEmpty()) tempUnit = "cel";
   doc["unit_tempUnit"]   = tempUnit;
-  // if minTemp is empty, we use default 16
-  if (minTemp.isEmpty()) minTemp = 16;
-  doc["min_temp"]   = minTemp;
-  // if maxTemp is empty, we use default 31
-  if (maxTemp.isEmpty()) maxTemp = 31;
-  doc["max_temp"]   = maxTemp;
   // if tempStep is empty, we use default 1
   if (tempStep.isEmpty()) tempStep = 1;
   doc["temp_step"] = tempStep;
   // if support mode is empty, we use default all mode
   if (supportMode.isEmpty()) supportMode = "all";
   doc["support_mode"]   = supportMode;
+  // if support fan mode is empty, we use default all mode
+  if (supportFanMode.isEmpty())
+    supportFanMode = "allf";
+  doc["quiet_mode"] = supportFanMode;
   // if login password is empty, we use empty
   if (loginPassword.isEmpty()) loginPassword = "";
 
@@ -877,7 +875,7 @@ void handleNotFound(AsyncWebServerRequest *request) {
 
 void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   ESP_LOGD(TAG, "Saving wifi and mqtt config");
   if (request->hasArg("submit"))
   {
@@ -893,7 +891,7 @@ void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
     }
     if (request->hasArg("language"))
     {
-      saveUnit("", "", "", "", "", "", request->arg("language"));
+      saveUnit("", "", "", "", "", request->arg("language"));
     }
   }
   String initSavePage = FPSTR(html_init_save);
@@ -909,7 +907,7 @@ void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
 
 void handleReboot(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   ESP_LOGD(TAG, "Rebooting");
   String initRebootPage = FPSTR(html_init_reboot);
   // localize
@@ -920,7 +918,7 @@ void handleReboot(AsyncWebServerRequest *request)
 
 void handleRoot(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   if (request->hasArg("REBOOT"))
   {
     String rebootPage = FPSTR(html_page_reboot);
@@ -1010,7 +1008,7 @@ void handleInitSetup(AsyncWebServerRequest *request)
 
 void handleSetup(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   if (request->hasArg("RESET"))
   {
     String resetPage = FPSTR(html_page_reset);
@@ -1038,35 +1036,31 @@ void handleSetup(AsyncWebServerRequest *request)
   }
 }
 
-void rebootAndSendPage(AsyncWebServerRequest *request) {
-    String saveRebootPage =  FPSTR(html_page_save_reboot);
-    String countDown = FPSTR(count_down_script);
-    saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
-    sendWrappedHTML(request, saveRebootPage + countDown);
-    delay(500);
-    ESP.restart();
-}
-
 void handleOthers(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
+  checkLogin(request);
   if (request->hasArg("save"))
   {
-    saveOthers(request->arg("HAA"), request->arg("haat"), request->arg("DebugPckts"),request->arg("DebugLogs"));
-    rebootAndSendPage(request);
+    saveOthers(request->arg("HAA"), request->arg("haat"), request->arg("DebugPckts"), request->arg("DebugLogs"));
+    String saveRebootPage = FPSTR(html_page_save_reboot);
+    // localize
+    saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(request, saveRebootPage + countDown);
+    sendRebootRequest(5); // Reboot after 5 seconds
   }
   else {
     String othersPage =  FPSTR(html_page_others);
-    othersPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-    othersPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
-    othersPage.replace("_TXT_F_ON_", translatedWord(FL_(txt_f_on)));
-    othersPage.replace("_TXT_F_OFF_", translatedWord(FL_(txt_f_off)));
+    // localize
     othersPage.replace("_TXT_OTHERS_TITLE_", translatedWord(FL_(txt_others_title)));
     othersPage.replace("_TXT_OTHERS_HAAUTO_", translatedWord(FL_(txt_others_haauto)));
     othersPage.replace("_TXT_OTHERS_HATOPIC_", translatedWord(FL_(txt_others_hatopic)));
     othersPage.replace("_TXT_OTHERS_DEBUG_PCKTS_", translatedWord(FL_(txt_others_debug_packets)));
     othersPage.replace("_TXT_OTHERS_DEBUG_LOGS_", translatedWord(FL_(txt_others_debug_log)));
-
+    othersPage.replace("_TXT_F_ON_", translatedWord(FL_(txt_f_on)));
+    othersPage.replace("_TXT_F_OFF_", translatedWord(FL_(txt_f_off)));
+    othersPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    othersPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    // set data
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
       othersPage.replace("_HAA_ON_", "selected");
@@ -1092,7 +1086,7 @@ void handleOthers(AsyncWebServerRequest *request) {
 
 void handleMqtt(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   if (request->hasArg("save"))
   {
     saveMqtt(request->arg("fn"), request->arg("mh"), request->arg("ml"), request->arg("mu"), request->arg("mp"), request->arg("mt"));
@@ -1133,32 +1127,53 @@ void handleMqtt(AsyncWebServerRequest *request)
 }
 
 void handleUnit(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
+  checkLogin(request);
   if (request->hasArg("save"))
   {
-    saveUnit(request->arg("tu"), request->arg("md"), request->arg("lpw"), (String)convertLocalUnitToCelsius(request->arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(request->arg("max_temp").toInt(), useFahrenheit), request->arg("temp_step"), request->arg("language"));
-    rebootAndSendPage(request);
+    String loginPassword = request->arg("lpw");
+    String confirmLoginPassword = request->arg("lpwc");
+    if (loginPassword == confirmLoginPassword)
+    {
+      saveUnit(request->arg("tu"), request->arg("md"), request->arg("mdf"), loginPassword, request->arg("temp_step"), request->arg("language"));
+      String saveRebootPage = FPSTR(html_page_save_reboot);
+      // localize
+      saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
+      String countDown = FPSTR(count_down_script);
+      sendWrappedHTML(request, saveRebootPage + countDown);
+      sendRebootRequest(5); // Reboot after 5 seconds
+    }
+    else
+    {
+      String saveRebootPage = FPSTR(html_page_save_reboot);
+      // localize
+      saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_unit_password_not_match)));
+      String countDown = FPSTR(count_down_script);
+      sendWrappedHTML(request, saveRebootPage + countDown);
+    }
   }
   else {
     String unitPage =  FPSTR(html_page_unit);
     String unitScriptWs = FPSTR(unit_script_ws);
-    unitPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-    unitPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+        // localize
     unitPage.replace("_TXT_UNIT_TITLE_", translatedWord(FL_(txt_unit_title)));
+    unitPage.replace("_TXT_UNIT_LANGUAGE_", translatedWord(FL_(txt_unit_language)));
     unitPage.replace("_TXT_UNIT_TEMP_", translatedWord(FL_(txt_unit_temp)));
-    unitPage.replace("_TXT_UNIT_MINTEMP_", translatedWord(FL_(txt_unit_mintemp)));
-    unitPage.replace("_TXT_UNIT_MAXTEMP_", translatedWord(FL_(txt_unit_maxtemp)));
     unitPage.replace("_TXT_UNIT_STEPTEMP_", translatedWord(FL_(txt_unit_steptemp)));
+    unitPage.replace("_TXT_UNIT_FAN_MODES_", translatedWord(FL_(txt_unit_fan_modes)));
+    unitPage.replace("_TXT_UNIT_FAN_MODES_", translatedWord(FL_(txt_unit_fan_modes)));
     unitPage.replace("_TXT_UNIT_MODES_", translatedWord(FL_(txt_unit_modes)));
+    unitPage.replace("_TXT_UNIT_LOGIN_USERNAME_", translatedWord(FL_(txt_unit_login_username)));
+    unitScriptWs.replace("_TXT_UNIT_PASSWORD_NOT_MATCH_", translatedWord(FL_(txt_unit_password_not_match)));
+    unitPage.replace("_TXT_UNIT_PASSWORD_CONFIRM_", translatedWord(FL_(txt_unit_password_confirm)));
     unitPage.replace("_TXT_UNIT_PASSWORD_", translatedWord(FL_(txt_unit_password)));
     unitPage.replace("_TXT_F_CELSIUS_", translatedWord(FL_(txt_f_celsius)));
     unitPage.replace("_TXT_F_FH_", translatedWord(FL_(txt_f_fh)));
     unitPage.replace("_TXT_F_ALLMODES_", translatedWord(FL_(txt_f_allmodes)));
     unitPage.replace("_TXT_F_NOHEAT_", translatedWord(FL_(txt_f_noheat)));
-    unitPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
-    unitPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
-    unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
+    unitPage.replace("_TXT_F_NOQUIET_", translatedWord(FL_(txt_f_noquiet)));
+    unitPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    unitPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    // set data
     // language
     String language_list;
     for (uint8_t i = 0; i < NUM_LANGUAGES; i++)
@@ -1175,12 +1190,24 @@ void handleUnit(AsyncWebServerRequest *request) {
       language_list += "</option>";
     }
     unitPage.replace(F("_LANGUAGE_OPTIONS_"), language_list);
-    //temp
-    if (useFahrenheit) unitPage.replace(F("_TU_FAH_"), F("selected"));
-    else unitPage.replace(F("_TU_CEL_"), F("selected"));
-    //mode
-    if (supportHeatMode) unitPage.replace(F("_MD_ALL_"), F("selected"));
-    else unitPage.replace(F("_MD_NONHEAT_"), F("selected"));
+    // temp
+    if (useFahrenheit)
+      unitPage.replace(F("_TU_FAH_"), F("selected"));
+    else
+      unitPage.replace(F("_TU_CEL_"), F("selected"));
+    // step
+    unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
+    // mode
+    if (supportHeatMode)
+      unitPage.replace(F("_MD_ALL_"), F("selected"));
+    else
+      unitPage.replace(F("_MD_NONHEAT_"), F("selected"));
+    // fan quiet mode
+    if (supportQuietMode)
+      unitPage.replace(F("_MDF_ALL_"), F("selected"));
+    else
+      unitPage.replace(F("_MDF_NONQUIET_"), F("selected"));
+    // login password
     unitPage.replace(F("_LOGIN_PASSWORD_"), login_password);
     sendWrappedHTML(request, unitScriptWs + unitPage);
   }
@@ -1188,7 +1215,7 @@ void handleUnit(AsyncWebServerRequest *request) {
 
 void handleWifi(AsyncWebServerRequest *request)
 {
-  if (!checkLogin(request)) return;
+  checkLogin(request);
   if (request->hasArg("save"))
   {
     String ssid = request->arg("ssid");
@@ -1320,8 +1347,7 @@ void handleStatus(AsyncWebServerRequest *request)
 
 
 void handleControl(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
+  checkLogin(request);
   //not connected to hp, redirect to status page
   if (!hp.isConnected())
   {
@@ -1599,10 +1625,11 @@ void handleLogin(AsyncWebServerRequest *request)
 }
 
 void handleUpgrade(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
+  checkLogin(request);
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
+  // localize
+  upgradePage.replace("_TXT_FW_UPDATE_PAGE_", translatedWord(FL_(txt_fw_update_page)));
   upgradePage.replace("_TXT_B_UPGRADE_", translatedWord(FL_(txt_upgrade)));
   upgradePage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
   upgradePage.replace("_TXT_UPGRADE_TITLE_", translatedWord(FL_(txt_upgrade_title)));
@@ -1612,14 +1639,23 @@ void handleUpgrade(AsyncWebServerRequest *request) {
   sendWrappedHTML(request, upgradePage);
 }
 
-void handleUploadDone(AsyncWebServerRequest *request) {
-  //Serial.printl(PSTR("HTTP: Firmware upload done"));
+void handleUploadDone(AsyncWebServerRequest *request)
+{
+  ESP_LOGD(TAG, "HTTP: Firmware upload done");
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
-  String content = F("<div style='text-align:center;'><b>Upload ");
+  // localize
+  uploadDonePage.replace("_TXT_UPLOAD_FW_PAGE_", translatedWord(FL_(txt_upload_fw_page)));
+  uploadDonePage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+
+  String content = F("<div style='text-align:center;'><b>");
+  content += translatedWord(FL_(txt_upload));
+  content += F(" ");
   if (uploaderror)
   {
-    content += F("<span style='color:#d43535'>failed</span></b><br/><br/>");
+    content += F("<font color='red'>");
+    content += translatedWord(FL_(txt_upload_failed));
+    content += F("</font></b><br/><br/>");
     if (uploaderror == 1)
     {
       content += translatedWord(FL_(txt_upload_nofile));
@@ -1661,28 +1697,32 @@ void handleUploadDone(AsyncWebServerRequest *request) {
   }
   else
   {
-    content += F("<span style='color:#47c266; font-weight: bold;'>");
+    content += F("<b><font color='green'>");
     content += translatedWord(FL_(txt_upload_success));
-    content += F("</span><br/><br/>");
+    content += F("</font></b><br/><br/>");
     content += translatedWord(FL_(txt_upload_refresh));
-    content += F("<span id='count'>10s</span>...");
-    content += FPSTR(count_down_script);
+    content += F(" <span id='count'>30s</span>...");
+    content += F("<script>");
+    content += F("setTimeout(function () {");
+    content += F("window.location.href= '/';");
+    content += F("}, 30000);");
+    content += F("</script>");
     restartflag = true;
   }
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
   uploadDonePage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
-  sendWrappedHTML(request, uploadDonePage);
-  if (restartflag) {
-    delay(500);
-#ifdef ESP32
-    ESP.restart();
-#else
-    ESP.reset();
-#endif
+  if (restartflag)
+  {
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(request, uploadDonePage + countDown);
+    sendRebootRequest(3);
+  }
+  else
+  {
+    sendWrappedHTML(request, uploadDonePage);
   }
 }
-
 
 void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
@@ -1692,13 +1732,20 @@ void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t in
     Update.end();
     return;
   }
-  if (filename.c_str()[0] == 0)
+  if (filename.isEmpty())
   {
     uploaderror = 1;
     return;
   }
   if (!index)
   {
+    ESP_LOGD(TAG, "Starting OTA Update");
+    // save cpu by disconnect/stop retry mqtt server
+    if (mqttClient.connected())
+    {
+      mqttClient.disconnect();
+      mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS;
+    }
     ota_content_len = request->contentLength();
     // if filename includes spiffs, update the spiffs partition
     int cmd = (filename.indexOf("spiffs") > -1) ? U_PART : U_FLASH;
@@ -1724,6 +1771,7 @@ void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t in
     }
     else
     {
+      ESP_LOGD(TAG, "OTA file upload progress: %d%%", (Update.progress() * 100) / Update.size());
 #endif
     }
   }
@@ -1743,10 +1791,11 @@ void handleUploadLoop(AsyncWebServerRequest *request, String filename, size_t in
     if (!Update.end(true))
     {
       uploaderror = 6;
+      ESP_LOGE(TAG, "Update error");
     }
     else
     {
-
+      ESP_LOGD(TAG, "Update complete");
     }
   }
 }
@@ -2374,7 +2423,7 @@ bool is_authenticated(AsyncWebServerRequest *request)
   return false;
 }
 
-bool checkLogin(AsyncWebServerRequest *request)
+void checkLogin(AsyncWebServerRequest *request)
 {
   if (!is_authenticated(request) and login_password.length() > 0)
   {
@@ -2390,9 +2439,8 @@ bool checkLogin(AsyncWebServerRequest *request)
     response->addHeader("Location", "/login");
     response->addHeader("Cache-Control", "no-cache");
     request->send(response);
-    return true;
+    return;
   }
-  return false;
 }
 
 void loop()

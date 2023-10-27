@@ -138,8 +138,6 @@ namespace vi
   const char txt_unit_password_confirm[] PROGMEM = "Xác nhận Mật khẩu đăng nhập";
   const char txt_unit_password_not_match[] PROGMEM = "Mật khẩu nhập lại không đúng";
   const char txt_unit_login_username[] PROGMEM = "Ghi chú: Tài khoản đăng nhập mặc định là:";
-  const char txt_unit_1_0_steptemp[] PROGMEM = "1.0 độ";
-  const char txt_unit_0_5_steptemp[] PROGMEM = "0.5 độ";
 
   // Page Login
   const char txt_login_title[] PROGMEM = "Xác thực";

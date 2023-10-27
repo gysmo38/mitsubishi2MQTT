@@ -138,8 +138,6 @@ namespace en
   const char txt_unit_password_confirm[] PROGMEM = "Confirm Login password";
   const char txt_unit_password_not_match[] PROGMEM = "Confirm Password did not match";
   const char txt_unit_login_username[] PROGMEM = "Note: Default login user is";
-  const char txt_unit_1_0_steptemp[] PROGMEM = "1.0 degree";
-  const char txt_unit_0_5_steptemp[] PROGMEM = "0.5 degree";
 
   // Page Login
   const char txt_login_title[] PROGMEM = "Authentication";
