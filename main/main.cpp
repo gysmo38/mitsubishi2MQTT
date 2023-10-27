@@ -107,6 +107,8 @@ String getAppVersion();
 void initNVS();
 String getUpTime();
 String getCurrentTime();
+void tick(); // led blink tick
+void factoryReset();
 // End  header for build with IDF and Platformio
 
 #ifdef ESP8266
@@ -117,79 +119,93 @@ String getCurrentTime();
 #define ESP_LOGV(tag, format, ...)
 #endif
 
-void setup() {
+void setup()
+{
 #ifdef ESP32
   initNVS();
 #endif
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
-  // Serial.println(F("Starting Mitsubishi2MQTT"));
+  ESP_LOGD(TAG, "Starting  %s", appName);
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
   {
-    // Serial.println(F("Mounted file system"));
+    ESP_LOGD(TAG, "Mounted file system");
   }
   else
   {
-    // Serial.println(F("Failed to mount FS -> formating"));
+    ESP_LOGD(TAG, "Failed to mount FS -> formating");
     SPIFFS.format();
-    // if (SPIFFS.begin())
-      // Serial.println(F("Mounted file system after formating"));
+    if (SPIFFS.begin())
+    {
+      ESP_LOGD(TAG, "Mounted file system after formating");
+    }
   }
-  //set led pin as output
+  // set led pin as output
   pinMode(blueLedPin, OUTPUT);
-  /*
-    ticker.attach(0.6, tick);
-  */
-
-  //Define hostname
-  hostname += hostnamePrefix;
-  hostname += getId();
+  ticker.attach(1, tick); // every seconds
   setDefaults();
   wifi_config_exists = loadWifi();
+  if (hostname.isEmpty())
+  {
+    // set default hostname
+    hostname += hostnamePrefix;
+    hostname += getId();
+  }
   loadOthers();
-  mqtt_client_id = hostname;
-  if (loadMqtt()) {
-      //write_log("Starting MQTT");
-      // setup HA topics
-      ha_power_set_topic = mqtt_topic + "/" + mqtt_fn + "/power/set";
-      ha_mode_set_topic        = mqtt_topic + "/" + mqtt_fn + "/mode/set";
-      ha_temp_set_topic        = mqtt_topic + "/" + mqtt_fn + "/temp/set";
-      ha_remote_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/remote_temp/set";
-      ha_fan_set_topic         = mqtt_topic + "/" + mqtt_fn + "/fan/set";
-      ha_vane_set_topic        = mqtt_topic + "/" + mqtt_fn + "/vane/set";
-      ha_wide_vane_set_topic    = mqtt_topic + "/" + mqtt_fn + "/wideVane/set";
-      ha_settings_topic        = mqtt_topic + "/" + mqtt_fn + "/settings";
-      ha_state_topic           = mqtt_topic + "/" + mqtt_fn + "/state";
-      ha_debug_pckts_topic     = mqtt_topic + "/" + mqtt_fn + "/debug/packets";
-      ha_debug_pckts_set_topic = mqtt_topic + "/" + mqtt_fn + "/debug/packets/set";
-      ha_debug_logs_topic      = mqtt_topic + "/" + mqtt_fn + "/debug/logs";
-      ha_debug_logs_set_topic  = mqtt_topic + "/" + mqtt_fn + "/debug/logs/set";
-      ha_custom_packet         = mqtt_topic + "/" + mqtt_fn + "/custom/send";
-      ha_availability_topic    = mqtt_topic + "/" + mqtt_fn + "/availability";
-      ha_system_set_topic      = mqtt_topic + "/" + mqtt_fn + "/system/set";
-
-      if (others_haa) {
-        ha_config_topic       = others_haa_topic + "/climate/" + mqtt_fn + "/config";
-      }
-      // startup mqtt connection
-      initMqtt();
-    }
-    else {
-      //write_log("Not found MQTT config go to configuration page");
-    }
   loadUnit();
 #ifdef ESP32
   WiFi.setHostname(hostname.c_str());
 #else
   WiFi.hostname(hostname.c_str());
 #endif
-  if (initWifi()) {
-    if (SPIFFS.exists(console_file)) {
+  wifi_reconnect_timeout = 0;
+  mqtt_reconnect_timeout = 0;
+  if (loadMqtt())
+  {
+    // write_log("Starting MQTT");
+    //  setup HA topics
+    ha_power_set_topic = mqtt_topic + "/" + mqtt_fn + "/power/set";
+    ha_mode_set_topic = mqtt_topic + "/" + mqtt_fn + "/mode/set";
+    ha_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/temp/set";
+    ha_remote_temp_set_topic = mqtt_topic + "/" + mqtt_fn + "/remote_temp/set";
+    ha_fan_set_topic = mqtt_topic + "/" + mqtt_fn + "/fan/set";
+    ha_vane_set_topic = mqtt_topic + "/" + mqtt_fn + "/vane/set";
+    ha_wide_vane_set_topic = mqtt_topic + "/" + mqtt_fn + "/wide-vane/set";
+    ha_settings_topic = mqtt_topic + "/" + mqtt_fn + "/settings";
+    ha_state_topic = mqtt_topic + "/" + mqtt_fn + "/state";
+    //
+    ha_debug_pckts_topic = mqtt_topic + "/" + mqtt_fn + "/debug/packets";
+    ha_debug_pckts_set_topic = mqtt_topic + "/" + mqtt_fn + "/debug/packets/set";
+    ha_debug_logs_topic = mqtt_topic + "/" + mqtt_fn + "/debug/logs";
+    ha_debug_logs_set_topic = mqtt_topic + "/" + mqtt_fn + "/debug/logs/set";
+    //
+    ha_custom_packet = mqtt_topic + "/" + mqtt_fn + "/custom/send";
+    ha_availability_topic = mqtt_topic + "/" + mqtt_fn + "/availability";
+    ha_system_set_topic = mqtt_topic + "/" + mqtt_fn + "/system/set";               // for control over mqtt
+    if (others_haa)
+    {
+      ha_config_topic = others_haa_topic + "/climate/" + mqtt_fn + "/config";
+    } else
+	{
+	  ha_config_topic = "homeassistant/climate/" + mqtt_fn + "/config";
+	}
+    // startup mqtt connection
+    initMqtt();
+  }
+  else
+  {
+    // write_log("Not found MQTT config go to configuration page");
+  }
+  if (initWifi())
+  {
+    if (SPIFFS.exists(console_file))
+    {
       SPIFFS.remove(console_file);
     }
-    //write_log("Starting Mitsubishi2MQTT");
-    //Web interface
+    // write_log("Starting Mitsubishi2MQTT");
+    MDNS.begin(hostname); // DNS service for .local address access
+    // Web interface
     server.on("/", handleRoot);
     server.on("/control", handleControl);
     server.on("/setup", handleSetup);
@@ -200,15 +216,18 @@ void setup() {
     server.on("/others", handleOthers);
     server.on("/metrics", handleMetrics);
     server.onNotFound(handleNotFound);
-    if (login_password.length() > 0) {
+    if (login_password.length() > 0)
+    {
       server.on("/login", handleLogin);
-      //here the list of headers to be recorded, use for authentication
-      const char * headerkeys[] = {"User-Agent", "Cookie"} ;
-      size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-      //ask server to track these headers
     }
-    server.on("/upgrade", handleUpgrade);
-    server.on("/upload", HTTP_ASYNC_ANY, handleUploadDone, handleUploadLoop);
+    if (!isSecureEnable())
+    {
+      server.on("/upgrade", handleUpgrade);
+      server.on("/upload", HTTP_ASYNC_ANY, handleUploadDone, handleUploadLoop);
+#ifdef ESP32
+      Update.onProgress(otaUpdateProgress);
+#endif
+    }
     // web socket
 #ifdef WEBSOCKET_ENABLE
     ws.onEvent(onWsEvent);
@@ -219,13 +238,12 @@ void setup() {
                      { client->send("hello!", NULL, millis(), 1000); });
     server.addHandler(&events);
     server.begin();
-    server.begin();
+    ESP_LOGD(TAG, "Connection to HVAC. Stop serial log.");
+	//write_log("Connection to HVAC");
     lastMqttRetry = 0;
-    lastHpSync = 0;
+	lastHpSync = 0;
     hpConnectionRetries = 0;
     hpConnectionTotalRetries = 0;
-    // Serial.println(F("Connection to HVAC. Stop serial log."));
-    //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
     hp.setPacketCallback(hpPacketDebug);
@@ -248,8 +266,10 @@ void setup() {
     rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     lastTempSend = millis();
+    MDNS.addService("http", "tcp", 80);
   }
-  else {
+  else
+  {
     dnsServer.start(DNS_PORT, "*", apIP);
     initCaptivePortal();
   }
@@ -258,21 +278,37 @@ void setup() {
 #endif
 }
 
-bool loadWifi() {
+void otaUpdateProgress(size_t prg, size_t sz)
+{
+  ESP_LOGD(TAG, "Progress: %d%%\n", (prg * 100) / ota_content_len);
+}
+
+void tick()
+{
+  // toggle state
+  int state = digitalRead(blueLedPin); // get the current state of GPIO2 pin
+  digitalWrite(blueLedPin, !state);    // set pin to the opposite state
+}
+
+bool loadWifi()
+{
   ap_ssid = "";
-  ap_pwd  = "";
-  if (!SPIFFS.exists(wifi_conf)) {
-    // Serial.println(F("Wifi config file not exist!"));
+  ap_pwd = "";
+  if (!SPIFFS.exists(wifi_conf))
+  {
+    ESP_LOGE(TAG, "Wifi config file not exist!");
     return false;
   }
   File configFile = SPIFFS.open(wifi_conf, "r");
-  if (!configFile) {
-    // Serial.println(F("Failed to open wifi config file"));
+  if (!configFile)
+  {
+    ESP_LOGE(TAG, "Failed to open wifi config file");
     return false;
   }
   size_t size = configFile.size();
-  if (size > 1024) {
-    // Serial.println(F("Wifi config file size is too large"));
+  if (size > 1024)
+  {
+    ESP_LOGE(TAG, "Wifi config file size is too large");
     return false;
   }
 
@@ -282,32 +318,61 @@ bool loadWifi() {
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
-  hostname = doc["hostname"].as<String>();
-  ap_ssid  = doc["ap_ssid"].as<String>();
-  ap_pwd   = doc["ap_pwd"].as<String>();
-  //prevent ota password is "null" if not exist key
-  if (doc.containsKey("ota_pwd")) {
-    ota_pwd  = doc["ota_pwd"].as<String>();
-  } else {
+  // Check key exist to prevent data is "null"
+  if (doc.containsKey("hostname"))
+  {
+    hostname = doc["hostname"].as<String>();
+  }
+  else
+  {
+    hostname = "";
+  }
+  if (doc.containsKey("ap_ssid"))
+  {
+    ap_ssid = doc["ap_ssid"].as<String>();
+  }
+  else
+  {
+    ap_ssid = "";
+  }
+  if (doc.containsKey("ap_pwd"))
+  {
+    ap_pwd = doc["ap_pwd"].as<String>();
+  }
+  else
+  {
+    ap_pwd = "";
+  }
+  if (doc.containsKey("ota_pwd"))
+  {
+    ota_pwd = doc["ota_pwd"].as<String>();
+  }
+  else
+  {
     ota_pwd = "";
   }
   return true;
 }
-bool loadMqtt() {
-  if (!SPIFFS.exists(mqtt_conf)) {
-    Serial.println(F("MQTT config file not exist!"));
+
+bool loadMqtt()
+{
+  if (!SPIFFS.exists(mqtt_conf))
+  {
+    ESP_LOGE(TAG, "MQTT config file not exist!");
     return false;
   }
-  //write_log("Loading MQTT configuration");
+  // write_log("Loading MQTT configuration");
   File configFile = SPIFFS.open(mqtt_conf, "r");
-  if (!configFile) {
-    //write_log("Failed to open MQTT config file");
+  if (!configFile)
+  {
+    // write_log("Failed to open MQTT config file");
     return false;
   }
 
   size_t size = configFile.size();
-  if (size > 1024) {
-    //write_log("Config file size is too large");
+  if (size > 1024)
+  {
+    // write_log("Config file size is too large");
     return false;
   }
   std::unique_ptr<char[]> buf(new char[size]);
@@ -316,13 +381,57 @@ bool loadMqtt() {
   const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, buf.get());
-  mqtt_fn             = doc["mqtt_fn"].as<String>();
-  mqtt_server         = doc["mqtt_host"].as<String>();
-  mqtt_port           = doc["mqtt_port"].as<String>();
-  mqtt_username       = doc["mqtt_user"].as<String>();
-  mqtt_password       = doc["mqtt_pwd"].as<String>();
-  mqtt_topic          = doc["mqtt_topic"].as<String>();
-
+  // check key to prevent data is "null" if not exist
+  if (doc.containsKey("mqtt_fn"))
+  {
+    mqtt_fn = doc["mqtt_fn"].as<String>();
+    ;
+  }
+  else
+  {
+    mqtt_fn = "";
+  }
+  if (doc.containsKey("mqtt_host"))
+  {
+    mqtt_server = doc["mqtt_host"].as<String>();
+  }
+  else
+  {
+    mqtt_server = "";
+  }
+  if (doc.containsKey("mqtt_port"))
+  {
+    mqtt_port = doc["mqtt_port"].as<String>();
+  }
+  else
+  {
+    mqtt_port = "";
+  }
+  if (doc.containsKey("mqtt_user"))
+  {
+    mqtt_username = doc["mqtt_user"].as<String>();
+  }
+  else
+  {
+    mqtt_username = "";
+  }
+  if (doc.containsKey("mqtt_pwd"))
+  {
+    mqtt_password = doc["mqtt_pwd"].as<String>();
+  }
+  else
+  {
+    mqtt_password = "";
+  }
+  if (doc.containsKey("mqtt_topic"))
+  {
+    mqtt_topic = doc["mqtt_topic"].as<String>();
+  }
+  else
+  {
+    mqtt_topic = "";
+  }
+  
   //write_log("=== START DEBUG MQTT ===");
   //write_log("Friendly Name" + mqtt_fn);
   //write_log("IP Server " + mqtt_server);
@@ -331,8 +440,8 @@ bool loadMqtt() {
   //write_log("Password " + mqtt_password);
   //write_log("Topic " + mqtt_topic);
   //write_log("=== END DEBUG MQTT ===");
-
-  mqtt_config = true;
+  
+  mqtt_config = (!mqtt_fn.isEmpty() && !mqtt_server.isEmpty() && !mqtt_port.isEmpty() && !mqtt_topic.isEmpty());
   return true;
 }
 
@@ -420,22 +529,41 @@ bool loadOthers() {
   }
   return true;
 }
+
 void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
-              String mqttPwd, String mqttTopic) {
+              String mqttPwd, String mqttTopic)
+{
 
   const size_t capacity = JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument doc(capacity);
   // if mqtt port is empty, we use default port
-  if (mqttPort[0] == '\0') mqttPort = "1883";
-  doc["mqtt_fn"]   = mqttFn;
+  if (mqttPort.isEmpty())
+  {
+    mqttPort = "1883";
+  }
+  if (mqttFn.isEmpty())
+  {
+    // set default fn
+    mqttFn += hostnamePrefix;
+    mqttFn += getId();
+    mqttFn.toLowerCase();
+  }
+  if (mqttTopic.isEmpty())
+  {
+    // set default topic
+    mqttTopic += getId();
+    mqttTopic.toLowerCase();
+  }
+  doc["mqtt_fn"] = mqttFn;
   doc["mqtt_host"] = mqttHost;
   doc["mqtt_port"] = mqttPort;
   doc["mqtt_user"] = mqttUser;
   doc["mqtt_pwd"] = mqttPwd;
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
-  if (!configFile) {
-    // Serial.println(F("Failed to open config file for writing"));
+  if (!configFile)
+  {
+    ESP_LOGD(TAG, "Failed to open config file for writing");
   }
   serializeJson(doc, configFile);
   configFile.close();
@@ -473,19 +601,24 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   configFile.close();
 }
 
-void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
+void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd)
+{
   const size_t capacity = JSON_OBJECT_SIZE(4) + 130;
   DynamicJsonDocument doc(capacity);
+  if (hostName.isEmpty())
+  {
+    hostName = hostname;
+  }
   doc["ap_ssid"] = apSsid;
   doc["ap_pwd"] = apPwd;
   doc["hostname"] = hostName;
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
-  if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+  if (!configFile)
+  {
+    ESP_LOGD(TAG, "Failed to open wifi file for writing");
   }
   serializeJson(doc, configFile);
-  delay(10);
   configFile.close();
 }
 
@@ -497,11 +630,11 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
   doc["debugPckts"] = debugPckts;
   doc["debugLogs"] = debugLogs;
   File configFile = SPIFFS.open(others_conf, "w");
-  if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+  if (!configFile)
+  {
+    ESP_LOGD(TAG, "Failed to open other config file for writing");
   }
   serializeJson(doc, configFile);
-  delay(10);
   configFile.close();
 }
 
@@ -514,36 +647,75 @@ void saveCurrentOthers()
 }
 
 // Initialize captive portal page
-void initCaptivePortal() {
-  // Serial.println(F("Starting captive portal"));
+void initCaptivePortal()
+{
+  ESP_LOGD(TAG, "Starting captive portal");
+  // Required
+  server.on("/connecttest.txt", [](AsyncWebServerRequest *request)
+            { request->redirect("http://logout.net"); }); // windows 11 captive portal workaround
+  server.on("/wpad.dat", [](AsyncWebServerRequest *request)
+            { request->send(404); }); // Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
+
+  // Background responses: Probably not all are Required, but some are. Others might speed things up?
+  // A Tier (commonly used by modern systems)
+  server.on("/generate_204", [](AsyncWebServerRequest *request)
+            { request->redirect(localApIpUrl); }); // android captive portal redirect
+  server.on("/redirect", [](AsyncWebServerRequest *request)
+            { request->redirect(localApIpUrl); }); // microsoft redirect
+  server.on("/hotspot-detect.html", [](AsyncWebServerRequest *request)
+            { request->redirect(localApIpUrl); }); // apple call home
+  server.on("/canonical.html", [](AsyncWebServerRequest *request)
+            { request->redirect(localApIpUrl); }); // firefox captive portal call home
+  server.on("/success.txt", [](AsyncWebServerRequest *request)
+            { request->send(200); }); // firefox captive portal call home
+  server.on("/ncsi.txt", [](AsyncWebServerRequest *request)
+            { request->redirect(localApIpUrl); }); // windows call home
+
   server.on("/", handleInitSetup);
   server.on("/save", handleSaveWifiAndMqtt);
   server.on("/reboot", handleReboot);
+  server.on("/control", handleControl);
+  server.on("/status", handleStatus);
+  if (!isSecureEnable())
+  {
+    server.on("/upgrade", handleUpgrade);
+    server.on("/upload", HTTP_ASYNC_ANY, handleUploadDone, handleUploadLoop);
+#ifdef ESP32
+    Update.onProgress(otaUpdateProgress);
+#endif
+  }
   server.onNotFound(handleNotFound);
+  // web socket
+#ifdef WEBSOCKET_ENABLE
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
+#endif
   server.begin();
   captive = true;
 }
 
-void initMqtt() {
+void initMqtt()
+{
   ESP_LOGD(TAG, "Setup Async Mqtt...");
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
-  //mqttClient.onSubscribe(onMqttSubscribe);
-  //mqttClient.onUnsubscribe(onMqttUnsubscribe);
+  // mqttClient.onSubscribe(onMqttSubscribe);
+  // mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
 
   const char *apipch = mqtt_server.c_str();
   IPAddress apip;
   if (apip.fromString(apipch))
-  {                       // try to parse into the IPAddress
-    //Serial.println(apip); // print the parsed IPAddress
-    ESP_LOGD(TAG, "Connecting to MQTT server IP: %s, port: %s", apipch, mqtt_port);
+  { // try to parse into the IPAddress
+    // print the parsed IPAddress
+    ESP_LOGD(TAG, "Connecting to MQTT server IP: %s, port: %s", apipch, mqtt_port.c_str());
   }
   else
   {
     ESP_LOGD(TAG, "UnParsable IP");
   }
+
   mqttClient.setServer(mqtt_server.c_str(), atoi(mqtt_port.c_str()));
   mqttClient.setCredentials(mqtt_username.c_str(), mqtt_password.c_str());
   mqttClient.setClientId(mqtt_client_id.c_str());
@@ -552,29 +724,49 @@ void initMqtt() {
 
 // Enable OTA only when connected as a client.
 #ifdef ARDUINO_OTA
-void initOTA() {
-  //write_log("Start OTA Listener");
+void initOTA()
+{
+  // write_log("Start OTA Listener");
   ArduinoOTA.setHostname(hostname.c_str());
-  if (ota_pwd.length() > 0) {
+  if (ota_pwd.length() > 0)
+  {
     ArduinoOTA.setPassword(ota_pwd.c_str());
   }
-  ArduinoOTA.onStart([]() {
-    //write_log("Start");
-  });
-  ArduinoOTA.onEnd([]() {
-    //write_log("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    //    write_log("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    //    write_log("Error[%u]: ", error);
-    // if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
-    // else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-    // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-    // else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-    // else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
-  });
+  ArduinoOTA.onStart([]()
+                     {
+                       // write_log("Start");
+                     });
+  ArduinoOTA.onEnd([]()
+                   {
+                     // write_log("\nEnd");
+                   });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                        {
+                          //    write_log("Progress: %u%%\r", (progress / (total / 100)));
+                        });
+  ArduinoOTA.onError([](ota_error_t error)
+                     {
+      //    write_log("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR)
+      {
+        ESP_LOGE(TAG, "Auth Failed");
+      }
+      else if (error == OTA_BEGIN_ERROR)
+      {
+        ESP_LOGE(TAG, "Begin Failed");
+      }
+      else if (error == OTA_CONNECT_ERROR)
+      {
+        ESP_LOGE(TAG, "Connect Failed");
+      }
+      else if (error == OTA_RECEIVE_ERROR)
+      {
+        ESP_LOGE(TAG, "Receive Failed");
+      }
+      else if (error == OTA_END_ERROR)
+      {
+        ESP_LOGE(TAG, "End Failed");
+      } });
   ArduinoOTA.begin();
 }
 #endif
@@ -584,23 +776,27 @@ void setDefaults() {
   ap_pwd  = "";
   others_haa = true;
   others_haa_topic = "homeassistant";
-
+  mqtt_client_id = getId();
+  mqtt_client_id.toLowerCase();
 }
 
-boolean initWifi() {
+boolean initWifi()
+{
   bool connectWifiSuccess = true;
-  if (ap_ssid[0] != '\0') {
+  if (!ap_ssid.isEmpty())
+  {
     // wifi connection handle
 #ifdef ESP32
     mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(mqttConnect));
-    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectWifi));
+    // wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectWifi));
     WiFi.onEvent(WiFiEvent);
 #elif defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeGotIP(onWifiConnect);
     wifiDisconnectHandler = WiFi.onStationModeDisconnected(onWifiDisconnect); // timer for esp8266 AsyncMqttClient
 #endif
     connectWifiSuccess = wifi_config = connectWifi();
-    if (connectWifiSuccess) {
+    if (connectWifiSuccess)
+    {
       return true;
     }
     else
@@ -610,26 +806,32 @@ boolean initWifi() {
       hostname += getId();
     }
   }
-
-  // Serial.println(F("\n\r \n\rStarting in AP mode"));
+  ESP_LOGE(TAG, "Starting in AP mode, host name: %s", hostname.c_str());
+  // WiFi.disconnect(true);
+  // delay(1000);
   WiFi.mode(WIFI_AP);
+  // delay(1000);
   wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
-  WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
-  WiFi.softAPConfig(apIP, apIP, netMsk);
-  if (!connectWifiSuccess and login_password != "") {
+#ifdef ESP32
+  WiFi.persistent(false); // fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
+#endif
+  if (!connectWifiSuccess)
+  {
     // Set AP password when falling back to AP on fail
-    WiFi.softAP(hostname.c_str(), login_password.c_str());
+    WiFi.softAP(hostname.c_str(), login_password.isEmpty() ? hostname.c_str() : login_password.c_str());
   }
-  else {
+  else
+  {
     // First time setup does not require password
     WiFi.softAP(hostname.c_str());
   }
   delay(2000); // VERY IMPORTANT
-
-  // Serial.print(F("IP address: "));
-  // Serial.println(WiFi.softAPIP());
-  //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
+  WiFi.softAPConfig(apIP, apIP, netMsk);
+  ESP_LOGE(TAG, "IP address: %s", WiFi.softAPIP().toString().c_str());
+  ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
   wifi_config = false;
+  WiFi.scanNetworks(true);
+  delay(2000); // VERY IMPORTANT
   return false;
 }
 
@@ -675,7 +877,7 @@ void handleNotFound(AsyncWebServerRequest *request) {
 
 void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
 {
-  checkLogin(request);
+  if (!checkLogin(request)) return;
   ESP_LOGD(TAG, "Saving wifi and mqtt config");
   if (request->hasArg("submit"))
   {
@@ -705,42 +907,45 @@ void handleSaveWifiAndMqtt(AsyncWebServerRequest *request)
   sendRebootRequest(2); // Reboot after 1 seconds
 }
 
-void handleReboot(AsyncWebServerRequest *request) {
+void handleReboot(AsyncWebServerRequest *request)
+{
   if (!checkLogin(request)) return;
-
+  ESP_LOGD(TAG, "Rebooting");
   String initRebootPage = FPSTR(html_init_reboot);
+  // localize
   initRebootPage.replace("_TXT_INIT_REBOOT_", translatedWord(FL_(txt_init_reboot)));
   sendWrappedHTML(request, initRebootPage);
-  delay(500);
-  ESP.restart();
+  sendRebootRequest(1); // Reboot after 1 seconds
 }
 
-void handleRoot(AsyncWebServerRequest *request) {
+void handleRoot(AsyncWebServerRequest *request)
+{
   if (!checkLogin(request)) return;
-
-  if (request->hasArg("REBOOT")) {
-    String rebootPage =  FPSTR(html_page_reboot);
+  if (request->hasArg("REBOOT"))
+  {
+    String rebootPage = FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
+    // localize
     rebootPage.replace("_TXT_M_REBOOT_", translatedWord(FL_(txt_m_reboot)));
     sendWrappedHTML(request, rebootPage + countDown);
-    delay(500);
-#ifdef ESP32
-    ESP.restart();
-#else
-    ESP.reset();
-#endif
+    sendRebootRequest(1); // Reboot after 1 seconds
   }
-  else {
-    String menuRootPage =  FPSTR(html_menu_root);
-    menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
-    //not show control button if hp not connected
-    menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
+  else
+  {
+    String menuRootPage = FPSTR(html_menu_root);
+    // localize
+    // menuRootPage.replace("_TXT_HOME_PAGE_",translatedWord(FL_(txt_home_page));
+    menuRootPage.replace("_TXT_HOME_PAGE_", translatedWord(FL_(txt_home_page)));
     menuRootPage.replace("_TXT_CONTROL_", translatedWord(FL_(txt_control)));
     menuRootPage.replace("_TXT_SETUP_", translatedWord(FL_(txt_setup)));
     menuRootPage.replace("_TXT_STATUS_", translatedWord(FL_(txt_status)));
     menuRootPage.replace("_TXT_FW_UPGRADE_", translatedWord(FL_(txt_firmware_upgrade)));
     menuRootPage.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
     menuRootPage.replace("_TXT_LOGOUT_", translatedWord(FL_(txt_logout)));
+    // set data
+    menuRootPage.replace(F("_SHOW_LOGOUT_"), (String)(login_password.length() > 0));
+    // not show control button if hp not connected
+    menuRootPage.replace(F("_SHOW_CONTROL_"), (String)(hp.isConnected()));
     sendWrappedHTML(request, menuRootPage);
   }
 }
@@ -803,36 +1008,34 @@ void handleInitSetup(AsyncWebServerRequest *request)
   initSetupPage = "";
 }
 
-void handleSetup(AsyncWebServerRequest *request) {
+void handleSetup(AsyncWebServerRequest *request)
+{
   if (!checkLogin(request)) return;
-
-  if (request->hasArg("RESET")) {
-    String pageReset = FPSTR(html_page_reset);
-    String ssid = hostnamePrefix;
-    ssid += getId();
-    pageReset.replace("_TXT_M_RESET_", translatedWord(FL_(txt_m_reset)));
-    pageReset.replace("_SSID_",ssid);
-    sendWrappedHTML(request, pageReset);
-    SPIFFS.format();
-    delay(500);
-#ifdef ESP32
-    ESP.restart();
-#else
-    ESP.reset();
-#endif
+  if (request->hasArg("RESET"))
+  {
+    String resetPage = FPSTR(html_page_reset);
+    // localize
+    resetPage.replace("_TXT_M_RESET_1_", translatedWord(FL_(txt_m_reset_1)));
+    resetPage.replace("_TXT_M_RESET_", translatedWord(FL_(txt_m_reset)));
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(request, resetPage + countDown);
+    factoryReset();
+    sendRebootRequest(5); // Reboot after 5 seconds
   }
-  else {
+  else
+  {
     String menuSetupPage = FPSTR(html_menu_setup);
+    // localize
+    menuSetupPage.replace("_TXT_SETUP_PAGE_", translatedWord(FL_(txt_setup_page)));
     menuSetupPage.replace("_TXT_MQTT_", translatedWord(FL_(txt_mqtt)));
     menuSetupPage.replace("_TXT_WIFI_", translatedWord(FL_(txt_wifi)));
     menuSetupPage.replace("_TXT_UNIT_", translatedWord(FL_(txt_unit)));
     menuSetupPage.replace("_TXT_OTHERS_", translatedWord(FL_(txt_others)));
+    menuSetupPage.replace("_TXT_RESET_CONFIRM_", translatedWord(FL_(txt_reset_confirm)));
     menuSetupPage.replace("_TXT_RESET_", translatedWord(FL_(txt_reset)));
     menuSetupPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
-    menuSetupPage.replace("_TXT_RESETCONFIRM_", translatedWord(FL_(txt_reset_confirm)));
     sendWrappedHTML(request, menuSetupPage);
   }
-
 }
 
 void rebootAndSendPage(AsyncWebServerRequest *request) {
@@ -887,25 +1090,38 @@ void handleOthers(AsyncWebServerRequest *request) {
   }
 }
 
-void handleMqtt(AsyncWebServerRequest *request) {
+void handleMqtt(AsyncWebServerRequest *request)
+{
   if (!checkLogin(request)) return;
-
   if (request->hasArg("save"))
   {
     saveMqtt(request->arg("fn"), request->arg("mh"), request->arg("ml"), request->arg("mu"), request->arg("mp"), request->arg("mt"));
-    rebootAndSendPage(request);
+    String saveRebootPage = FPSTR(html_page_save_reboot);
+    // localize
+    saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(request, saveRebootPage + countDown);
+    sendRebootRequest(5); // Reboot after 5 seconds
   }
-  else {
-    String mqttPage =  FPSTR(html_page_mqtt);
-    mqttPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-    mqttPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  else
+  {
+    String mqttPage = FPSTR(html_page_mqtt);
+    // localize
     mqttPage.replace("_TXT_MQTT_TITLE_", translatedWord(FL_(txt_mqtt_title)));
+    mqttPage.replace("_TXT_MQTT_FN_DESC_", translatedWord(FL_(txt_mqtt_fn_desc)));
     mqttPage.replace("_TXT_MQTT_FN_", translatedWord(FL_(txt_mqtt_fn)));
+    mqttPage.replace("_TXT_MQTT_PH_USER_", translatedWord(FL_(txt_mqtt_ph_user)));
+    mqttPage.replace("_TXT_MQTT_PH_PWD_", translatedWord(FL_(txt_mqtt_ph_pwd)));
+    mqttPage.replace("_TXT_MQTT_PH_TOPIC_", translatedWord(FL_(txt_mqtt_ph_topic)));
     mqttPage.replace("_TXT_MQTT_HOST_", translatedWord(FL_(txt_mqtt_host)));
+    mqttPage.replace("_TXT_MQTT_PORT_DESC_", translatedWord(FL_(txt_mqtt_port_desc)));
     mqttPage.replace("_TXT_MQTT_PORT_", translatedWord(FL_(txt_mqtt_port)));
     mqttPage.replace("_TXT_MQTT_USER_", translatedWord(FL_(txt_mqtt_user)));
     mqttPage.replace("_TXT_MQTT_PASSWORD_", translatedWord(FL_(txt_mqtt_password)));
     mqttPage.replace("_TXT_MQTT_TOPIC_", translatedWord(FL_(txt_mqtt_topic)));
+    mqttPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    mqttPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    // set data
     mqttPage.replace(F("_MQTT_FN_"), mqtt_fn);
     mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
     mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
@@ -970,70 +1186,134 @@ void handleUnit(AsyncWebServerRequest *request) {
   }
 }
 
-void handleWifi(AsyncWebServerRequest *request) {
+void handleWifi(AsyncWebServerRequest *request)
+{
   if (!checkLogin(request)) return;
-
   if (request->hasArg("save"))
   {
-    saveWifi(request->arg("ssid"), request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
-    rebootAndSendPage(request);
-#ifdef ESP32
-    ESP.restart();
-#else
-    ESP.reset();
-#endif
+    String ssid = request->arg("ssid");
+    if (ssid.isEmpty() and request->hasArg("network"))
+    {
+      ssid = request->arg("network"); // auto scan network
+    }
+    ESP_LOGD(TAG, "handleWifi: %s", ssid.c_str());
+    saveWifi(ssid, request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
+    String saveRebootPage = FPSTR(html_page_save_reboot);
+    // localize
+    saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
+    String countDown = FPSTR(count_down_script);
+    sendWrappedHTML(request, saveRebootPage + countDown);
+    sendRebootRequest(5); // reboot after 5 seconds
   }
-  else {
-    String wifiPage =  FPSTR(html_page_wifi);
-    String str_ap_ssid = ap_ssid;
-    String str_ap_pwd  = ap_pwd;
-    String str_ota_pwd = ota_pwd;
-    str_ap_ssid.replace("'", F("&apos;"));
-    str_ap_pwd.replace("'", F("&apos;"));
-    str_ota_pwd.replace("'", F("&apos;"));
-    wifiPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-    wifiPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  else
+  {
+    if (wifi_list.isEmpty() || millis() - lastWifiScanMillis > WIFI_SCAN_PERIOD) // only scan every WIFI_SCAN_PERIOD
+    {
+      requestWifiScan = true;
+      requestWifiScanTime = millis() + 50;
+    }
+    String wifiPage = FPSTR(html_page_wifi);
+    // localize
     wifiPage.replace("_TXT_WIFI_TITLE_", translatedWord(FL_(txt_wifi_title)));
+    wifiPage.replace("_TXT_WIFI_HOST_DESC_", translatedWord(FL_(txt_wifi_hostname_desc)));
     wifiPage.replace("_TXT_WIFI_HOST_", translatedWord(FL_(txt_wifi_hostname)));
+    wifiPage.replace("_TXT_WIFI_SSID_ENTER_", translatedWord(FL_(txt_wifi_ssid_enter)));
+    wifiPage.replace("_TXT_WIFI_SSID_SELECT_", translatedWord(FL_(txt_wifi_ssid_select)));
     wifiPage.replace("_TXT_WIFI_SSID_", translatedWord(FL_(txt_wifi_ssid)));
     wifiPage.replace("_TXT_WIFI_PSK_", translatedWord(FL_(txt_wifi_psk)));
     wifiPage.replace("_TXT_WIFI_OTAP_", translatedWord(FL_(txt_wifi_otap)));
+    wifiPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    wifiPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    // set data
+    String str_ap_ssid = ap_ssid;
+    String str_ap_pwd = ap_pwd;
+    String str_ota_pwd = ota_pwd;
+    str_ap_ssid.replace("'", F("&apos;")); // fix single quote in password and ssid
+    str_ap_pwd.replace("'", F("&apos;"));
+    str_ota_pwd.replace("'", F("&apos;"));
+    // display wifi list
+    String wifiOptions = getWifiOptions(false);
+    if (!wifiOptions.isEmpty())
+    {
+      wifiPage.replace(F("_WIFI_OPTIONS_"), wifiOptions);
+    }
     wifiPage.replace(F("_SSID_"), str_ap_ssid);
     wifiPage.replace(F("_PSK_"), str_ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), str_ota_pwd);
     sendWrappedHTML(request, wifiPage);
   }
-
 }
 
-void handleStatus(AsyncWebServerRequest *request) {
-  if (!checkLogin(request)) return;
-
-  String statusPage =  FPSTR(html_page_status);
-  statusPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+void handleStatus(AsyncWebServerRequest *request)
+{
+  String statusPage = FPSTR(html_page_status);
+  // localize
   statusPage.replace("_TXT_STATUS_TITLE_", translatedWord(FL_(txt_status_title)));
   statusPage.replace("_TXT_STATUS_HVAC_", translatedWord(FL_(txt_status_hvac)));
-  statusPage.replace("_TXT_STATUS_MQTT_", translatedWord(FL_(txt_status_mqtt)));
-  statusPage.replace("_TXT_STATUS_WIFI_", translatedWord(FL_(txt_status_wifi)));
   statusPage.replace("_TXT_RETRIES_HVAC_", translatedWord(FL_(txt_retries_hvac)));
-
-  if (request->hasArg("mrconn")) mqttConnect();
-
-  String connected = F("<span style='color:#47c266'><b>");
+  statusPage.replace("_TXT_STATUS_MQTT_", translatedWord(FL_(txt_status_mqtt)));
+  statusPage.replace("_TXT_STATUS_WIFI_IP_", translatedWord(FL_(txt_status_wifi_ip)));
+  statusPage.replace("_TXT_STATUS_WIFI_", translatedWord(FL_(txt_status_wifi)));
+  statusPage.replace("_TXT_BUILD_VERSION_", translatedWord(FL_(txt_build_version)));
+  statusPage.replace("_TXT_BUILD_DATE_", translatedWord(FL_(txt_build_date)));
+  statusPage.replace("_TXT_STATUS_FREEHEAP_", translatedWord(FL_(txt_status_freeheap)));
+  statusPage.replace("_TXT_CURRENT_TIME_", translatedWord(FL_(txt_current_time)));
+  statusPage.replace("_TXT_BOOT_TIME", translatedWord(FL_(txt_boot_time)));
+  statusPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  // set data
+  if (request->hasArg("mrconn"))
+    mqttConnect();
+  String connected = F("<font color='green'><b>");
   connected += translatedWord(FL_(txt_status_connect));
-  connected += F("</b><span>");
-
-  String disconnected = F("<span style='color:#d43535'><b>");
+  connected += F("</b></font>");
+  String disconnected = F("<font color='red'><b>");
   disconnected += translatedWord(FL_(txt_status_disconnect));
-  disconnected += F("</b></span>");
-
-  if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
-  else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
-  if (mqttClient.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
-  else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
+  disconnected += F("</b>(_MQTT_REASON_)</font>");
+  disconnected.replace("_MQTT_REASON_", String(mqtt_disconnect_reason));
+  if (hp.isConnected())
+  {
+    statusPage.replace(F("_HVAC_STATUS_"), connected);
+  }
+  else
+  {
+    statusPage.replace(F("_HVAC_STATUS_"), disconnected);
+  }
   statusPage.replace(F("_HVAC_RETRIES_"), String(hpConnectionTotalRetries));
-  statusPage.replace(F("_MQTT_REASON_"), String(mqtt_disconnect_reason));
+  if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "")
+  {
+    ESP_LOGD(TAG, "Failed to get IP address");
+    String failedIp = F("<font color='red'>");
+    failedIp += translatedWord(FL_(txt_failed_get_wifi_ip));
+    failedIp += F("</font>");
+    statusPage.replace(F("_WIFI_IP_"), failedIp);
+  }
+  else
+  {
+    statusPage.replace(F("_WIFI_IP_"), "<font color='blue'><b>" + WiFi.localIP().toString() + "</b></font>");
+  }
+  if (mqttClient.connected())
+    statusPage.replace(F("_MQTT_STATUS_"), connected);
+  else
+    statusPage.replace(F("_MQTT_STATUS_"), disconnected);
   statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
+  statusPage.replace(F("_BUILD_VERSION_"), getAppVersion());
+  statusPage.replace(F("_BUILD_DATE_"), getBuildDatetime());
+  // get free heap and percent
+#ifdef ESP32
+  uint32_t freeHeapBytes = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+  uint32_t totalHeapBytes = heap_caps_get_total_size(MALLOC_CAP_DEFAULT);
+#else
+  uint32_t freeHeapBytes = ESP.getFreeHeap();
+  uint32_t totalHeapBytes = 64000;
+#endif
+  float percentageHeapFree = freeHeapBytes * 100.0f / (float)totalHeapBytes;
+  String heap(freeHeapBytes);
+  heap += " (";
+  heap += String(percentageHeapFree);
+  heap += "% )";
+  statusPage.replace(F("_FREE_HEAP_"), heap);
+  statusPage.replace(F("_CURRENT_TIME_"), "<font color='blue'><b>" + getCurrentTime() + "</b></font>");
+  statusPage.replace(F("_BOOT_TIME_"), "<font color='orange'><b>" + getUpTime() + "</b></font>");
   sendWrappedHTML(request, statusPage);
 }
 
@@ -2028,7 +2308,7 @@ bool connectWifi() {
     return false;
   }
   // Serial.println(WiFi.localIP());
-  //ticker.detach(); // Stop blinking the LED because now we are connected:)
+  ticker.detach(); // Stop blinking the LED because now we are connected:)
   //keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
   return true;
@@ -2651,4 +2931,22 @@ String getValueBySeparator(String data, char separator, int index)
   }
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 } 
+
+void factoryReset()
+{
+  SPIFFS.format();
+#ifdef ESP32
+  // delete nvs partition because AP mode not working if have other data
+  esp_err_t err = nvs_flash_erase();
+  if (err == ESP_ERR_NOT_FOUND)
+  {
+    ESP_LOGE(TAG, "Default nvs partition not found");
+  }
+  err = nvs_flash_erase_partition("fctry");
+  if (err == ESP_ERR_NOT_FOUND)
+  {
+    ESP_LOGE(TAG, "fctry partition not found");
+  }
+#endif
+}
 

@@ -94,6 +94,7 @@ unsigned long lastRemoteTemp;
 //Local state
 StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 String wifi_list = "";                            // cache wifi scan result
+const String localApIpUrl = "http://192.168.4.1"; // a string version of the local IP with http, used for redirecting clients to your webpage
 
 //Web OTA
 int uploaderror = 0;
