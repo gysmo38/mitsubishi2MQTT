@@ -269,3 +269,5 @@ const char *const language_names[] = {
 #endif
 
 static constexpr uint8_t NUM_LANGUAGES = sizeof(languages) / sizeof(const char *);
+
+// #define METRICS 1   // un comment to enable Prometheus exporter

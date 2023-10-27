@@ -20,7 +20,9 @@
 #include "html_init.h"    // code html for initial config
 #include "html_menu.h"    // code html for menu
 #include "html_pages.h"   // code html for pages
+#ifdef METRICS
 #include "html_metrics.h" // prometheus metrics
+#endif
 
 // Start header for build with IDF and Platformio
 bool loadWifi();
@@ -213,7 +215,9 @@ void setup()
     server.on("/unit", handleUnit);
     server.on("/status", handleStatus);
     server.on("/others", handleOthers);
+#ifdef METRICS
     server.on("/metrics", handleMetrics);
+#endif
     server.onNotFound(handleNotFound);
     if (login_password.length() > 0)
     {
