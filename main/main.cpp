@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2023 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -55,15 +55,6 @@ AsyncEventSource events("/events"); // Create an Event Source on /events
 #include "html_menu.h"    // code html for menu
 #include "html_pages.h"   // code html for pages
 #include "html_metrics.h" // prometheus metrics
-// Languages
-#ifndef MY_LANGUAGE
-  #include "languages/en-GB.h" // default language English
-#else
-  #define QUOTEME(x) QUOTEME_1(x)
-  #define QUOTEME_1(x) #x
-  #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
-  #include INCLUDE_FILE(MY_LANGUAGE)
-#endif
 
 // wifi, mqtt and heatpump client instances
 AsyncMqttClient mqttClient;        // AsyncMqtt
@@ -177,6 +168,8 @@ void onMqttSubscribe(uint16_t packetId, uint8_t qos);
 void onMqttUnsubscribe(uint16_t packetId);
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
 void onMqttPublish(uint16_t packetId);
+String getValueBySeparator(String data, char separator, int index);
+void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 // End  header for build with IDF and Platformio
 
 #ifdef ESP8266
@@ -275,7 +268,16 @@ void setup() {
     }
     server.on("/upgrade", handleUpgrade);
     server.on("/upload", HTTP_ASYNC_ANY, handleUploadDone, handleUploadLoop);
-
+    // web socket
+#ifdef WEBSOCKET_ENABLE
+    ws.onEvent(onWsEvent);
+    server.addHandler(&ws);
+#endif
+    // event source client
+    events.onConnect([](AsyncEventSourceClient *client)
+                     { client->send("hello!", NULL, millis(), 1000); });
+    server.addHandler(&events);
+    server.begin();
     server.begin();
     lastMqttRetry = 0;
     lastHpSync = 0;
@@ -422,6 +424,14 @@ bool loadUnit() {
   } else {
     login_password = "";
   }
+  if (doc.containsKey("language_index"))
+  {
+    system_language_index = doc["language_index"].as<byte>();
+  }
+  else
+  {
+    system_language_index = 0;
+  }
   return true;
 }
 
@@ -484,7 +494,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   configFile.close();
 }
 
-void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep) {
+void saveUnit(String tempUnit, String supportMode, String loginPassword, String minTemp, String maxTemp, String tempStep, String languageIndex) {
   const size_t capacity = JSON_OBJECT_SIZE(6) + 200;
   DynamicJsonDocument doc(capacity);
   // if temp unit is empty, we use default celcius
@@ -506,6 +516,8 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   if (loginPassword.isEmpty()) loginPassword = "";
 
   doc["login_password"]   = loginPassword;
+  if (languageIndex.isEmpty()) languageIndex = "0";
+  doc["language_index"] = languageIndex;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
     // Serial.println(F("Failed to open config file for writing"));
@@ -682,14 +694,14 @@ void sendWrappedHTML(AsyncWebServerRequest *request, const String &content)
 void handleNotFound(AsyncWebServerRequest *request) {
   if (captive) {
     String initSetupContent = FPSTR(html_init_setup);
-    initSetupContent.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
-    initSetupContent.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
+    initSetupContent.replace("_TXT_INIT_TITLE_", translatedWord(FL_(txt_init_title)));
+    initSetupContent.replace("_TXT_INIT_HOST_", translatedWord(FL_(txt_wifi_hostname)));
     initSetupContent.replace("_UNIT_NAME_", hostname);
-    initSetupContent.replace("_TXT_INIT_SSID_",FPSTR(txt_wifi_SSID));
-    initSetupContent.replace("_TXT_INIT_PSK_",FPSTR(txt_wifi_psk));
-    initSetupContent.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
-    initSetupContent.replace("_TXT_SAVE_",FPSTR(txt_save));
-    initSetupContent.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
+    initSetupContent.replace("_TXT_INIT_SSID_", translatedWord(FL_(txt_wifi_ssid)));
+    initSetupContent.replace("_TXT_INIT_PSK_", translatedWord(FL_(txt_wifi_psk)));
+    initSetupContent.replace("_TXT_INIT_OTA_", translatedWord(FL_(txt_wifi_otap)));
+    initSetupContent.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    initSetupContent.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
 
     sendWrappedHTML(request, initSetupContent);
   }
@@ -710,7 +722,7 @@ void handleSaveWifi(AsyncWebServerRequest *request) {
     saveWifi(request->arg("ssid"), request->arg("psk"), request->arg("hn"), request->arg("otapwd"));
   }
   String initSavePage =  FPSTR(html_init_save);
-  initSavePage.replace("_TXT_INIT_REBOOT_MESS_",FPSTR(txt_init_reboot_mes));
+  initSavePage.replace("_TXT_INIT_REBOOT_MESS_", translatedWord(FL_(txt_init_reboot_mes)));
   sendWrappedHTML(request, initSavePage);
   delay(500);
   ESP.restart();
@@ -720,7 +732,7 @@ void handleReboot(AsyncWebServerRequest *request) {
   if (!checkLogin(request)) return;
 
   String initRebootPage = FPSTR(html_init_reboot);
-  initRebootPage.replace("_TXT_INIT_REBOOT_",FPSTR(txt_init_reboot));
+  initRebootPage.replace("_TXT_INIT_REBOOT_", translatedWord(FL_(txt_init_reboot)));
   sendWrappedHTML(request, initRebootPage);
   delay(500);
   ESP.restart();
@@ -732,7 +744,7 @@ void handleRoot(AsyncWebServerRequest *request) {
   if (request->hasArg("REBOOT")) {
     String rebootPage =  FPSTR(html_page_reboot);
     String countDown = FPSTR(count_down_script);
-    rebootPage.replace("_TXT_M_REBOOT_",FPSTR(txt_m_reboot));
+    rebootPage.replace("_TXT_M_REBOOT_", translatedWord(FL_(txt_m_reboot)));
     sendWrappedHTML(request, rebootPage + countDown);
     delay(500);
 #ifdef ESP32
@@ -746,25 +758,25 @@ void handleRoot(AsyncWebServerRequest *request) {
     menuRootPage.replace("_SHOW_LOGOUT_", (String)(login_password.length() > 0));
     //not show control button if hp not connected
     menuRootPage.replace("_SHOW_CONTROL_", (String)(hp.isConnected()));
-    menuRootPage.replace("_TXT_CONTROL_",FPSTR(txt_control));
-    menuRootPage.replace("_TXT_SETUP_",FPSTR(txt_setup));
-    menuRootPage.replace("_TXT_STATUS_",FPSTR(txt_status));
-    menuRootPage.replace("_TXT_FW_UPGRADE_",FPSTR(txt_firmware_upgrade));
-    menuRootPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
-    menuRootPage.replace("_TXT_LOGOUT_",FPSTR(txt_logout));
+    menuRootPage.replace("_TXT_CONTROL_", translatedWord(FL_(txt_control)));
+    menuRootPage.replace("_TXT_SETUP_", translatedWord(FL_(txt_setup)));
+    menuRootPage.replace("_TXT_STATUS_", translatedWord(FL_(txt_status)));
+    menuRootPage.replace("_TXT_FW_UPGRADE_", translatedWord(FL_(txt_firmware_upgrade)));
+    menuRootPage.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
+    menuRootPage.replace("_TXT_LOGOUT_", translatedWord(FL_(txt_logout)));
     sendWrappedHTML(request, menuRootPage);
   }
 }
 
 void handleInitSetup(AsyncWebServerRequest *request) {
   String initSetupPage = FPSTR(html_init_setup);
-  initSetupPage.replace("_TXT_INIT_TITLE_",FPSTR(txt_init_title));
-  initSetupPage.replace("_TXT_INIT_HOST_",FPSTR(txt_wifi_hostname));
-  initSetupPage.replace("_TXT_INIT_SSID_",FPSTR(txt_wifi_SSID));
-  initSetupPage.replace("_TXT_INIT_PSK_",FPSTR(txt_wifi_psk));
-  initSetupPage.replace("_TXT_INIT_OTA_",FPSTR(txt_wifi_otap));
-  initSetupPage.replace("_TXT_SAVE_",FPSTR(txt_save));
-  initSetupPage.replace("_TXT_REBOOT_",FPSTR(txt_reboot));
+  initSetupPage.replace("_TXT_INIT_TITLE_", translatedWord(FL_(txt_init_title)));
+  initSetupPage.replace("_TXT_INIT_HOST_", translatedWord(FL_(txt_wifi_hostname)));
+  initSetupPage.replace("_TXT_INIT_SSID_", translatedWord(FL_(txt_wifi_ssid)));
+  initSetupPage.replace("_TXT_INIT_PSK_", translatedWord(FL_(txt_wifi_psk)));
+  initSetupPage.replace("_TXT_INIT_OTA_", translatedWord(FL_(txt_wifi_otap)));
+  initSetupPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+  initSetupPage.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
 
   sendWrappedHTML(request, initSetupPage);
 }
@@ -776,7 +788,7 @@ void handleSetup(AsyncWebServerRequest *request) {
     String pageReset = FPSTR(html_page_reset);
     String ssid = hostnamePrefix;
     ssid += getId();
-    pageReset.replace("_TXT_M_RESET_",FPSTR(txt_m_reset));
+    pageReset.replace("_TXT_M_RESET_", translatedWord(FL_(txt_m_reset)));
     pageReset.replace("_SSID_",ssid);
     sendWrappedHTML(request, pageReset);
     SPIFFS.format();
@@ -789,13 +801,13 @@ void handleSetup(AsyncWebServerRequest *request) {
   }
   else {
     String menuSetupPage = FPSTR(html_menu_setup);
-    menuSetupPage.replace("_TXT_MQTT_",FPSTR(txt_MQTT));
-    menuSetupPage.replace("_TXT_WIFI_",FPSTR(txt_WIFI));
-    menuSetupPage.replace("_TXT_UNIT_",FPSTR(txt_unit));
-    menuSetupPage.replace("_TXT_OTHERS_",FPSTR(txt_others));
-    menuSetupPage.replace("_TXT_RESET_",FPSTR(txt_reset));
-    menuSetupPage.replace("_TXT_BACK_",FPSTR(txt_back));
-    menuSetupPage.replace("_TXT_RESETCONFIRM_",FPSTR(txt_reset_confirm));
+    menuSetupPage.replace("_TXT_MQTT_", translatedWord(FL_(txt_mqtt)));
+    menuSetupPage.replace("_TXT_WIFI_", translatedWord(FL_(txt_wifi)));
+    menuSetupPage.replace("_TXT_UNIT_", translatedWord(FL_(txt_unit)));
+    menuSetupPage.replace("_TXT_OTHERS_", translatedWord(FL_(txt_others)));
+    menuSetupPage.replace("_TXT_RESET_", translatedWord(FL_(txt_reset)));
+    menuSetupPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    menuSetupPage.replace("_TXT_RESETCONFIRM_", translatedWord(FL_(txt_reset_confirm)));
     sendWrappedHTML(request, menuSetupPage);
   }
 
@@ -804,7 +816,7 @@ void handleSetup(AsyncWebServerRequest *request) {
 void rebootAndSendPage(AsyncWebServerRequest *request) {
     String saveRebootPage =  FPSTR(html_page_save_reboot);
     String countDown = FPSTR(count_down_script);
-    saveRebootPage.replace("_TXT_M_SAVE_",FPSTR(txt_m_save));
+    saveRebootPage.replace("_TXT_M_SAVE_", translatedWord(FL_(txt_m_save)));
     sendWrappedHTML(request, saveRebootPage + countDown);
     delay(500);
     ESP.restart();
@@ -820,15 +832,15 @@ void handleOthers(AsyncWebServerRequest *request) {
   }
   else {
     String othersPage =  FPSTR(html_page_others);
-    othersPage.replace("_TXT_SAVE_", FPSTR(txt_save));
-    othersPage.replace("_TXT_BACK_", FPSTR(txt_back));
-    othersPage.replace("_TXT_F_ON_", FPSTR(txt_f_on));
-    othersPage.replace("_TXT_F_OFF_", FPSTR(txt_f_off));
-    othersPage.replace("_TXT_OTHERS_TITLE_", FPSTR(txt_others_title));
-    othersPage.replace("_TXT_OTHERS_HAAUTO_", FPSTR(txt_others_haauto));
-    othersPage.replace("_TXT_OTHERS_HATOPIC_", FPSTR(txt_others_hatopic));
-    othersPage.replace("_TXT_OTHERS_DEBUG_PCKTS_",FPSTR(txt_others_debug_packets));
-    othersPage.replace("_TXT_OTHERS_DEBUG_LOGS_",FPSTR(txt_others_debug_log));
+    othersPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    othersPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    othersPage.replace("_TXT_F_ON_", translatedWord(FL_(txt_f_on)));
+    othersPage.replace("_TXT_F_OFF_", translatedWord(FL_(txt_f_off)));
+    othersPage.replace("_TXT_OTHERS_TITLE_", translatedWord(FL_(txt_others_title)));
+    othersPage.replace("_TXT_OTHERS_HAAUTO_", translatedWord(FL_(txt_others_haauto)));
+    othersPage.replace("_TXT_OTHERS_HATOPIC_", translatedWord(FL_(txt_others_hatopic)));
+    othersPage.replace("_TXT_OTHERS_DEBUG_PCKTS_", translatedWord(FL_(txt_others_debug_packets)));
+    othersPage.replace("_TXT_OTHERS_DEBUG_LOGS_", translatedWord(FL_(txt_others_debug_log)));
 
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
@@ -863,15 +875,15 @@ void handleMqtt(AsyncWebServerRequest *request) {
   }
   else {
     String mqttPage =  FPSTR(html_page_mqtt);
-    mqttPage.replace("_TXT_SAVE_", FPSTR(txt_save));
-    mqttPage.replace("_TXT_BACK_", FPSTR(txt_back));
-    mqttPage.replace("_TXT_MQTT_TITLE_", FPSTR(txt_mqtt_title));
-    mqttPage.replace("_TXT_MQTT_FN_", FPSTR(txt_mqtt_fn));
-    mqttPage.replace("_TXT_MQTT_HOST_", FPSTR(txt_mqtt_host));
-    mqttPage.replace("_TXT_MQTT_PORT_", FPSTR(txt_mqtt_port));
-    mqttPage.replace("_TXT_MQTT_USER_", FPSTR(txt_mqtt_user));
-    mqttPage.replace("_TXT_MQTT_PASSWORD_", FPSTR(txt_mqtt_password));
-    mqttPage.replace("_TXT_MQTT_TOPIC_", FPSTR(txt_mqtt_topic));
+    mqttPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    mqttPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    mqttPage.replace("_TXT_MQTT_TITLE_", translatedWord(FL_(txt_mqtt_title)));
+    mqttPage.replace("_TXT_MQTT_FN_", translatedWord(FL_(txt_mqtt_fn)));
+    mqttPage.replace("_TXT_MQTT_HOST_", translatedWord(FL_(txt_mqtt_host)));
+    mqttPage.replace("_TXT_MQTT_PORT_", translatedWord(FL_(txt_mqtt_port)));
+    mqttPage.replace("_TXT_MQTT_USER_", translatedWord(FL_(txt_mqtt_user)));
+    mqttPage.replace("_TXT_MQTT_PASSWORD_", translatedWord(FL_(txt_mqtt_password)));
+    mqttPage.replace("_TXT_MQTT_TOPIC_", translatedWord(FL_(txt_mqtt_topic)));
     mqttPage.replace(F("_MQTT_FN_"), mqtt_fn);
     mqttPage.replace(F("_MQTT_HOST_"), mqtt_server);
     mqttPage.replace(F("_MQTT_PORT_"), String(mqtt_port));
@@ -887,27 +899,44 @@ void handleUnit(AsyncWebServerRequest *request) {
 
   if (request->hasArg("save"))
   {
-    saveUnit(request->arg("tu"), request->arg("md"), request->arg("lpw"), (String)convertLocalUnitToCelsius(request->arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(request->arg("max_temp").toInt(), useFahrenheit), request->arg("temp_step"));
+    saveUnit(request->arg("tu"), request->arg("md"), request->arg("lpw"), (String)convertLocalUnitToCelsius(request->arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(request->arg("max_temp").toInt(), useFahrenheit), request->arg("temp_step"), request->arg("language"));
     rebootAndSendPage(request);
   }
   else {
     String unitPage =  FPSTR(html_page_unit);
-    unitPage.replace("_TXT_SAVE_", FPSTR(txt_save));
-    unitPage.replace("_TXT_BACK_", FPSTR(txt_back));
-    unitPage.replace("_TXT_UNIT_TITLE_", FPSTR(txt_unit_title));
-    unitPage.replace("_TXT_UNIT_TEMP_", FPSTR(txt_unit_temp));
-    unitPage.replace("_TXT_UNIT_MINTEMP_", FPSTR(txt_unit_mintemp));
-    unitPage.replace("_TXT_UNIT_MAXTEMP_", FPSTR(txt_unit_maxtemp));
-    unitPage.replace("_TXT_UNIT_STEPTEMP_", FPSTR(txt_unit_steptemp));
-    unitPage.replace("_TXT_UNIT_MODES_", FPSTR(txt_unit_modes));
-    unitPage.replace("_TXT_UNIT_PASSWORD_", FPSTR(txt_unit_password));
-    unitPage.replace("_TXT_F_CELSIUS_", FPSTR(txt_f_celsius));
-    unitPage.replace("_TXT_F_FH_", FPSTR(txt_f_fh));
-    unitPage.replace("_TXT_F_ALLMODES_", FPSTR(txt_f_allmodes));
-    unitPage.replace("_TXT_F_NOHEAT_", FPSTR(txt_f_noheat));
+    String unitScriptWs = FPSTR(unit_script_ws);
+    unitPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    unitPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    unitPage.replace("_TXT_UNIT_TITLE_", translatedWord(FL_(txt_unit_title)));
+    unitPage.replace("_TXT_UNIT_TEMP_", translatedWord(FL_(txt_unit_temp)));
+    unitPage.replace("_TXT_UNIT_MINTEMP_", translatedWord(FL_(txt_unit_mintemp)));
+    unitPage.replace("_TXT_UNIT_MAXTEMP_", translatedWord(FL_(txt_unit_maxtemp)));
+    unitPage.replace("_TXT_UNIT_STEPTEMP_", translatedWord(FL_(txt_unit_steptemp)));
+    unitPage.replace("_TXT_UNIT_MODES_", translatedWord(FL_(txt_unit_modes)));
+    unitPage.replace("_TXT_UNIT_PASSWORD_", translatedWord(FL_(txt_unit_password)));
+    unitPage.replace("_TXT_F_CELSIUS_", translatedWord(FL_(txt_f_celsius)));
+    unitPage.replace("_TXT_F_FH_", translatedWord(FL_(txt_f_fh)));
+    unitPage.replace("_TXT_F_ALLMODES_", translatedWord(FL_(txt_f_allmodes)));
+    unitPage.replace("_TXT_F_NOHEAT_", translatedWord(FL_(txt_f_noheat)));
     unitPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
     unitPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
     unitPage.replace(F("_TEMP_STEP_"), String(temp_step));
+    // language
+    String language_list;
+    for (uint8_t i = 0; i < NUM_LANGUAGES; i++)
+    {
+      language_list += "<option value='";
+      language_list += i;
+      language_list += "'";
+      if (i == system_language_index)
+      {
+        language_list += "selected";
+      }
+      language_list += ">";
+      language_list += language_names[i];
+      language_list += "</option>";
+    }
+    unitPage.replace(F("_LANGUAGE_OPTIONS_"), language_list);
     //temp
     if (useFahrenheit) unitPage.replace(F("_TU_FAH_"), F("selected"));
     else unitPage.replace(F("_TU_CEL_"), F("selected"));
@@ -915,7 +944,7 @@ void handleUnit(AsyncWebServerRequest *request) {
     if (supportHeatMode) unitPage.replace(F("_MD_ALL_"), F("selected"));
     else unitPage.replace(F("_MD_NONHEAT_"), F("selected"));
     unitPage.replace(F("_LOGIN_PASSWORD_"), login_password);
-    sendWrappedHTML(request, unitPage);
+    sendWrappedHTML(request, unitScriptWs + unitPage);
   }
 }
 
@@ -940,13 +969,13 @@ void handleWifi(AsyncWebServerRequest *request) {
     str_ap_ssid.replace("'", F("&apos;"));
     str_ap_pwd.replace("'", F("&apos;"));
     str_ota_pwd.replace("'", F("&apos;"));
-    wifiPage.replace("_TXT_SAVE_", FPSTR(txt_save));
-    wifiPage.replace("_TXT_BACK_", FPSTR(txt_back));
-    wifiPage.replace("_TXT_WIFI_TITLE_", FPSTR(txt_wifi_title));
-    wifiPage.replace("_TXT_WIFI_HOST_", FPSTR(txt_wifi_hostname));
-    wifiPage.replace("_TXT_WIFI_SSID_", FPSTR(txt_wifi_SSID));
-    wifiPage.replace("_TXT_WIFI_PSK_", FPSTR(txt_wifi_psk));
-    wifiPage.replace("_TXT_WIFI_OTAP_", FPSTR(txt_wifi_otap));
+    wifiPage.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
+    wifiPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+    wifiPage.replace("_TXT_WIFI_TITLE_", translatedWord(FL_(txt_wifi_title)));
+    wifiPage.replace("_TXT_WIFI_HOST_", translatedWord(FL_(txt_wifi_hostname)));
+    wifiPage.replace("_TXT_WIFI_SSID_", translatedWord(FL_(txt_wifi_ssid)));
+    wifiPage.replace("_TXT_WIFI_PSK_", translatedWord(FL_(txt_wifi_psk)));
+    wifiPage.replace("_TXT_WIFI_OTAP_", translatedWord(FL_(txt_wifi_otap)));
     wifiPage.replace(F("_SSID_"), str_ap_ssid);
     wifiPage.replace(F("_PSK_"), str_ap_pwd);
     wifiPage.replace(F("_OTA_PWD_"), str_ota_pwd);
@@ -959,21 +988,21 @@ void handleStatus(AsyncWebServerRequest *request) {
   if (!checkLogin(request)) return;
 
   String statusPage =  FPSTR(html_page_status);
-  statusPage.replace("_TXT_BACK_", FPSTR(txt_back));
-  statusPage.replace("_TXT_STATUS_TITLE_", FPSTR(txt_status_title));
-  statusPage.replace("_TXT_STATUS_HVAC_", FPSTR(txt_status_hvac));
-  statusPage.replace("_TXT_STATUS_MQTT_", FPSTR(txt_status_mqtt));
-  statusPage.replace("_TXT_STATUS_WIFI_", FPSTR(txt_status_wifi));
-  statusPage.replace("_TXT_RETRIES_HVAC_", FPSTR(txt_retries_hvac));
+  statusPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  statusPage.replace("_TXT_STATUS_TITLE_", translatedWord(FL_(txt_status_title)));
+  statusPage.replace("_TXT_STATUS_HVAC_", translatedWord(FL_(txt_status_hvac)));
+  statusPage.replace("_TXT_STATUS_MQTT_", translatedWord(FL_(txt_status_mqtt)));
+  statusPage.replace("_TXT_STATUS_WIFI_", translatedWord(FL_(txt_status_wifi)));
+  statusPage.replace("_TXT_RETRIES_HVAC_", translatedWord(FL_(txt_retries_hvac)));
 
   if (request->hasArg("mrconn")) mqttConnect();
 
   String connected = F("<span style='color:#47c266'><b>");
-  connected += FPSTR(txt_status_connect);
+  connected += translatedWord(FL_(txt_status_connect));
   connected += F("</b><span>");
 
   String disconnected = F("<span style='color:#d43535'><b>");
-  disconnected += FPSTR(txt_status_disconnect);
+  disconnected += translatedWord(FL_(txt_status_disconnect));
   disconnected += F("</b></span>");
 
   if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
@@ -1008,7 +1037,7 @@ void handleControl(AsyncWebServerRequest *request) {
   //write_log("Enter HVAC control");
   headerContent.replace("_UNIT_NAME_", hostname);
   footerContent.replace("_VERSION_", m2mqtt_version);
-  controlPage.replace("_TXT_BACK_", FPSTR(txt_back));
+  controlPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
   controlPage.replace("_UNIT_NAME_", hostname);
   controlPage.replace("_RATE_", "60");
   controlPage.replace("_ROOMTEMP_", String(convertCelsiusToLocalUnit(hp.getRoomTemperature(), useFahrenheit)));
@@ -1018,25 +1047,25 @@ void handleControl(AsyncWebServerRequest *request) {
   controlPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
   controlPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
   controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
-  controlPage.replace("_TXT_CTRL_CTEMP_", FPSTR(txt_ctrl_ctemp));
-  controlPage.replace("_TXT_CTRL_TEMP_", FPSTR(txt_ctrl_temp));
-  controlPage.replace("_TXT_CTRL_TITLE_", FPSTR(txt_ctrl_title));
-  controlPage.replace("_TXT_CTRL_POWER_", FPSTR(txt_ctrl_power));
-  controlPage.replace("_TXT_CTRL_MODE_", FPSTR(txt_ctrl_mode));
-  controlPage.replace("_TXT_CTRL_FAN_", FPSTR(txt_ctrl_fan));
-  controlPage.replace("_TXT_CTRL_VANE_", FPSTR(txt_ctrl_vane));
-  controlPage.replace("_TXT_CTRL_WVANE_", FPSTR(txt_ctrl_wvane));
-  controlPage.replace("_TXT_F_ON_", FPSTR(txt_f_on));
-  controlPage.replace("_TXT_F_OFF_", FPSTR(txt_f_off));
-  controlPage.replace("_TXT_F_AUTO_", FPSTR(txt_f_auto));
-  controlPage.replace("_TXT_F_HEAT_", FPSTR(txt_f_heat));
-  controlPage.replace("_TXT_F_DRY_", FPSTR(txt_f_dry));
-  controlPage.replace("_TXT_F_COOL_", FPSTR(txt_f_cool));
-  controlPage.replace("_TXT_F_FAN_", FPSTR(txt_f_fan));
-  controlPage.replace("_TXT_F_QUIET_", FPSTR(txt_f_quiet));
-  controlPage.replace("_TXT_F_SPEED_", FPSTR(txt_f_speed));
-  controlPage.replace("_TXT_F_SWING_", FPSTR(txt_f_swing));
-  controlPage.replace("_TXT_F_POS_", FPSTR(txt_f_pos));
+  controlPage.replace("_TXT_CTRL_CTEMP_", translatedWord(FL_(txt_ctrl_ctemp)));
+  controlPage.replace("_TXT_CTRL_TEMP_", translatedWord(FL_(txt_ctrl_temp)));
+  controlPage.replace("_TXT_CTRL_TITLE_", translatedWord(FL_(txt_ctrl_title)));
+  controlPage.replace("_TXT_CTRL_POWER_", translatedWord(FL_(txt_ctrl_power)));
+  controlPage.replace("_TXT_CTRL_MODE_", translatedWord(FL_(txt_ctrl_mode)));
+  controlPage.replace("_TXT_CTRL_FAN_", translatedWord(FL_(txt_ctrl_fan)));
+  controlPage.replace("_TXT_CTRL_VANE_", translatedWord(FL_(txt_ctrl_vane)));
+  controlPage.replace("_TXT_CTRL_WVANE_", translatedWord(FL_(txt_ctrl_wvane)));
+  controlPage.replace("_TXT_F_ON_", translatedWord(FL_(txt_f_on)));
+  controlPage.replace("_TXT_F_OFF_", translatedWord(FL_(txt_f_off)));
+  controlPage.replace("_TXT_F_AUTO_", translatedWord(FL_(txt_f_auto)));
+  controlPage.replace("_TXT_F_HEAT_", translatedWord(FL_(txt_f_heat)));
+  controlPage.replace("_TXT_F_DRY_", translatedWord(FL_(txt_f_dry)));
+  controlPage.replace("_TXT_F_COOL_", translatedWord(FL_(txt_f_cool)));
+  controlPage.replace("_TXT_F_FAN_", translatedWord(FL_(txt_f_fan)));
+  controlPage.replace("_TXT_F_QUIET_", translatedWord(FL_(txt_f_quiet)));
+  controlPage.replace("_TXT_F_SPEED_", translatedWord(FL_(txt_f_speed)));
+  controlPage.replace("_TXT_F_SWING_", translatedWord(FL_(txt_f_swing)));
+  controlPage.replace("_TXT_F_POS_", translatedWord(FL_(txt_f_pos)));
 
   if (strcmp(settings.power, "ON") == 0) {
     controlPage.replace("_POWER_ON_", "selected");
@@ -1189,9 +1218,9 @@ void handleLogin(AsyncWebServerRequest *request)
   String msg;
   String loginPage = FPSTR(html_page_login);
   // localize
-  loginPage.replace("_TXT_LOGIN_TITLE_", FPSTR(txt_login_title));
-  loginPage.replace("_TXT_LOGIN_PASSWORD_", FPSTR(txt_login_password));
-  loginPage.replace("_TXT_LOGIN_", FPSTR(txt_login));
+  loginPage.replace("_TXT_LOGIN_TITLE_", translatedWord(FL_(txt_login_title)));
+  loginPage.replace("_TXT_LOGIN_PASSWORD_", translatedWord(FL_(txt_login_password)));
+  loginPage.replace("_TXT_LOGIN_", translatedWord(FL_(txt_login)));
   if (request->hasHeader("Cookie"))
   {
     // Found cookie;
@@ -1210,7 +1239,7 @@ void handleLogin(AsyncWebServerRequest *request)
       {
         loginSuccess = true;
         msg = F("<b><font color='red'>");
-        msg += FPSTR(txt_login_sucess);
+        msg += translatedWord(FL_(txt_login_sucess));
         msg += F("</font></b>");
         loginPage += F("<script>");
         loginPage += F("setTimeout(function () {");
@@ -1222,7 +1251,7 @@ void handleLogin(AsyncWebServerRequest *request)
       else
       {
         msg = F("<b><font color='red'>");
-        msg += FPSTR(txt_login_fail);
+        msg +=  translatedWord(FL_(txt_login_fail));
         msg += F("</font></b>");
         // Log in Failed;
       }
@@ -1275,11 +1304,11 @@ void handleUpgrade(AsyncWebServerRequest *request) {
 
   uploaderror = 0;
   String upgradePage = FPSTR(html_page_upgrade);
-  upgradePage.replace("_TXT_B_UPGRADE_",FPSTR(txt_upgrade));
-  upgradePage.replace("_TXT_BACK_",FPSTR(txt_back));
-  upgradePage.replace("_TXT_UPGRADE_TITLE_",FPSTR(txt_upgrade_title));
-  upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
-  upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
+  upgradePage.replace("_TXT_B_UPGRADE_", translatedWord(FL_(txt_upgrade)));
+  upgradePage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  upgradePage.replace("_TXT_UPGRADE_TITLE_", translatedWord(FL_(txt_upgrade_title)));
+  upgradePage.replace("_TXT_UPGRADE_INFO_", translatedWord(FL_(txt_upgrade_info)));
+  upgradePage.replace("_TXT_UPGRADE_START_", translatedWord(FL_(txt_upgrade_start)));
 
   sendWrappedHTML(request, upgradePage);
 }
@@ -1289,42 +1318,61 @@ void handleUploadDone(AsyncWebServerRequest *request) {
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
-  if (uploaderror) {
+  if (uploaderror)
+  {
     content += F("<span style='color:#d43535'>failed</span></b><br/><br/>");
-    if (uploaderror == 1) {
-      content += FPSTR(txt_upload_nofile);
-    } else if (uploaderror == 2) {
-      content += FPSTR(txt_upload_filetoolarge);
-    } else if (uploaderror == 3) {
-      content += FPSTR(txt_upload_fileheader);
-    } else if (uploaderror == 4) {
-      content += FPSTR(txt_upload_flashsize);
-    } else if (uploaderror == 5) {
-      content += FPSTR(txt_upload_buffer);
-    } else if (uploaderror == 6) {
-      content += FPSTR(txt_upload_failed);
-    } else if (uploaderror == 7) {
-      content += FPSTR(txt_upload_aborted);
-    } else {
-      content += FPSTR(txt_upload_error);
+    if (uploaderror == 1)
+    {
+      content += translatedWord(FL_(txt_upload_nofile));
+    }
+    else if (uploaderror == 2)
+    {
+      content += translatedWord(FL_(txt_upload_filetoolarge));
+    }
+    else if (uploaderror == 3)
+    {
+      content += translatedWord(FL_(txt_upload_fileheader));
+    }
+    else if (uploaderror == 4)
+    {
+      content += translatedWord(FL_(txt_upload_flashsize));
+    }
+    else if (uploaderror == 5)
+    {
+      content += translatedWord(FL_(txt_upload_buffer));
+    }
+    else if (uploaderror == 6)
+    {
+      content += translatedWord(FL_(txt_upload_failed));
+    }
+    else if (uploaderror == 7)
+    {
+      content += translatedWord(FL_(txt_upload_aborted));
+    }
+    else
+    {
+      content += translatedWord(FL_(txt_upload_error));
       content += String(uploaderror);
     }
-    if (Update.hasError()) {
-      content += FPSTR(txt_upload_code);
+    if (Update.hasError())
+    {
+      content += translatedWord(FL_(txt_upload_code));
       content += String(Update.getError());
     }
-  } else {
+  }
+  else
+  {
     content += F("<span style='color:#47c266; font-weight: bold;'>");
-    content += FPSTR(txt_upload_sucess);
+    content += translatedWord(FL_(txt_upload_success));
     content += F("</span><br/><br/>");
-    content += FPSTR(txt_upload_refresh);
+    content += translatedWord(FL_(txt_upload_refresh));
     content += F("<span id='count'>10s</span>...");
     content += FPSTR(count_down_script);
     restartflag = true;
   }
   content += F("</div><br/>");
   uploadDonePage.replace("_UPLOAD_MSG_", content);
-  uploadDonePage.replace("_TXT_BACK_", FPSTR(txt_back));
+  uploadDonePage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
   sendWrappedHTML(request, uploadDonePage);
   if (restartflag) {
     delay(500);
@@ -2095,4 +2143,138 @@ void onMqttPublish(uint16_t packetId)
 {
   ESP_LOGD(TAG, "Publish acknowledged. packetId:  %d", packetId);
 }
+
+// Handler webserver response
+#ifdef WEBSOCKET_ENABLE
+void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+  if (type == WS_EVT_CONNECT)
+  {
+    ESP_LOGD(TAG, "ws[%s][%u] connect\n", server->url(), client->id());
+    client->printf("Hello Client %u :)", client->id());
+    client->ping();
+  }
+  else if (type == WS_EVT_DISCONNECT)
+  {
+    ESP_LOGD(TAG, "ws[%s][%u] disconnect\n", server->url(), client->id());
+  }
+  else if (type == WS_EVT_ERROR)
+  {
+    ESP_LOGD(TAG, "ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t *)arg), (char *)data);
+  }
+  else if (type == WS_EVT_PONG)
+  {
+    ESP_LOGD(TAG, "ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len) ? (char *)data : "");
+  }
+  else if (type == WS_EVT_DATA)
+  {
+    AwsFrameInfo *info = (AwsFrameInfo *)arg;
+    String msg = "";
+    if (info->final && info->index == 0 && info->len == len)
+    {
+      // the whole message is in a single frame and we got all of it's data
+      ESP_LOGD(TAG, "ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", info->len);
+
+      if (info->opcode == WS_TEXT)
+      {
+        for (size_t i = 0; i < info->len; i++)
+        {
+          msg += (char)data[i];
+        }
+      }
+      else
+      {
+        char buff[3];
+        for (size_t i = 0; i < info->len; i++)
+        {
+          sprintf(buff, "%02x", (uint8_t)data[i]);
+          msg += buff;
+        }
+      }
+      ESP_LOGD(TAG, "%s\n", msg.c_str());
+      if (info->opcode == WS_TEXT)
+      {
+        String command = getValueBySeparator(msg, ';', 0);
+        if (command == "language")
+        {
+          String data = getValueBySeparator(msg, ';', 1);
+          if (system_language_index != data.toInt())
+          {
+            client->text("REFRESH"); // refresh web page
+            system_language_index = data.toInt();
+            ESP_LOGE(TAG, "Set unit language id: %d\n", system_language_index);
+          }
+        }
+        // client->text("I got your text message"); // may crash on Safari
+      }
+      else
+      {
+        client->binary("I got your binary message");
+      }
+    }
+    else
+    {
+      // message is comprised of multiple frames or the frame is split into multiple packets
+      if (info->index == 0)
+      {
+        if (info->num == 0)
+          ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+        ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
+      }
+
+      ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
+
+      if (info->opcode == WS_TEXT)
+      {
+        for (size_t i = 0; i < len; i++)
+        {
+          msg += (char)data[i];
+        }
+      }
+      else
+      {
+        char buff[3];
+        for (size_t i = 0; i < len; i++)
+        {
+          sprintf(buff, "%02x", (uint8_t)data[i]);
+          msg += buff;
+        }
+      }
+      ESP_LOGD(TAG, "%s\n", msg.c_str());
+
+      if ((info->index + len) == info->len)
+      {
+        ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
+        if (info->final)
+        {
+          ESP_LOGD(TAG, "ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+          // if(info->message_opcode == WS_TEXT)
+          //   client->text("I got your text message");
+          // else
+          //   client->binary("I got your binary message");
+        }
+      }
+    }
+  }
+}
+#endif
+
+// String  var = getValueBySeparator( StringVar, ',', 2); // if  a,4,D,r  would return D
+String getValueBySeparator(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length();
+
+  for (int i = 0; i <= maxIndex && found <= index; i++)
+  {
+    if (data.charAt(i) == separator || i == maxIndex)
+    {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+} 
 

@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2023 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -22,8 +22,8 @@ const char txt_firmware_upgrade[] PROGMEM = "固件升级";
 const char txt_reboot[] PROGMEM = "重启";
 
 //Setup Menu
-const char txt_MQTT[] PROGMEM = "MQTT";
-const char txt_WIFI[] PROGMEM = "WIFI";
+const char txt_mqtt[] PROGMEM = "MQTT";
+const char txt_wifi[] PROGMEM = "WIFI";
 const char txt_unit[] PROGMEM = "单元";
 const char txt_others[] PROGMEM = "其他";
 const char txt_reset[] PROGMEM = "重置设置";
@@ -87,7 +87,7 @@ const char txt_status_disconnect[] PROGMEM = "未连接";
 //Page WIFI
 const char txt_wifi_title[] PROGMEM = "WIFI参数";
 const char txt_wifi_hostname[] PROGMEM = "主机名";
-const char txt_wifi_SSID[] PROGMEM = "SSID";
+const char txt_wifi_ssid[] PROGMEM = "SSID";
 const char txt_wifi_psk[] PROGMEM = "密码";
 const char txt_wifi_otap[] PROGMEM = "OTA密码";
 
@@ -131,7 +131,7 @@ const char txt_upload_failed[] PROGMEM = "上传失败. 开启日志选项3获�
 const char txt_upload_aborted[] PROGMEM = "上传中止";
 const char txt_upload_code[] PROGMEM = "上传错误码 ";
 const char txt_upload_error[] PROGMEM = "上传错误码 (参见 Updater.cpp) ";
-const char txt_upload_sucess[] PROGMEM = "成功";
+const char txt_upload_success[] PROGMEM = "成功";
 const char txt_upload_refresh[] PROGMEM = "刷新";
 
 //Page Init

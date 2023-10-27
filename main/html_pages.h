@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2023 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -290,6 +290,13 @@ const char html_page_unit[] PROGMEM =
     "<fieldset>"
         "<legend><b>&nbsp; _TXT_UNIT_TITLE_ &nbsp;</b></legend>"
         "<form method='post'>"
+            "<p>"
+                "<b>_TXT_UNIT_LANGUAGE_</b>"
+                    "<br/>"
+                    "<select id='language' name='language' onchange=\"sendLanguage(this)\">"
+                        "_LANGUAGE_OPTIONS_"
+                    "</select>"
+                "</p>"
             "<p>"
                 "<b>_TXT_UNIT_TEMP_</b>"
                 "<select name='tu'>"

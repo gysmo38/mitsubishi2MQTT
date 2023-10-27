@@ -1,6 +1,6 @@
 /*
   mitsubishi2mqtt - Mitsubishi Heat Pump to MQTT control for Home Assistant.
-  Copyright (c) 2022 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
+  Copyright (c) 2023 gysmo38, dzungpv, shampeon, endeavour, jascdk, chrdavis, alekslyse.  All right reserved.
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either
@@ -13,8 +13,6 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
-/*#define MY_LANGUAGE fr-FR // define your language*/
 
 const PROGMEM char* m2mqtt_version = "2023.8.0";
 
@@ -111,3 +109,41 @@ const PROGMEM uint32_t HP_MAX_RETRIES = 10; // Double the interval between retri
 bool useFahrenheit = false;
 // support heat mode settings, some model do not support heat mode
 bool supportHeatMode = true;
+
+// Multi language support, all store in the flash, just change in the Unit settings
+byte system_language_index = 0; // default language index 0:en
+// #define MITSU2MQTT_EN_ONLY 1   // un comment to enable English only for debug 
+#include "language_util.h" // Multi languages support
+
+// Languages supported. Note: the order is important and must match locale_translations.h
+#if defined(MITSU2MQTT_TEST) || defined(MITSU2MQTT_EN_ONLY)
+// in Debug mode use one language (en) to save flash memory needed for the tests
+const char *const languages[] = {MITSU2MQTT_LOCALE_EN};
+const char *const language_names[] = {"English"};
+#elif defined(MITSU2MQTT_VI_ONLY)
+const char *const languages[] = {MITSU2MQTT_LOCALE_VI};
+const char *const language_names[] = {"Tiếng Việt"};
+#else
+const char *const languages[] = {
+    MITSU2MQTT_LOCALE_EN,
+    MITSU2MQTT_LOCALE_VI,
+    // MITSU2MQTT_LOCALE_DE,
+    // MITSU2MQTT_LOCALE_ES,
+    // MITSU2MQTT_LOCALE_FR,
+    // MITSU2MQTT_LOCALE_IT,
+    // MITSU2MQTT_LOCALE_JA,
+    // MITSU2MQTT_LOCALE_ZH
+};
+const char *const language_names[] = {
+    "English",
+    "Tiếng Việt",
+    // "Deutsch",
+    // "Español",
+    // "Français",
+    // "Italiano",
+    // "日本語",
+    // "中文"
+};
+#endif
+
+static constexpr uint8_t NUM_LANGUAGES = sizeof(languages) / sizeof(const char *);
