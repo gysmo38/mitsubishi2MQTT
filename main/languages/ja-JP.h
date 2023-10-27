@@ -15,6 +15,13 @@
 */
 namespace ja
 {
+  // Breadcum
+  const char txt_setup_page[] PROGMEM = "セットアップページ";
+  const char txt_upload_fw_page[] PROGMEM = "ファームウェアをアップロード";
+  const char txt_fw_update_page[] PROGMEM = "ファームウェアのアップグレード";
+  const char txt_check_fw_page[] PROGMEM = "新しいファームウェアをチェック";
+  const char txt_home_page[] PROGMEM = "ホームページ";
+
   // Main Menu
   const char txt_control[] PROGMEM = "エアコン操作";
   const char txt_setup[] PROGMEM = "設定";
@@ -53,10 +60,12 @@ namespace ja
   const char txt_f_fh[] PROGMEM = "華氏";
   const char txt_f_allmodes[] PROGMEM = "全ての機能";
   const char txt_f_noheat[] PROGMEM = "暖房以外の全ての機能";
+  const char txt_f_noquiet[] PROGMEM = "Not support quiet mode";
 
   // Page Reboot, save & Resseting
   const char txt_m_reboot[] PROGMEM = "再起動中";
   const char txt_m_reset[] PROGMEM = "初期化中... SSIDに接続してください";
+  const char txt_m_reset_1[] PROGMEM = "SSID に再接続できます";
   const char txt_m_save[] PROGMEM = "設定を保存し、再起動中";
 
   // Page MQTT
@@ -67,6 +76,11 @@ namespace ja
   const char txt_mqtt_user[] PROGMEM = "ユーザー名";
   const char txt_mqtt_password[] PROGMEM = "パスワード";
   const char txt_mqtt_topic[] PROGMEM = "トピック";
+  const char txt_mqtt_fn_desc[] PROGMEM = "(no space or special char)";
+  const char txt_mqtt_port_desc[] PROGMEM = "(default 1883, not support 8883)";
+  const char txt_mqtt_ph_topic[] PROGMEM = "Enter Mqtt topic";
+  const char txt_mqtt_ph_user[] PROGMEM = "Enter Mqtt user";
+  const char txt_mqtt_ph_pwd[] PROGMEM = "Enter Mqtt password";
 
   // Page Others
   const char txt_others_title[] PROGMEM = "その他設定";
@@ -83,6 +97,13 @@ namespace ja
   const char txt_status_wifi[] PROGMEM = "WIFI RSSI";
   const char txt_status_connect[] PROGMEM = "接続中";
   const char txt_status_disconnect[] PROGMEM = "切断中";
+  const char txt_status_wifi_ip[] PROGMEM = "WIFI IP";
+  const char txt_failed_get_wifi_ip[] PROGMEM = "Failed to get IP address";
+  const char txt_build_version[] PROGMEM = "Build Version";
+  const char txt_build_date[] PROGMEM = "Build Date";
+  const char txt_status_freeheap[] PROGMEM = "Free Heap";
+  const char txt_current_time[] PROGMEM = "Current Time";
+  const char txt_boot_time[] PROGMEM = "Boot Time";
 
   // Page WIFI
   const char txt_wifi_title[] PROGMEM = "WIFI設定";
@@ -90,6 +111,9 @@ namespace ja
   const char txt_wifi_ssid[] PROGMEM = "SSID";
   const char txt_wifi_psk[] PROGMEM = "PSK";
   const char txt_wifi_otap[] PROGMEM = "OTAパスワード";
+  const char txt_wifi_hostname_desc[] PROGMEM = "(no space or special char)";
+  const char txt_wifi_ssid_enter[] PROGMEM = "(Enter a name)";
+  const char txt_wifi_ssid_select[] PROGMEM = "or choose a network:";
 
   // Page Control
   const char txt_ctrl_title[] PROGMEM = "エアコン操作";
@@ -109,12 +133,21 @@ namespace ja
   const char txt_unit_steptemp[] PROGMEM = "設定温度単位";
   const char txt_unit_modes[] PROGMEM = "対応機能";
   const char txt_unit_password[] PROGMEM = "Webパスワード";
+  const char txt_unit_language[] PROGMEM = "Language";
+  const char txt_unit_fan_modes[] PROGMEM = "Fan mode support";
+  const char txt_unit_password_confirm[] PROGMEM = "Confirm Login password";
+  const char txt_unit_password_not_match[] PROGMEM = "Confirm Password did not match";
+  const char txt_unit_login_username[] PROGMEM = "Note: Default login user is";
 
   // Page Login
   const char txt_login_title[] PROGMEM = "ログイン";
   const char txt_login_password[] PROGMEM = "パスワード";
   const char txt_login_sucess[] PROGMEM = "ログイン成功、数秒後にリダイレクトされます";
   const char txt_login_fail[] PROGMEM = "ユーザー名・パスワードが間違っています、もう一度試してください";
+  const char txt_login_username[] PROGMEM = "Username";
+  const char txt_login_open_status[] PROGMEM = "Open status page";
+  const char txt_login_ph_user[] PROGMEM = "Enter username";
+  const char txt_login_ph_pwd[] PROGMEM = "Enter password";
 
   // Page Upgrade
   const char txt_upgrade_title[] PROGMEM = "ファームウェア更新";
@@ -133,9 +166,11 @@ namespace ja
   const char txt_upload_error[] PROGMEM = "アップデートエラーコード (Updater.cppを参照してください) ";
   const char txt_upload_success[] PROGMEM = "成功";
   const char txt_upload_refresh[] PROGMEM = "再読込中";
+  const char txt_upload[] PROGMEM = "Upload";
 
   // Page Init
   const char txt_init_title[] PROGMEM = "初期設定";
-  const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
-  const char txt_init_reboot[] PROGMEM = "Rebooting...";
+  const char txt_init_reboot_mes[] PROGMEM = "ローカル アドレスを使用して WiFi ネットワークに接続します";
+  const char txt_init_reboot_mes_1[] PROGMEM = "再起動後にこのアドレスを使用してデバイスにアクセスします。再起動中";
+  const char txt_init_reboot[] PROGMEM = "再起動中...";
 }

@@ -15,6 +15,13 @@
 */
 namespace fr
 {
+  // Breadcum
+  const char txt_setup_page[] PROGMEM = "Page de configuration";
+  const char txt_upload_fw_page[] PROGMEM = "Télécharger le firmware";
+  const char txt_fw_update_page[] PROGMEM = "Mise à niveau du micrologiciel";
+  const char txt_check_fw_page[] PROGMEM = "Vérifier le nouveau firmware";
+  const char txt_home_page[] PROGMEM = "Page d'accueil";
+
   // Main Menu
   const char txt_control[] PROGMEM = "Contrôle";
   const char txt_setup[] PROGMEM = "Configuration";
@@ -53,10 +60,12 @@ namespace fr
   const char txt_f_fh[] PROGMEM = "Fahrenheit";
   const char txt_f_allmodes[] PROGMEM = "Clim réversible";
   const char txt_f_noheat[] PROGMEM = "Uniquement climatiseur";
+  const char txt_f_noquiet[] PROGMEM = "Not support quiet mode";
 
   // Message Reboot, save & Resseting
   const char txt_m_reboot[] PROGMEM = "Redémarrage... Rafraichisement dans";
   const char txt_m_reset[] PROGMEM = "Remise à zéro... Connecter vous au SSID";
+  const char txt_m_reset_1[] PROGMEM = "Vous pouvez vous reconnecter au SSID";
   const char txt_m_save[] PROGMEM = "Sauvegarde de la configuration et redémarrage... Rafraichisement dans";
 
   // Page MQTT
@@ -67,6 +76,11 @@ namespace fr
   const char txt_mqtt_user[] PROGMEM = "Utilisateur";
   const char txt_mqtt_password[] PROGMEM = "Mot de passe";
   const char txt_mqtt_topic[] PROGMEM = "Topic";
+  const char txt_mqtt_fn_desc[] PROGMEM = "(no space or special char)";
+  const char txt_mqtt_port_desc[] PROGMEM = "(default 1883, not support 8883)";
+  const char txt_mqtt_ph_topic[] PROGMEM = "Enter Mqtt topic";
+  const char txt_mqtt_ph_user[] PROGMEM = "Enter Mqtt user";
+  const char txt_mqtt_ph_pwd[] PROGMEM = "Enter Mqtt password";
 
   // Page Others
   const char txt_others_title[] PROGMEM = "Autres Paramétres";
@@ -83,6 +97,13 @@ namespace fr
   const char txt_status_wifi[] PROGMEM = "WIFI RSSI";
   const char txt_status_connect[] PROGMEM = "CONNECTE";
   const char txt_status_disconnect[] PROGMEM = "DECONNECTE";
+  const char txt_status_wifi_ip[] PROGMEM = "WIFI IP";
+  const char txt_failed_get_wifi_ip[] PROGMEM = "Failed to get IP address";
+  const char txt_build_version[] PROGMEM = "Build Version";
+  const char txt_build_date[] PROGMEM = "Build Date";
+  const char txt_status_freeheap[] PROGMEM = "Free Heap";
+  const char txt_current_time[] PROGMEM = "Current Time";
+  const char txt_boot_time[] PROGMEM = "Boot Time";
 
   // Page WIFI
   const char txt_wifi_title[] PROGMEM = "Paramétres WIFI";
@@ -90,6 +111,9 @@ namespace fr
   const char txt_wifi_ssid[] PROGMEM = "SSID";
   const char txt_wifi_psk[] PROGMEM = "Clef pré-partagé";
   const char txt_wifi_otap[] PROGMEM = "OTA mot de passe";
+  const char txt_wifi_hostname_desc[] PROGMEM = "(no space or special char)";
+  const char txt_wifi_ssid_enter[] PROGMEM = "(Enter a name)";
+  const char txt_wifi_ssid_select[] PROGMEM = "or choose a network:";
 
   // Page Control
   const char txt_ctrl_title[] PROGMEM = "Contrôle climatiseur";
@@ -109,12 +133,21 @@ namespace fr
   const char txt_unit_steptemp[] PROGMEM = "Graduation température";
   const char txt_unit_modes[] PROGMEM = "Modes disponible";
   const char txt_unit_password[] PROGMEM = "Mot de passe web";
+  const char txt_unit_language[] PROGMEM = "Language";
+  const char txt_unit_fan_modes[] PROGMEM = "Fan mode support";
+  const char txt_unit_password_confirm[] PROGMEM = "Confirm Login password";
+  const char txt_unit_password_not_match[] PROGMEM = "Confirm Password did not match";
+  const char txt_unit_login_username[] PROGMEM = "Note: Default login user is";
 
   // Page Login
   const char txt_login_title[] PROGMEM = "Authentification";
   const char txt_login_password[] PROGMEM = "Mot de passe";
   const char txt_login_sucess[] PROGMEM = "Authentifcation réussie, vous allez être redirigé dans quelques secondes.";
   const char txt_login_fail[] PROGMEM = "Mauvais mot de passe! Essayer à nouveau.";
+  const char txt_login_username[] PROGMEM = "Username";
+  const char txt_login_open_status[] PROGMEM = "Open status page";
+  const char txt_login_ph_user[] PROGMEM = "Enter username";
+  const char txt_login_ph_pwd[] PROGMEM = "Enter password";
 
   // Page Upgrade
   const char txt_upgrade_title[] PROGMEM = "Mise à jour";
@@ -133,9 +166,11 @@ namespace fr
   const char txt_upload_error[] PROGMEM = "Code d'erreur de mise à jour ( voir Updater.cpp) ";
   const char txt_upload_success[] PROGMEM = "Réussi.";
   const char txt_upload_refresh[] PROGMEM = "Rafaichissement dans ";
+  const char txt_upload[] PROGMEM = "Upload";
 
   // Page Init
   const char txt_init_title[] PROGMEM = "Initialisation";
-  const char txt_init_reboot_mes[] PROGMEM = "Redémarrage et connexion à votre WIFI. L'appareil doit apparaitre dans votre réseau";
+  const char txt_init_reboot_mes[] PROGMEM = "Connexion à votre réseau WiFi avec adresse locale";
+  const char txt_init_reboot_mes_1[] PROGMEM = "Utilisation de cette adresse pour accéder à votre appareil après son redémarrage. Redémarrage dans";
   const char txt_init_reboot[] PROGMEM = "Redémarrage...";
 }

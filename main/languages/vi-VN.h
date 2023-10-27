@@ -173,22 +173,4 @@ namespace vi
   const char txt_init_reboot_mes[] PROGMEM = "Kết nối với mạng WiFi của bạn bằng địa chỉ cục bộ";
   const char txt_init_reboot_mes_1[] PROGMEM = "Sử dụng địa chỉ này để truy cập thiết bị của bạn sau khi khởi động lại. Khởi động lại trong";
   const char txt_init_reboot[] PROGMEM = "Đang khởi động lại...";
-
-  // Page Init Firmware Check
-  const char txt_init_fw_check_mes[] PROGMEM = "Kiểm tra bản cập nhật firmware có sẵn";
-  const char txt_init_fw_check_mes_1[] PROGMEM = "Vui lòng giữ trang này mở trong 3 phút. Chuyển hướng trong";
-  const char txt_b_check_new_fw[] PROGMEM = "Kiểm tra phần mềm mới";
-  const char txt_fw_check_mes[] PROGMEM = "Vui lòng đợi 30 giây tiếp theo để gửi yêu cầu mới.";
-
-  // OTA update
-  const char txt_ota_latest[] PROGMEM = "Phiên bản đang chạy hiện tại là phiên bản mới nhất.";
-  const char txt_ota_invalid[] PROGMEM = "Phần mềm cơ sở không hợp lệ cho thiết bị này.";
-  const char txt_ota_available[] PROGMEM = "Có sẵn phần mềm mới. Đang tải xuống...";
-  const char txt_ota_close_n_wait[] PROGMEM = "Bạn có thể đóng trang này, quá trình cập nhật có thể mất 5 phút.";
-  const char txt_ota_checking[] PROGMEM = "Đang kiểm tra bản cập nhật phần mềm có sẵn, vui lòng đợi....";
-  const char txt_ota_check_failed[] PROGMEM = "Kiểm tra OTA không thành công.";
-  const char txt_ota_check_failed_code[] PROGMEM = "Kiểm tra OTA không thành công, mã:";
-  const char txt_ota_no_data[] PROGMEM = "Chưa nhận được dữ liệu.";
-  const char txt_ota_success[] PROGMEM = "Nâng cấp OTA thành công. Đang khởi động lại";
-  const char txt_ota_file_corrupt[] PROGMEM = "Tệp nhị phân bị hỏng.";
 }

@@ -255,22 +255,24 @@ const char *const language_names[] = {"Tiếng Việt"};
 const char *const languages[] = {
     MITSU2MQTT_LOCALE_EN,
     MITSU2MQTT_LOCALE_VI,
-    // MITSU2MQTT_LOCALE_DE,
-    // MITSU2MQTT_LOCALE_ES,
-    // MITSU2MQTT_LOCALE_FR,
-    // MITSU2MQTT_LOCALE_IT,
-    // MITSU2MQTT_LOCALE_JA,
-    // MITSU2MQTT_LOCALE_ZH
+    MITSU2MQTT_LOCALE_DA,
+    MITSU2MQTT_LOCALE_DE,
+    MITSU2MQTT_LOCALE_ES,
+    MITSU2MQTT_LOCALE_FR,
+    MITSU2MQTT_LOCALE_IT,
+    MITSU2MQTT_LOCALE_JA,
+    MITSU2MQTT_LOCALE_ZH
 };
 const char *const language_names[] = {
     "English",
     "Tiếng Việt",
-    // "Deutsch",
-    // "Español",
-    // "Français",
-    // "Italiano",
-    // "日本語",
-    // "中文"
+    "Dansk",
+    "Deutsch",
+    "Español",
+    "Français",
+    "Italiano",
+    "日本語",
+    "中文"
 };
 #endif
 

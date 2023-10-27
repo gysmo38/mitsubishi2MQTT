@@ -15,6 +15,12 @@
 */
 namespace da
 {
+  // Breadcum
+  const char txt_setup_page[] PROGMEM = "Opsætningsside";
+  const char txt_upload_fw_page[] PROGMEM = "Upload firmware";
+  const char txt_fw_update_page[] PROGMEM = "Opgrader firmware";
+  const char txt_check_fw_page[] PROGMEM = "Tjek ny firmware";
+  const char txt_home_page[] PROGMEM = "Hjemmeside";
   // Main Menu
   const char txt_control[] PROGMEM = "Kontrol";
   const char txt_setup[] PROGMEM = "Indstillinger";
@@ -53,10 +59,12 @@ namespace da
   const char txt_f_fh[] PROGMEM = "Fahrenheit";
   const char txt_f_allmodes[] PROGMEM = "All modes";
   const char txt_f_noheat[] PROGMEM = "All modes execept heat";
+  const char txt_f_noquiet[] PROGMEM = "Not support quiet mode";
 
   // Page Reboot, save & Resseting
   const char txt_m_reboot[] PROGMEM = "Rebooting... Refresh in";
   const char txt_m_reset[] PROGMEM = "Resetting... Connect to SSID";
+  const char txt_m_reset_1[] PROGMEM = "Du kan oprette forbindelse til SSID igen";
   const char txt_m_save[] PROGMEM = "Saving configuration and rebooting... Refresh in";
 
   // Page MQTT
@@ -67,6 +75,11 @@ namespace da
   const char txt_mqtt_user[] PROGMEM = "User";
   const char txt_mqtt_password[] PROGMEM = "Password";
   const char txt_mqtt_topic[] PROGMEM = "Topic";
+  const char txt_mqtt_fn_desc[] PROGMEM = "(no space or special char)";
+  const char txt_mqtt_port_desc[] PROGMEM = "(default 1883, not support 8883)";
+  const char txt_mqtt_ph_topic[] PROGMEM = "Enter Mqtt topic";
+  const char txt_mqtt_ph_user[] PROGMEM = "Enter Mqtt user";
+  const char txt_mqtt_ph_pwd[] PROGMEM = "Enter Mqtt password";
 
   // Page Others
   const char txt_others_title[] PROGMEM = "Others Parameters";
@@ -83,6 +96,13 @@ namespace da
   const char txt_status_wifi[] PROGMEM = "WIFI RSSI";
   const char txt_status_connect[] PROGMEM = "CONNECTED";
   const char txt_status_disconnect[] PROGMEM = "DICONNECTED";
+  const char txt_status_wifi_ip[] PROGMEM = "WIFI IP";
+  const char txt_failed_get_wifi_ip[] PROGMEM = "Failed to get IP address";
+  const char txt_build_version[] PROGMEM = "Build Version";
+  const char txt_build_date[] PROGMEM = "Build Date";
+  const char txt_status_freeheap[] PROGMEM = "Free Heap";
+  const char txt_current_time[] PROGMEM = "Current Time";
+  const char txt_boot_time[] PROGMEM = "Boot Time";
 
   // Page WIFI
   const char txt_wifi_title[] PROGMEM = "WIFI Parameters";
@@ -90,6 +110,9 @@ namespace da
   const char txt_wifi_ssid[] PROGMEM = "SSID";
   const char txt_wifi_psk[] PROGMEM = "PSK";
   const char txt_wifi_otap[] PROGMEM = "OTA Password";
+  const char txt_wifi_hostname_desc[] PROGMEM = "(no space or special char)";
+  const char txt_wifi_ssid_enter[] PROGMEM = "(Enter a name)";
+  const char txt_wifi_ssid_select[] PROGMEM = "or choose a network:";
 
   // Page Control
   const char txt_ctrl_title[] PROGMEM = "Control Unit";
@@ -109,12 +132,21 @@ namespace da
   const char txt_unit_steptemp[] PROGMEM = "Temerature step";
   const char txt_unit_modes[] PROGMEM = "Mode support";
   const char txt_unit_password[] PROGMEM = "Web password";
+  const char txt_unit_language[] PROGMEM = "Language";
+  const char txt_unit_fan_modes[] PROGMEM = "Fan mode support";
+  const char txt_unit_password_confirm[] PROGMEM = "Confirm Login password";
+  const char txt_unit_password_not_match[] PROGMEM = "Confirm Password did not match";
+  const char txt_unit_login_username[] PROGMEM = "Note: Default login user is";
 
   // Page Login
   const char txt_login_title[] PROGMEM = "Authentication";
   const char txt_login_password[] PROGMEM = "Password";
   const char txt_login_sucess[] PROGMEM = "Login successful, you will be redirect in few seconds.";
   const char txt_login_fail[] PROGMEM = "Wrong username/password! try again.";
+  const char txt_login_username[] PROGMEM = "Username";
+  const char txt_login_open_status[] PROGMEM = "Open status page";
+  const char txt_login_ph_user[] PROGMEM = "Enter username";
+  const char txt_login_ph_pwd[] PROGMEM = "Enter password";
 
   // Page Upgrade
   const char txt_upgrade_title[] PROGMEM = "Upgrade";
@@ -133,9 +165,11 @@ namespace da
   const char txt_upload_error[] PROGMEM = "Update error code (see Updater.cpp) ";
   const char txt_upload_success[] PROGMEM = "successful";
   const char txt_upload_refresh[] PROGMEM = "Refresh in";
+  const char txt_upload[] PROGMEM = "Upload";
 
   // Page Init
   const char txt_init_title[] PROGMEM = "Initial setup";
-  const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
+  const char txt_init_reboot_mes[] PROGMEM = "Opretter forbindelse til dit WiFi-netværk med lokal adresse";
+  const char txt_init_reboot_mes_1[] PROGMEM = "Bruger denne adresse til at få adgang til din enhed efter genstart. Genstarter i";
   const char txt_init_reboot[] PROGMEM = "Rebooting...";
 }
