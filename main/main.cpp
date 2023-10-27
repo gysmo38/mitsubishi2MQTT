@@ -887,17 +887,7 @@ void handleNotFound(AsyncWebServerRequest *request)
 {
   if (captive)
   {
-    String initSetupContent = FPSTR(html_init_setup);
-    initSetupContent.replace("_TXT_INIT_TITLE_", translatedWord(FL_(txt_init_title)));
-    initSetupContent.replace("_TXT_INIT_HOST_", translatedWord(FL_(txt_wifi_hostname)));
-    initSetupContent.replace("_UNIT_NAME_", hostname);
-    initSetupContent.replace("_TXT_INIT_SSID_", translatedWord(FL_(txt_wifi_ssid)));
-    initSetupContent.replace("_TXT_INIT_PSK_", translatedWord(FL_(txt_wifi_psk)));
-    initSetupContent.replace("_TXT_INIT_OTA_", translatedWord(FL_(txt_wifi_otap)));
-    initSetupContent.replace("_TXT_SAVE_", translatedWord(FL_(txt_save)));
-    initSetupContent.replace("_TXT_REBOOT_", translatedWord(FL_(txt_reboot)));
-
-    sendWrappedHTML(request, initSetupContent);
+    request->redirect(localApIpUrl);
   }
   else
   {
@@ -968,7 +958,6 @@ void handleRoot(AsyncWebServerRequest *request)
   {
     String menuRootPage = FPSTR(html_menu_root);
     // localize
-    // menuRootPage.replace("_TXT_HOME_PAGE_",translatedWord(FL_(txt_home_page));
     menuRootPage.replace("_TXT_HOME_PAGE_", translatedWord(FL_(txt_home_page)));
     menuRootPage.replace("_TXT_CONTROL_", translatedWord(FL_(txt_control)));
     menuRootPage.replace("_TXT_SETUP_", translatedWord(FL_(txt_setup)));
@@ -1407,16 +1396,7 @@ void handleControl(AsyncWebServerRequest *request)
   String controlPage = FPSTR(html_page_control);
   String controlScript = FPSTR(control_script_events);
   // write_log("Enter HVAC control");
-  controlPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
-  controlPage.replace("_UNIT_NAME_", hostname);
-  controlPage.replace("_RATE_", "60");
-  controlPage.replace("_ROOMTEMP_", String(convertCelsiusToLocalUnit(hp.getRoomTemperature(), useFahrenheit)));
-  controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
-  controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
-  controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
-  controlPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
-  controlPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
-  controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
+    // localize
   controlPage.replace("_TXT_CTRL_CTEMP_", translatedWord(FL_(txt_ctrl_ctemp)));
   controlPage.replace("_TXT_CTRL_TEMP_", translatedWord(FL_(txt_ctrl_temp)));
   controlPage.replace("_TXT_CTRL_TITLE_", translatedWord(FL_(txt_ctrl_title)));
@@ -1436,14 +1416,27 @@ void handleControl(AsyncWebServerRequest *request)
   controlPage.replace("_TXT_F_SPEED_", translatedWord(FL_(txt_f_speed)));
   controlPage.replace("_TXT_F_SWING_", translatedWord(FL_(txt_f_swing)));
   controlPage.replace("_TXT_F_POS_", translatedWord(FL_(txt_f_pos)));
-
-  if (strcmp(settings.power, "ON") == 0)
+  controlPage.replace("_TXT_BACK_", translatedWord(FL_(txt_back)));
+  // set data
+  controlScript.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
+  controlScript.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
+  controlScript.replace(F("_TEMP_STEP_"), String(temp_step));
+  controlPage.replace("_ROOMTEMP_", String(convertCelsiusToLocalUnit(hp.getRoomTemperature(), useFahrenheit)));
+  controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
+  controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
+  if (!supportHeatMode)
   {
-    controlPage.replace("_POWER_ON_", "selected");
+    controlPage.replace(F("_HEAT_HIDDEN_"), F("'hidden' style='display: none;' disabled"));
   }
-  else if (strcmp(settings.power, "OFF") == 0)
+  else
   {
-    controlPage.replace("_POWER_OFF_", "selected");
+    controlPage.replace(F("_HEAT_HIDDEN_"), "");
+  }
+  controlScript.replace(F("_HEAT_MODE_SUPPORT_"), (String)supportHeatMode);
+
+  if (!(String(settings.power).isEmpty())) // null may crash with multitask
+  {
+    controlPage.replace(F("_POWER_"), strcmp(settings.power, "ON") == 0 ? "checked" : "");
   }
 
   if (strcmp(settings.mode, "HEAT") == 0)
@@ -2056,13 +2049,31 @@ void hpStatusChanged(heatpumpStatus currentStatus)
       return;
 
     rootInfo.clear();
-    rootInfo["roomTemperature"] = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
-    rootInfo["temperature"] = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-    rootInfo["fan"] = currentSettings.fan;
-    rootInfo["vane"] = currentSettings.vane;
-    rootInfo["wideVane"] = currentSettings.wideVane;
+    float roomTemperature = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
+    float temperature = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
+    rootInfo["roomTemperature"] = roomTemperature;
+    rootInfo["temperature"] = temperature;
+    events.send(String(roomTemperature).c_str(), "room_temperature", millis(), 50); // send data to browser
+    events.send(String(temperature).c_str(), "temperature", millis(), 60);
+    if (!(String(currentSettings.fan).isEmpty())) // null may crash with multitask
+    {
+      rootInfo["fan"] = currentSettings.fan;
+      events.send(currentSettings.fan, "fan", millis(), 70);
+    }
+    if (!(String(currentSettings.vane).isEmpty()))
+    {
+      rootInfo["vane"] = currentSettings.vane;
+      events.send(currentSettings.vane, "vane", millis(), 80);
+    }
+    if (!(String(currentSettings.wideVane).isEmpty()))
+    {
+      rootInfo["wideVane"] = currentSettings.wideVane;
+      events.send(currentSettings.wideVane, "wideVane", millis(), 90);
+    }
     rootInfo["mode"] = hpGetMode(currentSettings);
     rootInfo["action"] = hpGetAction(currentStatus, currentSettings);
+    events.send(currentSettings.mode, "mode", millis(), 100);
+    events.send(currentSettings.power, "power", millis(), 110);
     rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
     String mqttOutput;
     serializeJson(rootInfo, mqttOutput);

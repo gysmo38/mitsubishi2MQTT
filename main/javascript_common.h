@@ -144,13 +144,20 @@ const char unit_script_ws[] PROGMEM =
 
 const char control_script_events[] PROGMEM = 
     "<script>"
-        "const queryParams = (window.location.search.split('?')[1] || '')"
-            ".split('&')"
-            ".reduce((QS, current) => {"
-                "const [key, value] = current.split('=');"
-                "return Object.assign(QS, {[key]: value !== undefined ? value : ''});"
-            "}, {});"
-
+        "function $_GET(param) {"
+            "var vars = {};"
+            "window.location.href.replace(location.hash, '').replace("
+                "/[?&]+([^=&]+)=?([^&]*)?/gi, /*regexp*/"
+                "function(m, key, value) { /*callback*/"
+                    "vars[key] = value !== undefined ? value : '';"
+                "}"
+            ");"
+ 
+            "if (param) {"
+                "return vars[param] ? vars[param] : null;"
+            "}"
+            "return vars;"
+        "};"
 
         "function setTemp(b) {"
             "var t = document.getElementById('TEMP');"
@@ -163,8 +170,8 @@ const char control_script_events[] PROGMEM =
         "}"
  
         "window.onload = function() {"
-         "if (queryParams('TEMP')) {"
-          "document.getElementById('TEMP').value = queryParams('TEMP');"
+         "if ($_GET('TEMP')) {"
+          "document.getElementById('TEMP').value = $_GET('TEMP');"
          "}"
         "};"
  
@@ -220,10 +227,15 @@ const char control_script_events[] PROGMEM =
             "console.log('Fan', e.data);"
             "document.getElementById('FAN').value = e.data;"
            "}, false);"
- 
-            "source.addEventListener('vane', function(e) {"
+
+           "source.addEventListener('vane', function(e) {"
             "console.log('Vane', e.data);"
             "document.getElementById('VANE').value = e.data;"
+           "}, false);"
+
+            "source.addEventListener('wideVane', function(e) {"
+            "console.log('Wide vane', e.data);"
+            "document.getElementById('WIDEVANE').value = e.data;"
            "}, false);"
           "}"
          "}"

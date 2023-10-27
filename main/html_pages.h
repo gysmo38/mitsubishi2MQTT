@@ -266,7 +266,7 @@ const char html_page_control[] PROGMEM =
                 "<div class='ctrlrow' _WIDE_VANE_STYLE_>"
                 "<p><b>_TXT_CTRL_WVANE_</b>"
                     "<form onchange='this.submit()' method='post'>"
-                        "<select name='WIDEVANE'>"
+                        "<select name='WIDEVANE' id='WIDEVANE'>"
                             "<option value='SWING' _WVANE_S_>&#9887; _TXT_F_SWING_</option>"
                             "<option value='<<' _WVANE_1_><< _TXT_F_POS_ 1</option>"
                             "<option value='<' _WVANE_2_>< _TXT_F_POS_ 2</option>"
