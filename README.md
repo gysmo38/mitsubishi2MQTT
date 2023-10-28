@@ -12,19 +12,17 @@ It use SwiCago libraries: https://github.com/SwiCago/HeatPump
 
 Screenshots:
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/main_page.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/main_page.jpeg | width=250)
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/control_page.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/control_page.jpeg | width=250)
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/config_page.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/config_page.jpeg | width=250)
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/initial_setup.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/initial_setup.jpeg | width=250)
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/login_page.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/unit_page.jpeg | width=250)
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/unit_page.jpeg)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/status_page.jpeg)
+![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/status_page.jpeg | width=250)
 
 ***
 ## How to use:
