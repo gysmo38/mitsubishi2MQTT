@@ -1,4 +1,4 @@
-** mitsubishi2MQTT **
+**mitsubishi2MQTT**
 Use MQTT and ESP8266/ESP32 module to control Mitsubishi HVAC unit.
 It use SwiCago libraries: https://github.com/SwiCago/HeatPump
 
@@ -10,19 +10,11 @@ It use SwiCago libraries: https://github.com/SwiCago/HeatPump
  - Control with MQTT
  - Multilanguages, user can change in SETUP->UNIT or choose in initial setup
 
-Screenshots:
+## Screenshots:
+| ![Main](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/main_page.jpeg) | ![Control](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/control_page.jpeg) | ![Config](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/config_page.jpeg) |
+| --------------------------------------- | --------------------------------------- | --------------------------------------- |                                
+| ![Init](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/initial_setup.jpeg) | ![Unit](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/unit_page.jpeg) | ![Status](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/status_page.jpeg) |
 
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/main_page.jpeg | width=250)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/control_page.jpeg | width=250)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/config_page.jpeg | width=250)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/initial_setup.jpeg | width=250)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/unit_page.jpeg | width=250)
-
-![](https://github.com/dzungpv/mitsubishi2MQTT/blob/master/images/status_page.jpeg | width=250)
 
 ***
 ## How to use:
