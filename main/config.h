@@ -146,6 +146,7 @@ const PROGMEM char *appName = "Mitsubishi2MQTT";
 const PROGMEM char *manufacturer = "MITSUBISHI ELECTRIC";
 const PROGMEM char *model = "HVAC MITSUBISHI";
 const PROGMEM char *hostnamePrefix = "HVAC-";
+static const char *const TAG = "mitsu_cn105";
 
 unsigned long wifi_timeout;
 unsigned long wifi_reconnect_timeout;

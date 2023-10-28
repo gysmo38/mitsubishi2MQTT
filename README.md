@@ -1,37 +1,51 @@
-# mitsubishi2MQTT
+** mitsubishi2MQTT **
 Use MQTT and ESP8266/ESP32 module to control Mitsubishi HVAC unit.
 It use SwiCago libraries: https://github.com/SwiCago/HeatPump
 
 ***
-Features:
+## Features:
  - Initial config:  WIFI AP mode and web portal
  - Web interface for configuration, status and control, firmware upgrade
  - Homeassistant autodiscovery and control with MQTT
  - Control with MQTT
- - Multilanguages
+ - Multilanguages, user can change in SETUP->UNIT or choose in initial setup
 
 Screenshots:
 
-![Main page](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/main_page.png)
+![](https://github.com/dzungpv/dzungpv/blob/master/images/main_page.jpeg)
 
-![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/control_page.png)
+![](https://github.com/gysmo38/dzungpv/blob/master/images/control_page.jpeg)
 
-![](https://github.com/gysmo38/mitsubishi2MQTT/blob/master/images/config_page.png)
+![](https://github.com/gysmo38/dzungpv/blob/master/images/config_page.jpeg)
+
+![](https://github.com/dzungpv/dzungpv/blob/master/images/initial_setup.jpeg)
+
+![](https://github.com/gysmo38/dzungpv/blob/master/images/login_page.jpeg)
+
+![](https://github.com/gysmo38/dzungpv/blob/master/images/unit_page.jpeg)
+
+![](https://github.com/gysmo38/dzungpv/blob/master/images/status_page.jpeg)
 
 ***
-How to use:
- - Step 1: flash the sketch with flash size include SPIFFS option.
- - Step 2: connect to device AP with name HVAC_XXXX (XXXX last 4 character MAC address)
- - Step 3: You should be automatically redirected to the web portal or go to 192.168.1.1
- - Step 4: set Wifi information, save & reboot. Fall back to AP mode if WiFi connection fails (AP password sets to default SSID name from step 2).
- - Step 5: find the device IP with last 4 character MAC address in your router
+## How to use:
+ - Step 1: Flash the sketch with flash size include SPIFFS option.
+ - Step 2: Connect to device AP with name HVAC-XXXXXXXXXXXX (XXXX... 12 character MAC address)
+ - Step 3: You should be automatically redirected to the web portal or go to 192.168.4.1
+ - Step 4: Set Wifi information, mqtt(optional), language and save & reboot. Fall back to AP mode if WiFi connection fails (AP password sets to default SSID name from step 2).
+ - Step 5: Connect to the device I with local domain: HVAC-XXXXXXXXXXXX.local
  - Step 6: (optional): Set MQTT information for use with Home Assistant
  - Step 7: (optional): Set Login password to prevent unwanted access in SETUP->ADVANCE->Login Password
+ - Step 8: (optional): Turn off heat mode or quiet mode in SETUP->UNIT
 
-Nightly builds are available for select platforms via GitHub Actions. Go to [the platformio workflow](https://github.com/gysmo38/mitsubishi2MQTT/actions/workflows/platformio.yml), select the latest build, then check the **Artifacts** section. 
+Nightly builds are available for select platforms via GitHub Actions. Go to [the workflow](https://github.com/dzungpv/mitsubishi2MQTT/actions/workflows/platformio.yml), select the latest build, then check the **Artifacts** section. 
+***
+## How to build:
+  - Arduino: Intall libs, rename file main.cpp in main folder to main.ino, open it anf build
+  - Platformio: Install, open it and choose a variant to build
+  - ESP IDF: clone the project with --recursive tag, install [ESP IDF 4.4.6 ](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32/get-started/index.html) set the target and run command: idf.py build
 
 ***
-For nodered fans MQTT topic use cases
+## MQTT topic use cases
 - topic/power/set OFF
 - topic/mode/set AUTO HEAT COOL DRY FAN_ONLY OFF ON
 - topic/temp/set 16-31
@@ -48,6 +62,4 @@ For nodered fans MQTT topic use cases
 - topic/custom/send as example "fc 42 01 30 10 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7b " see https://github.com/SwiCago/HeatPump/blob/master/src/HeatPump.h
 - topic/system/set reboot 
 ***
-If you like my work and use it ;)<br>
-
-<a href='https://ko-fi.com/L3L0GSF7X' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+If you like my work and use it, give a star.

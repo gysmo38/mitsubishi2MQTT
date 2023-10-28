@@ -1,0 +1,20 @@
+[submodule "components/arduino-esp32"]
+	path = components/arduino-esp32
+	url = https://github.com/espressif/arduino-esp32.git
+	branch = release/v2.x
+[submodule "components/async-mqtt-client"]
+	path = components/async-mqtt-client
+	url = https://github.com/dzungpv/async-mqtt-client.git
+[submodule "components/ESPAsyncWebServer"]
+	path = components/ESPAsyncWebServer
+	url = https://github.com/dzungpv/ESPAsyncWebServer.git
+[submodule "components/AsyncTCP"]
+	path = components/AsyncTCP
+	url = https://github.com/dzungpv/AsyncTCP.git
+[submodule "components/HeatPump"]
+	path = components/HeatPump
+	url = https://github.com/dzungpv/HeatPump.git
+[submodule "components/ArduinoJson"]
+	path = components/ArduinoJson
+	url = https://github.com/bblanchon/ArduinoJson.git
+	branch = 6.x

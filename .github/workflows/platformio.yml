@@ -53,3 +53,13 @@ jobs:
         with:
           name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
           path: mitsubishi2MQTT_WEMOS_D1_Mini.bin
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: esp-idf build
+        uses: espressif/esp-idf-ci-action@release-v4.4.6
+        with:
+          path: '/'
