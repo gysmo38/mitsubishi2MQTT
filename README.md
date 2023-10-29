@@ -30,7 +30,7 @@ It use SwiCago libraries: https://github.com/SwiCago/HeatPump
 Nightly builds are available for select platforms via GitHub Actions. Go to [the workflow](https://github.com/dzungpv/mitsubishi2MQTT/actions/workflows/build.yml), select the latest build, then check the **Artifacts** section. 
 ***
 ## How to build:
-  - Arduino: Intall libs, rename file main.cpp in main folder to main.ino, open it anf build
+  - Arduino: Intall require libraries, rename file main.cpp in main folder to main.ino, open it and build
   - Platformio: Install, open it and choose a variant to build
   - ESP IDF: clone the project with --recursive tag, install [ESP IDF 4.4.6 ](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32/get-started/index.html) set the target and run command: idf.py build
 
