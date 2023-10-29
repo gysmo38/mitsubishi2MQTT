@@ -70,7 +70,6 @@ Ticker mqttReconnectTimer; // timer for esp8266 AsyncMqttClient
 Ticker wifiReconnectTimer; // timer for esp8266 AsyncMqttClient
 #endif
 
-int mqtt_attempts = 0;
 bool mqtt_connected = false;
 uint8_t mqtt_disconnect_reason = -1;
 

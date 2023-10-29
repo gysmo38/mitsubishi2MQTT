@@ -2436,7 +2436,7 @@ void haConfig()
   haConfigDevice["sw"] = String(appName) + " " + String(getAppVersion());
   haConfigDevice["mdl"] = model;
   haConfigDevice["mf"] = manufacturer;
-  haConfigDevice["configuration_url"] = "http://" + hostname + ".local";
+  haConfigDevice["configuration_url"] = "http://" + WiFi.localIP().toString();
 
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
@@ -2447,27 +2447,16 @@ void mqttConnect()
 {
   ESP_LOGD(TAG, "Connecting to MQTT...");
 
-  if (mqtt_server[0] != '\0' && mqtt_port[0] != '\0')
+  if (!mqtt_server.isEmpty() && !mqtt_port.isEmpty())
   {
     mqttClient.connect();
-  }
-
-  if (!mqtt_connected)
-  {
-    if (mqtt_attempts == 5)
-    {
-      mqtt_attempts = 0;
-      lastMqttRetry = millis();
-    }
-    else
-    {
-      mqtt_attempts++;
-    }
   }
 }
 
 bool connectWifi()
 {
+  // WiFi.disconnect(true);
+  // delay(1000);
 #ifdef ESP32
   WiFi.setHostname(hostname.c_str());
 #else
@@ -2476,17 +2465,14 @@ bool connectWifi()
   if (WiFi.getMode() != WIFI_STA)
   {
     WiFi.mode(WIFI_STA);
-    delay(10);
+    delay(100);
   }
-#ifdef ESP32
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
-#endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
-  // Serial.println("Connecting to " + ap_ssid);
+  ESP_LOGD(TAG, "Connected to %s", ap_ssid.c_str());
   wifi_timeout = millis() + 30000;
   while (WiFi.status() != WL_CONNECTED && millis() < wifi_timeout)
   {
-    Serial.write('.');
+    ESP_LOGD(TAG, ".");
     // Serial.print(WiFi.status());
     //  wait 500ms, flashing the blue LED to indicate WiFi connecting...
     digitalWrite(blueLedPin, LOW);
@@ -2496,27 +2482,26 @@ bool connectWifi()
   }
   if (WiFi.status() != WL_CONNECTED)
   {
-    // Serial.println(F("Failed to connect to wifi"));
+    ESP_LOGD(TAG, "Failed to connect to wifi");
     return false;
   }
-  // Serial.println(F("Connected to "));
-  // Serial.println(ap_ssid);
-  // Serial.println(F("Ready"));
-  // Serial.print("IP address: ");
-  while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "")
+  ESP_LOGD(TAG, "Connected to %s", ap_ssid.c_str());
+  ESP_LOGD(TAG, "Ready, IP address: ");
+  unsigned long dhcpStartTime = millis();
+  while ((WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") && millis() - dhcpStartTime < 5000)
   {
-    // Serial.write('.');
+    ESP_LOGD(TAG, ".");
     delay(500);
   }
   if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "")
   {
-    // Serial.println(F("Failed to get IP address"));
+    ESP_LOGD(TAG, "Failed to get IP address");
     return false;
   }
-  // Serial.println(WiFi.localIP());
+  ESP_LOGD(TAG, "%s", WiFi.localIP().toString().c_str());
   ticker.detach(); // Stop blinking the LED because now we are connected:)
   // keep LED off (For Wemos D1-Mini)
-  digitalWrite(blueLedPin, HIGH);
+  digitalWrite(blueLedPin, LOW);
   return true;
 }
 
@@ -2631,23 +2616,10 @@ void loop()
   {
     // ESP_LOGD(TAG, "Reset wifi connect timeout");
     wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
-    if (!mqtt_connected and millis() > mqtt_reconnect_timeout) // retry to connect mqtt
-    {
-      mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
-#ifdef ESP32
-      xTimerStart(mqttReconnectTimer, 0);
-#else
-      mqttReconnectTimer.once(2, mqttConnect);
-#endif
-    }
   }
   else if (wifi_config_exists and millis() > wifi_timeout)
   {
-#ifdef ESP32
-    ESP.restart();
-#else
-    ESP.reset();
-#endif
+    sendRebootRequest(0);
   }
   // Sync HVAC UNIT even if mqtt not connected
   if (!captive)
@@ -2675,6 +2647,16 @@ void loop()
     {
       hpConnectionRetries = 0;
       hp.sync();
+    }
+    // check mqtt status and retry
+    if (wifiConnected and !mqtt_connected and millis() > mqtt_reconnect_timeout) // retry to connect mqtt
+    {
+      mqtt_reconnect_timeout = millis() + MQTT_RECONNECT_INTERVAL_MS; // only retry next 5 seconds to prevent crash
+#ifdef ESP32
+      xTimerStart(mqttReconnectTimer, 0);
+#else
+      mqttReconnectTimer.once(2, mqttConnect);
+#endif
     }
   }
   else
