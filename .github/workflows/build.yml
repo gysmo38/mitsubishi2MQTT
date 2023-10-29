@@ -12,15 +12,18 @@ jobs:
         with:
           submodules: 'recursive'
           path: ${{ github.workspace }}/app
+
       - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
           key: ${{ runner.os }}-pio
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+          
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
@@ -29,11 +32,19 @@ jobs:
           cd ${{ github.workspace }}/app
           pio run -e ESP8266-ESP01
           mv .pio/build/ESP8266-ESP01/firmware.bin mitsubishi2MQTT_ESP8266-ESP01.bin
+
       - name: Build WEMOS_D1_Mini
         run: |
           cd ${{ github.workspace }}/app
           pio run -e WEMOS_D1_Mini
           mv .pio/build/WEMOS_D1_Mini/firmware.bin mitsubishi2MQTT_WEMOS_D1_Mini.bin
+
+      - name: Build PIO ESP32DEV
+        run: |
+          cd ${{ github.workspace }}/app
+          pio run -e ESP32DEV
+          mv .pio/build/ESP32DEV/firmware.bin mitsubishi2MQTT_ESP32DEV_PIO.bin
+
       - name: Upload esp8266 artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -45,6 +56,12 @@ jobs:
         with:
           name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
           path: ${{ github.workspace }}/app/mitsubishi2MQTT_WEMOS_D1_Mini.bin
+
+      - name: Upload PIO esp32dev artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mitsubishi2MQTT_ESP32DEV_PIO.bin
+          path: ${{ github.workspace }}/app/mitsubishi2MQTT_ESP32DEV_PIO.bin
 
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
