@@ -27,7 +27,7 @@ It use SwiCago libraries: https://github.com/SwiCago/HeatPump
  - Step 7: (optional): Set Login password to prevent unwanted access in SETUP->ADVANCE->Login Password
  - Step 8: (optional): Turn off heat mode or quiet mode in SETUP->UNIT
 
-Nightly builds are available for select platforms via GitHub Actions. Go to [the workflow](https://github.com/dzungpv/mitsubishi2MQTT/actions/workflows/platformio.yml), select the latest build, then check the **Artifacts** section. 
+Nightly builds are available for select platforms via GitHub Actions. Go to [the workflow](https://github.com/dzungpv/mitsubishi2MQTT/actions/workflows/build.yml), select the latest build, then check the **Artifacts** section. 
 ***
 ## How to build:
   - Arduino: Intall libs, rename file main.cpp in main folder to main.ino, open it anf build
