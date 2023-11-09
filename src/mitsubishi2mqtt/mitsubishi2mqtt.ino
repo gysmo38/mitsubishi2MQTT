@@ -1641,6 +1641,12 @@ void haConfig() {
   haConfigDevice["mf"]    = "MITSUBISHI ELECTRIC";
   haConfigDevice["configuration_url"]    = "http://"+WiFi.localIP().toString();
   
+  // Additional attributes are in the state
+  // For now, only compressorFrequency
+  haConfig["json_attr_t"]                   = ha_state_topic;
+  haConfig["json_attr_tpl"]                 = F("{{ {'compressorFrequency': value_json.compressorFrequency if (value_json is defined and value_json.compressorFrequency is defined) else '-1' } | tojson }}");
+  
+  
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
