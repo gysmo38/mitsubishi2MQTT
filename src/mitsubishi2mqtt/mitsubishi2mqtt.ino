@@ -58,7 +58,11 @@ ESP8266WebServer server(80);  // ESP8266 web
 #define HVAC_UART 0
 #endif
 
+#define DEBUG_PRINT(x) {if (SerialLog) SerialLog->print(x);}
+#define DEBUG_LOG(x) {DEBUG_PRINT(x);DEBUG_PRINT("\n");}
+
 HardwareSerial* SerialHvac = NULL;
+typeof(Serial)* SerialLog = &Serial;
 
 #ifndef ESP32
 #define Serial0 Serial
@@ -109,22 +113,28 @@ void setup() {
     #endif
     case 0:
       SerialHvac = &Serial0;
+      if ((Stream*)SerialLog == (Stream*)&Serial0) {
+        SerialLog = NULL;
+      }
       break;
   }
 
-  Serial.begin(115200);
-  // Serial.println(F("Starting Mitsubishi2MQTT"));
+  if (SerialLog != NULL) {
+    SerialLog->begin(115200);
+  }
+
+  DEBUG_LOG(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
   {
-    // Serial.println(F("Mounted file system"));
+    DEBUG_LOG(F("Mounted file system"));
   }
   else
   {
-    // Serial.println(F("Failed to mount FS -> formating"));
+    DEBUG_LOG(F("Failed to mount FS -> formating"));
     SPIFFS.format();
     // if (SPIFFS.begin())
-      // Serial.println(F("Mounted file system after formating"));
+      DEBUG_LOG(F("Mounted file system after formating"));
   }
   //set led pin as output
   pinMode(blueLedPin, OUTPUT);
@@ -205,7 +215,7 @@ void setup() {
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
-    // Serial.println(F("Connection to HVAC. Stop serial log."));
+    DEBUG_PRINT(F("Connecting to HVAC... "));
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
@@ -214,6 +224,7 @@ void setup() {
     hp.enableExternalUpdate();
     hp.enableAutoUpdate();
     if (hp.connect(SerialHvac)) {
+      DEBUG_LOG(F("Success"));
       heatpumpStatus currentStatus = hp.getStatus();
       heatpumpSettings currentSettings = hp.getSettings();
       rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
@@ -225,6 +236,8 @@ void setup() {
       rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
       rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
       lastTempSend = millis();
+    } else {
+      DEBUG_LOG(F("Failed"));
     }
   }
   else {
@@ -238,17 +251,17 @@ bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
   if (!SPIFFS.exists(wifi_conf)) {
-    // Serial.println(F("Wifi config file not exist!"));
+    DEBUG_LOG(F("Wifi config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi config file"));
+    DEBUG_LOG(F("Failed to open wifi config file"));
     return false;
   }
   size_t size = configFile.size();
   if (size > 1024) {
-    // Serial.println(F("Wifi config file size is too large"));
+    DEBUG_LOG(F("Wifi config file size is too large"));
     return false;
   }
 
@@ -271,7 +284,7 @@ bool loadWifi() {
 }
 bool loadMqtt() {
   if (!SPIFFS.exists(mqtt_conf)) {
-    Serial.println(F("MQTT config file not exist!"));
+    DEBUG_LOG(F("MQTT config file not exist!"));
     return false;
   }
   //write_log("Loading MQTT configuration");
@@ -314,7 +327,7 @@ bool loadMqtt() {
 
 bool loadUnit() {
   if (!SPIFFS.exists(unit_conf)) {
-    // Serial.println(F("Unit config file not exist!"));
+    DEBUG_LOG(F("Unit config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(unit_conf, "r");
@@ -352,7 +365,7 @@ bool loadUnit() {
 
 bool loadOthers() {
   if (!SPIFFS.exists(others_conf)) {
-    // Serial.println(F("Others config file not exist!"));
+    DEBUG_LOG(F("Others config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(others_conf, "r");
@@ -403,7 +416,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open config file for writing"));
+    DEBUG_LOG(F("Failed to open config file for writing"));
   }
   serializeJson(doc, configFile);
   configFile.close();
@@ -433,7 +446,7 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open config file for writing"));
+    DEBUG_LOG(F("Failed to open config file for writing"));
   }
   serializeJson(doc, configFile);
   configFile.close();
@@ -448,7 +461,7 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+    DEBUG_LOG(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -464,7 +477,7 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
   doc["debugLogs"] = debugLogs;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+    DEBUG_LOG(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -473,7 +486,7 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
 
 // Initialize captive portal page
 void initCaptivePortal() {
-  // Serial.println(F("Starting captive portal"));
+  DEBUG_LOG(F("Starting captive portal"));
   server.on("/", handleInitSetup);
   server.on("/save", handleSaveWifi);
   server.on("/reboot", handleReboot);
@@ -506,11 +519,11 @@ void initOTA() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     //    write_log("Error[%u]: ", error);
-    // if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
-    // else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-    // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-    // else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-    // else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
+    if (error == OTA_AUTH_ERROR) {DEBUG_LOG(F("Auth Failed"));}
+    else if (error == OTA_BEGIN_ERROR) {DEBUG_LOG(F("Begin Failed"));}
+    else if (error == OTA_CONNECT_ERROR) {DEBUG_LOG(F("Connect Failed"));}
+    else if (error == OTA_RECEIVE_ERROR) {DEBUG_LOG(F("Receive Failed"));}
+    else if (error == OTA_END_ERROR) {DEBUG_LOG(F("End Failed"));}
   });
   ArduinoOTA.begin();
 }
@@ -537,7 +550,7 @@ boolean initWifi() {
     }
   }
 
-  // Serial.println(F("\n\r \n\rStarting in AP mode"));
+  DEBUG_LOG(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
   wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
@@ -552,8 +565,8 @@ boolean initWifi() {
   }
   delay(2000); // VERY IMPORTANT
 
-  // Serial.print(F("IP address: "));
-  // Serial.println(WiFi.softAPIP());
+  DEBUG_LOG(F("IP address: "));
+  DEBUG_LOG(WiFi.softAPIP());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
   wifi_config = false;
   return false;
@@ -595,7 +608,7 @@ void handleNotFound() {
 void handleSaveWifi() {
   if (!checkLogin()) return;
 
-  // Serial.println(F("Saving wifi config"));
+  DEBUG_LOG(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
@@ -862,7 +875,7 @@ void handleStatus() {
   disconnected += FPSTR(txt_status_disconnect);
   disconnected += F("</b></span>");
 
-  if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
+  if ((SerialHvac) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
   else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
   if (mqtt_client.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
   else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
@@ -1147,7 +1160,7 @@ void handleUpgrade() {
 }
 
 void handleUploadDone() {
-  //Serial.printl(PSTR("HTTP: Firmware upload done"));
+  DEBUG_LOG(F("HTTP: Firmware upload done"));
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
@@ -1202,7 +1215,7 @@ void handleUploadLoop() {
   if (!checkLogin()) return;
 
   // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
-  //char log[200];
+  char log[200];
   if (uploaderror) {
     Update.end();
     return;
@@ -1219,11 +1232,11 @@ void handleUploadLoop() {
       mqtt_client.disconnect();
       lastMqttRetry = millis();
     }
-    //snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
-    //Serial.printl(log);
+    snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
+    DEBUG_LOG(log);
     uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(maxSketchSpace)) {         //start with max available size
-      //Update.printError(Serial);
+      DEBUG_LOG(Update.errorString());
       uploaderror = 2;
       return;
     }
@@ -1231,7 +1244,7 @@ void handleUploadLoop() {
     if (upload.totalSize == 0)
     {
       if (upload.buf[0] != 0xE9) {
-        //Serial.println(PSTR("Upload: File magic header does not start with 0xE9"));
+        DEBUG_LOG(F("Upload: File magic header does not start with 0xE9"));
         uploaderror = 3;
         return;
       }
@@ -1241,7 +1254,7 @@ void handleUploadLoop() {
 #else
       if (bin_flash_size > ESP.getFlashChipRealSize()) {
 #endif
-        //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
+        DEBUG_LOG(F("Upload: File flash size is larger than device flash size"));
         uploaderror = 4;
         return;
       }
@@ -1252,21 +1265,21 @@ void handleUploadLoop() {
       }
     }
     if (!uploaderror && (Update.write(upload.buf, upload.currentSize) != upload.currentSize)) {
-      //Update.printError(Serial);
+      DEBUG_LOG(Update.errorString());
       uploaderror = 5;
       return;
     }
   } else if (!uploaderror && (upload.status == UPLOAD_FILE_END)) {
     if (Update.end(true)) { // true to set the size to the current progress
-      //snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
-      //Serial.printl(log)
+      snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
+      DEBUG_LOG(log)
     } else {
-      //Update.printError(Serial);
+      DEBUG_LOG(Update.errorString());
       uploaderror = 6;
       return;
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
-    //Serial.println(PSTR("Upload: Update was aborted"));
+    DEBUG_LOG(F("Upload: Update was aborted"));
     uploaderror = 7;
     Update.end();
   }
@@ -1675,13 +1688,13 @@ void haConfig() {
   // For now, only compressorFrequency
   haConfig["json_attr_t"]                   = ha_state_topic;
   haConfig["json_attr_tpl"]                 = F("{{ {'compressorFrequency': value_json.compressorFrequency if (value_json is defined and value_json.compressorFrequency is defined) else '-1' } | tojson }}");
-  
-  
+
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
   mqtt_client.print(mqttOutput);
   mqtt_client.endPublish();
+  mqtt_client.publish(ha_debug_logs_topic.c_str(), "Send HA Autodiscovery message");
 }
 
 void mqttConnect() {
@@ -1739,11 +1752,11 @@ bool connectWifi() {
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
-  // Serial.println("Connecting to " + ap_ssid);
+  DEBUG_LOG("Connecting to " + ap_ssid);
   wifi_timeout = millis() + 30000;
   while (WiFi.status() != WL_CONNECTED && millis() < wifi_timeout) {
     Serial.write('.');
-    //Serial.print(WiFi.status());
+    DEBUG_LOG(WiFi.status());
     // wait 500ms, flashing the blue LED to indicate WiFi connecting...
     digitalWrite(blueLedPin, LOW);
     delay(250);
@@ -1751,22 +1764,22 @@ bool connectWifi() {
     delay(250);
   }
   if (WiFi.status() != WL_CONNECTED) {
-    // Serial.println(F("Failed to connect to wifi"));
+    DEBUG_LOG(F("Failed to connect to wifi"));
     return false;
   }
-  // Serial.println(F("Connected to "));
-  // Serial.println(ap_ssid);
-  // Serial.println(F("Ready"));
-  // Serial.print("IP address: ");
-    while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
+  DEBUG_PRINT(F("Wifi connected to: "));
+  DEBUG_LOG(ap_ssid);
+  DEBUG_LOG(F("Ready"));
+  while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
     // Serial.write('.');
     delay(500);
   }
   if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
-    // Serial.println(F("Failed to get IP address"));
+    DEBUG_LOG(F("Failed to get IP address"));
     return false;
   }
-  // Serial.println(WiFi.localIP());
+  DEBUG_PRINT("IP address: ");
+  DEBUG_LOG(WiFi.localIP());
   //ticker.detach(); // Stop blinking the LED because now we are connected:)
   //keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
@@ -1856,7 +1869,9 @@ void loop() {
   if (WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED) {
 	  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   } else if (wifi_config_exists and millis() > wifi_timeout) {
-	  ESP.restart();
+    DEBUG_LOG(F("Wifi Timeout, rebooting"));
+    delay(100);
+    ESP.restart();
   }
 
   if (!captive) {
@@ -1869,6 +1884,7 @@ void loop() {
         // If we've retried more than the max number of tries, keep retrying at that fixed interval, which is several minutes.
         hpConnectionRetries = min(hpConnectionRetries + 1u, HP_MAX_RETRIES);
         hpConnectionTotalRetries++;
+        DEBUG_LOG(F("HVAC attempt reconnect"));
         hp.sync();
       }
     } else {
