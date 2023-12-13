@@ -37,6 +37,11 @@ jobs:
           pio run -e ESP32DEV
           mv .pio/build/ESP32DEV/mitsubishi2MQTT_ESP32DEV.bin ./
 
+      - name: Build ESP32-S2-MINI
+        run: |
+          pio run -e ESP32-S2-MINI
+          mv .pio/build/ESP32-S2-MINI/mitsubishi2MQTT_ESP32-S2-MINI.bin ./
+
       - name: Upload esp8266 artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -54,3 +59,9 @@ jobs:
         with:
           name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
           path: mitsubishi2MQTT_WEMOS_D1_Mini.bin
+
+      - name: Upload ESP32-S2-MINI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mitsubishi2MQTT_ESP32-S2-MINI.bin
+          path: mitsubishi2MQTT_ESP32-S2-MINI.bin
