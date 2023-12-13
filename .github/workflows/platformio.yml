@@ -25,17 +25,17 @@ jobs:
       - name: Build Generic8266(ESP-01)
         run: |
           pio run -e ESP8266-ESP01
-          mv .pio/build/ESP8266-ESP01/firmware.bin mitsubishi2MQTT_ESP8266-ESP01.bin
+          mv .pio/build/ESP8266-ESP01/mitsubishi2MQTT_ESP8266-ESP01.bin ./
 
       - name: Build WEMOS_D1_Mini
         run: |
           pio run -e WEMOS_D1_Mini
-          mv .pio/build/WEMOS_D1_Mini/firmware.bin mitsubishi2MQTT_WEMOS_D1_Mini.bin
+          mv .pio/build/WEMOS_D1_Mini/mitsubishi2MQTT_WEMOS_D1_Mini.bin ./
 
       - name: Build ESP32DEV
         run: |
           pio run -e ESP32DEV
-          mv .pio/build/ESP32DEV/firmware.bin mitsubishi2MQTT_ESP32DEV.bin
+          mv .pio/build/ESP32DEV/mitsubishi2MQTT_ESP32DEV.bin ./
 
       - name: Upload esp8266 artifacts
         uses: actions/upload-artifact@v3

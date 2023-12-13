@@ -376,6 +376,7 @@ const char html_page_upgrade[] PROGMEM =
             "<legend><b>&nbsp; _TXT_UPGRADE_TITLE_ &nbsp;</b></legend>"
             "<form method='post' action='upload' enctype='multipart/form-data'>"
                 "<p><span>_TXT_UPGRADE_INFO_</span></p>"
+                "<p><span>_TXT_UPGRADE_BOARD_.bin</span></p>"
                 "<br>"
                 "<input type='file' accept='.bin' name='upload'>"
                 "<br>"

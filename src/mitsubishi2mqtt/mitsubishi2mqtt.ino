@@ -45,11 +45,11 @@ ESP8266WebServer server(80);  // ESP8266 web
 #include "html_pages.h"   // code html for pages
 #include "html_metrics.h" // prometheus metrics
 // Languages
+#define QUOTEME(x) QUOTEME_1(x)
+#define QUOTEME_1(x) #x
 #ifndef MY_LANGUAGE
   #include "languages/en-GB.h" // default language English
 #else
-  #define QUOTEME(x) QUOTEME_1(x)
-  #define QUOTEME_1(x) #x
   #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
   #include INCLUDE_FILE(MY_LANGUAGE)
 #endif
@@ -1114,6 +1114,7 @@ void handleUpgrade() {
   upgradePage.replace("_TXT_UPGRADE_TITLE_",FPSTR(txt_upgrade_title));
   upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
   upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
+  upgradePage.replace("_TXT_UPGRADE_BOARD_",QUOTEME(PIO_BINARY));
 
   sendWrappedHTML(upgradePage);
 }
