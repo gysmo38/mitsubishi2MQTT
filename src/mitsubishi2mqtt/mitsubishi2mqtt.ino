@@ -21,6 +21,7 @@
 #include <ESPmDNS.h>          // mDNS for ESP32
 #include <WebServer.h>        // webServer for ESP32
 #include "SPIFFS.h"           // ESP32 SPIFFS for store config
+#include <USB.h>
 WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
@@ -52,6 +53,18 @@ ESP8266WebServer server(80);  // ESP8266 web
 #else
   #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
   #include INCLUDE_FILE(MY_LANGUAGE)
+#endif
+
+#ifndef HVAC_UART
+#define HVAC_UART 0
+#endif
+
+HardwareSerial* SerialHvac = NULL;
+
+#ifndef CONFIG_TINYUSB_ENABLED
+// On usb native chips, Serial0 is uart0 while Serial is USBCDC.
+// On all other chips, Serial is uart0.
+#define Serial0 Serial
 #endif
 
 // wifi, mqtt and heatpump client instances
@@ -86,6 +99,22 @@ int uploaderror = 0;
 
 void setup() {
   // Start serial for debug before HVAC connect to serial
+  switch(HVAC_UART) {
+    #ifdef Serial2
+    case 2:
+      SerialHvac = &Serial2;
+      break;
+    #endif
+    #ifdef Serial1
+    case 1:
+      SerialHvac = &Serial1;
+      break;
+    #endif
+    case 0:
+      SerialHvac = &Serial0;
+      break;
+  }
+
   Serial.begin(115200);
   // Serial.println(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
@@ -187,18 +216,19 @@ void setup() {
     // Allow Remote/Panel
     hp.enableExternalUpdate();
     hp.enableAutoUpdate();
-    hp.connect(&Serial);
-    heatpumpStatus currentStatus = hp.getStatus();
-    heatpumpSettings currentSettings = hp.getSettings();
-    rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
-    rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-    rootInfo["fan"]                 = currentSettings.fan;
-    rootInfo["vane"]                = currentSettings.vane;
-    rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings);
-    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
-    rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
-    lastTempSend = millis();
+    if (hp.connect(SerialHvac)) {
+      heatpumpStatus currentStatus = hp.getStatus();
+      heatpumpSettings currentSettings = hp.getSettings();
+      rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
+      rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
+      rootInfo["fan"]                 = currentSettings.fan;
+      rootInfo["vane"]                = currentSettings.vane;
+      rootInfo["wideVane"]            = currentSettings.wideVane;
+      rootInfo["mode"]                = hpGetMode(currentSettings);
+      rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
+      rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
+      lastTempSend = millis();
+    }
   }
   else {
     dnsServer.start(DNS_PORT, "*", apIP);
@@ -1254,7 +1284,7 @@ void write_log(String log) {
 
 heatpumpSettings change_states(heatpumpSettings settings) {
   if (server.hasArg("CONNECT")) {
-    hp.connect(&Serial);
+    hp.connect(SerialHvac);
   }
   else {
     bool update = false;
