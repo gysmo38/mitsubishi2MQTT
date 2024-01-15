@@ -13,6 +13,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "mitsubishi2mqtt.h"
 
 #include "FS.h"               // SPIFFS for store config
 #ifdef ESP32
@@ -84,6 +85,8 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 //Web OTA
 int uploaderror = 0;
 
+
+
 void setup() {
   // Start serial for debug before HVAC connect to serial
   Serial.begin(115200);
@@ -114,6 +117,7 @@ void setup() {
   loadOthers();
   loadUnit();
   mqtt_client_id = hostname;
+
 #ifdef ESP32
   WiFi.setHostname(hostname.c_str());
 #else
