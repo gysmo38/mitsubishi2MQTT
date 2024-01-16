@@ -1255,12 +1255,21 @@ heatpumpSettings change_states(heatpumpSettings settings) {
   }
   else {
     bool update = false;
+
+    String powerArg;
+    String modeArg;
+    String fanArg;
+    String vaneArg;
+    String widevaneArg;
+
     if (server.hasArg("POWER")) {
-      settings.power = server.arg("POWER").c_str();
+      powerArg = server.arg("POWER");
+      settings.power = powerArg.c_str();
       update = true;
     }
     if (server.hasArg("MODE")) {
-      settings.mode = server.arg("MODE").c_str();
+      modeArg = server.arg("MODE");
+      settings.mode = modeArg.c_str();
       update = true;
     }
     if (server.hasArg("TEMP")) {
@@ -1268,15 +1277,18 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       update = true;
     }
     if (server.hasArg("FAN")) {
-      settings.fan = server.arg("FAN").c_str();
+      fanArg = server.arg("FAN");
+      settings.fan = fanArg.c_str();
       update = true;
     }
     if (server.hasArg("VANE")) {
-      settings.vane = server.arg("VANE").c_str();
+      vaneArg = server.arg("VANE");
+      settings.vane = vaneArg.c_str();
       update = true;
     }
     if (server.hasArg("WIDEVANE")) {
-      settings.wideVane = server.arg("WIDEVANE").c_str();
+      widevaneArg = server.arg("WIDEVANE");
+      settings.wideVane = widevaneArg.c_str();
       update = true;
     }
     if (update) {
