@@ -57,6 +57,13 @@ ESP8266WebServer server(80);  // ESP8266 web
 #ifndef HVAC_UART
 #define HVAC_UART 0
 #endif
+#ifndef HVAC_UART_TX
+#define HVAC_UART_TX 0
+#endif
+#ifndef HVAC_UART_RX
+#define HVAC_UART_RX 0
+#endif
+
 
 #define DEBUG_SERIAL_(x, x2) {if (SerialLog) {SerialLog->print(x); if (strlen(x2))SerialLog->print(x2);}}
 #define DEBUG_LOG(x) {DEBUG_SERIAL_(x, ""); mqttDebugLog(x);}
@@ -244,7 +251,7 @@ void setup() {
     // Allow Remote/Panel
     hp.enableExternalUpdate();
     hp.enableAutoUpdate();
-    if (hp.connect(SerialHvac)) {
+    if (hp.connect(SerialHvac, HVAC_UART_RX, HVAC_UART_TX)) {
       DEBUG_LOG_LN(F("Success"));
       heatpumpStatus currentStatus = hp.getStatus();
       heatpumpSettings currentSettings = hp.getSettings();
@@ -1327,7 +1334,7 @@ void write_log(String log) {
 
 heatpumpSettings change_states(heatpumpSettings settings) {
   if (server.hasArg("CONNECT")) {
-    hp.connect(SerialHvac);
+    hp.connect(SerialHvac, HVAC_UART_RX, HVAC_UART_TX);
   }
   else {
     bool update = false;
