@@ -282,6 +282,25 @@ const char html_page_control[] PROGMEM =
     "var options = document.getElementById('MODE').options;"
     "options[3].disabled = (options[3].value == 'HEAT');"
 "}"
+
+"setInterval(function() {"
+  "checkUpdated();"
+"}, 1000);"
+
+"var lastUpdated = _LAST_UPDATED_;"
+"function checkUpdated() {"
+  "var xhttp = new XMLHttpRequest();"
+  "xhttp.onreadystatechange = function() {"
+    "if (this.readyState == 4 && this.status == 200) {"
+      "var updated = parseInt(this.responseText);"
+      "if (updated != lastUpdated) {"
+        "location.reload();"
+      "}"
+    "}"
+  "};"
+  "xhttp.open('GET', 'updated', true);"
+  "xhttp.send();"
+"}"
 "</script>"
 ;
 
