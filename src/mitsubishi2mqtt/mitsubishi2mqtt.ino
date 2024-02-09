@@ -1002,7 +1002,7 @@ void handleMetrics(){
   heatpumpSettings currentSettings = hp.getSettings();
   heatpumpStatus currentStatus = hp.getStatus();
 
-  String hppower = currentSettings.power == "ON" ? "1" : "0";
+  String hppower = String(currentSettings.power) == "ON" ? "1" : "0";
 
   String hpfan = currentSettings.fan;
   if(hpfan == "AUTO") hpfan = "-1";
@@ -1012,22 +1012,24 @@ void handleMetrics(){
   if(hpvane == "AUTO") hpvane = "-1";
   if(hpvane == "SWING") hpvane = "0";
 
-  String hpwidevane = "-2";
-  if(currentSettings.wideVane == "SWING") hpwidevane = "0";
-  if(currentSettings.wideVane == "<<") hpwidevane = "1";
-  if(currentSettings.wideVane == "<") hpwidevane = "2";
-  if(currentSettings.wideVane == "|") hpwidevane = "3";
-  if(currentSettings.wideVane == ">") hpwidevane = "4";
-  if(currentSettings.wideVane == ">>") hpwidevane = "5";
-  if(currentSettings.wideVane == "<>") hpwidevane = "6";
+  String hpwidevane = currentSettings.wideVane;
+  if(hpwidevane == "SWING") hpwidevane = "0";
+  else if(hpwidevane == "<<") hpwidevane = "1";
+  else if(hpwidevane == "<") hpwidevane = "2";
+  else if(hpwidevane == "|") hpwidevane = "3";
+  else if(hpwidevane == ">") hpwidevane = "4";
+  else if(hpwidevane == ">>") hpwidevane = "5";
+  else if(hpwidevane == "<>") hpwidevane = "6";
+  else hpwidevane = "-2";
 
-  String hpmode = "-2";
-  if(currentSettings.mode == "AUTO") hpmode = "-1";
-  if(currentSettings.mode == "COOL") hpmode = "1";
-  if(currentSettings.mode == "DRY") hpmode = "2";
-  if(currentSettings.mode == "HEAT") hpmode = "3";
-  if(currentSettings.mode == "FAN") hpmode = "4";
-  if(hppower == "0") hpmode = "0";
+  String hpmode = currentSettings.mode;
+  if(hpmode == "AUTO") hpmode = "-1";
+  else if(hpmode == "COOL") hpmode = "1";
+  else if(hpmode == "DRY") hpmode = "2";
+  else if(hpmode == "HEAT") hpmode = "3";
+  else if(hpmode == "FAN") hpmode = "4";
+  else if(hppower == "0") hpmode = "0";
+  else hpmode = "-2";
 
   metrics.replace("_UNIT_NAME_", hostname);
   metrics.replace("_VERSION_", m2mqtt_version);
