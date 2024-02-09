@@ -96,6 +96,7 @@ boolean remoteTempActive = false;
 
 //HVAC
 HeatPump hp;
+unsigned long lastUpdated = 0;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
 unsigned long lastHpSync;
@@ -194,6 +195,7 @@ void setup() {
     //Web interface
     server.on("/", handleRoot);
     server.on("/control", handleControl);
+    server.on("/updated", handleUpdated);
     server.on("/setup", handleSetup);
     server.on("/mqtt", handleMqtt);
     server.on("/wifi", handleWifi);
@@ -916,8 +918,6 @@ void handleStatus() {
   sendWrappedHTML(statusPage);
 }
 
-
-
 void handleControl() {
   if (!checkLogin()) return;
 
@@ -928,8 +928,8 @@ void handleControl() {
     server.send(302);
     return;
   }
-  heatpumpSettings settings = hp.getSettings();
-  settings = change_states(settings);
+  
+  heatpumpSettings settings = change_states();
   String controlPage =  FPSTR(html_page_control);
   String headerContent = FPSTR(html_common_header);
   String footerContent = FPSTR(html_common_footer);
@@ -943,6 +943,7 @@ void handleControl() {
   controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
   controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
+  controlPage.replace("_LAST_UPDATED_", String(lastUpdated));
   controlPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
   controlPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
   controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
@@ -1065,6 +1066,13 @@ void handleControl() {
   // Signal the end of the content
   server.sendContent("");
   //delay(100);
+}
+
+void handleUpdated() {
+  // Simply send the timestamp of the last settings update from the hvac
+  if (!checkLogin()) return;
+
+  server.send(200, "text/plain", String(lastUpdated));
 }
 
 void handleMetrics(){
@@ -1335,41 +1343,70 @@ void write_log(String log) {
   logFile.close();
 }
 
-heatpumpSettings change_states(heatpumpSettings settings) {
+void debug_log_settings(heatpumpSettings settings) {
+  const size_t capacity = 512;
+  DynamicJsonDocument debuglog(capacity);
+  debuglog["Power"]       = settings.power;
+  debuglog["Mode"]        = settings.mode;
+  debuglog["Temperature"] = settings.temperature;
+  debuglog["Fan"]         = settings.fan;
+  debuglog["Vane"]        = settings.vane;
+  debuglog["Widevane"]    = settings.wideVane;
+
+  String mqttOutput;
+  serializeJson(debuglog, mqttOutput);
+  DEBUG_LOG(mqttOutput);
+}
+
+heatpumpSettings change_states() {
   if (server.hasArg("CONNECT")) {
     hp.connect(SerialHvac, HVAC_UART_RX, HVAC_UART_TX);
   }
   else {
     bool update = false;
     if (server.hasArg("POWER")) {
-      settings.power = server.arg("POWER").c_str();
+      String arg = server.arg("POWER");
+      DEBUG_LOG(String("WEB: POWER = ") + arg);
+      hp.setPowerSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("MODE")) {
-      settings.mode = server.arg("MODE").c_str();
+      String arg = server.arg("MODE");
+      DEBUG_LOG(String("WEB: MODE = ") + arg);
+      hp.setModeSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toInt(), useFahrenheit);
+      String arg = server.arg("TEMP");
+      DEBUG_LOG(String("WEB: TEMP = ") + arg);
+      float temperature = convertLocalUnitToCelsius(arg.toInt(), useFahrenheit);
+      hp.setTemperature(temperature);
       update = true;
     }
     if (server.hasArg("FAN")) {
-      settings.fan = server.arg("FAN").c_str();
+      String arg = server.arg("FAN");
+      DEBUG_LOG(String("WEB: FAN = ") + arg);
+      hp.setFanSpeed(arg.c_str());
       update = true;
     }
     if (server.hasArg("VANE")) {
-      settings.vane = server.arg("VANE").c_str();
+      String arg = server.arg("VANE");
+      DEBUG_LOG(String("WEB: VANE = ") + arg);
+      hp.setVaneSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("WIDEVANE")) {
-      settings.wideVane = server.arg("WIDEVANE").c_str();
+      String arg = server.arg("WIDEVANE");
+      DEBUG_LOG(String("WEB: WIDEVANE = ") + arg);
+      hp.setWideVaneSetting(arg.c_str());
       update = true;
     }
     if (update) {
-      hp.setSettings(settings);
+      hp.update();
+      hp.update();
     }
   }
-  return settings;
+  return hp.getSettings();
 }
 
 void readHeatPumpSettings() {
@@ -1395,6 +1432,7 @@ void hpSettingsChanged() {
   }
 
   hpStatusChanged(hp.getStatus());
+  lastUpdated = millis();
 }
 
 String hpGetMode(heatpumpSettings hpSettings) {
