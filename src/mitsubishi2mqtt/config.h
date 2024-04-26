@@ -16,7 +16,13 @@
 
 /*#define MY_LANGUAGE fr-FR // define your language*/
 
+#ifdef GIT_VERSION
+#define STRING_(x) #x
+#define STRING(x)  STRING_(x)
+const PROGMEM char* m2mqtt_version = STRING(GIT_VERSION);
+#else
 const PROGMEM char* m2mqtt_version = "2023.8.0";
+#endif
 
 //Define global variables for files
 #ifdef ESP32
