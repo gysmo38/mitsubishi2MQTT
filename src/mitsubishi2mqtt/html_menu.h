@@ -31,6 +31,11 @@ const char html_menu_root[] PROGMEM = R"====(
     </form>
 </div>
 <div>
+    <form action='/logging' method='get'>
+        <button>_TXT_LOGGING</button>
+    </form>
+</div>
+<div>
     <form action='/upgrade' method='get'>
         <button>_TXT_FW_UPGRADE_</button>
     </form>

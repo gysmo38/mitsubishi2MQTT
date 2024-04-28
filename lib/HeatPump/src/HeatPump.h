@@ -24,6 +24,8 @@
 #include "WProgram.h"
 #endif
 
+#include <map>
+
 /* 
  * Callback function definitions. Code differs for the ESP8266 platform, which requires the functional library.
  * Based on callback implementation in the Arduino Client for MQTT library (https://github.com/knolleary/pubsubclient)
@@ -75,6 +77,7 @@ struct heatpumpStatus {
   bool operating; // if true, the heatpump is operating to reach the desired temperature
   heatpumpTimers timers;
   int compressorFrequency;
+  int power;
 };
 
 #define MAX_FUNCTION_CODE_COUNT 30
@@ -132,15 +135,21 @@ class HeatPump
     const byte INFOHEADER[INFOHEADER_LEN]  = {0xfc, 0x42, 0x01, 0x30, 0x10};
     
  
-    static const int INFOMODE_LEN = 6;
+    static const int INFOMODE_LEN = 4;
     const byte INFOMODE[INFOMODE_LEN] = {
       0x02, // request a settings packet - RQST_PKT_SETTINGS
       0x03, // request the current room temp - RQST_PKT_ROOM_TEMP
-      0x04, // unknown
+      // 0x04, // unknown
       0x05, // request the timers - RQST_PKT_TIMERS
       0x06, // request status - RQST_PKT_STATUS
-      0x09  // request standby mode (maybe?) RQST_PKT_STANDBY
+      // 0x09, // request standby mode (maybe?) RQST_PKT_STANDBY
+      // 0x20, //	Unknown 
+      // 0x22 //	Unknown 
     };
+
+    byte infomodecmd = 0x01;
+
+
 
     const int RCVD_PKT_FAIL            = 0;
     const int RCVD_PKT_CONNECT_SUCCESS = 1;

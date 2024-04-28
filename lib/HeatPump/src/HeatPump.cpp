@@ -18,6 +18,20 @@
 */
 #include "HeatPump.h"
 
+String getHEXformatted(uint8_t *bytes, size_t len)
+{
+  String res;
+  char buf[5];
+  for (size_t i = 0; i < len; i++)
+  {
+    if (i > 0)
+      res += ':';
+    sprintf(buf, "%02X", bytes[i]);
+    res += buf;
+  }
+  return res;
+}
+
 // Structures //////////////////////////////////////////////////////////////////
 
 bool operator==(const heatpumpSettings& lhs, const heatpumpSettings& rhs) {
@@ -507,6 +521,8 @@ void HeatPump::createInfoPacket(byte *packet, byte packetType) {
     }
   }
 
+  // packet[5] = infomodecmd++ ; //FOR DEBUG
+
   // pad the packet out
   for (int i = 0; i < 15; i++) {
     packet[i + 6] = 0x00;
@@ -518,6 +534,8 @@ void HeatPump::createInfoPacket(byte *packet, byte packetType) {
 }
 
 void HeatPump::writePacket(byte *packet, int length) {
+
+  Serial.println("CN105 >> " + getHEXformatted(packet, length));
   for (int i = 0; i < length; i++) {
      _HardSerial->write((uint8_t)packet[i]);
   }
@@ -545,7 +563,7 @@ int HeatPump::readPacket() {
       header[0] = _HardSerial->read();
       if(header[0] == HEADER[0]) {
         foundStart = true;
-        delay(100); // found that this delay increases accuracy when reading, might not be needed though
+        // delay(100); // found that this delay increases accuracy when reading, might not be needed though
       }
     }
 
@@ -578,6 +596,10 @@ int HeatPump::readPacket() {
       for (int i = 0; i < dataLength; i++) {
         dataSum += data[i];
       }
+      
+      
+
+      Serial.println("CN105 << " + getHEXformatted(header, INFOHEADER_LEN) + "|" + getHEXformatted(data, dataLength));
   
       // calculate checksum
       checksum = (0xfc - dataSum) & 0xff;
@@ -596,6 +618,30 @@ int HeatPump::readPacket() {
         }
 
         if(header[1] == 0x62) {
+
+        // uint8_t command = data[0];
+        // static std::map<uint8_t, String> mp;
+        // String lastData = "";
+        // String currentData  = getHEXformatted(data, dataLength);
+        // bool changed = false;
+        // if(mp.find(command) != mp.end()){
+        //   lastData  = mp.find(command)->second;
+        //   // Serial.print("Command " );
+        //   // Serial.println(command,HEX);
+        //   // Serial.println("Current" + currentData);
+        //   // Serial.println("Last" + lastData);
+        //   if (currentData != lastData){
+        //     changed = true;
+        //   }
+        // }
+        // mp[command] = currentData;
+        //   Serial.print(changed?"[Changed]\n":"\n");
+        //   if (changed){
+        //     Serial.println("OLDAT << " + getHEXformatted(header, INFOHEADER_LEN) + "|" + lastData);
+        //   }
+        //   Serial.println();
+
+
           switch(data[0]) {
             case 0x02: { // setting information
               heatpumpSettings receivedSettings;
@@ -635,6 +681,7 @@ int HeatPump::readPacket() {
 
             case 0x03: { //Room temperature reading
               heatpumpStatus receivedStatus;
+              // Serial.printf("Mystery val 1 : %d\n",data[13]);
 
               if(data[6] != 0x00) {
                 int temp = data[6];
@@ -689,6 +736,10 @@ int HeatPump::readPacket() {
               heatpumpStatus receivedStatus;
               receivedStatus.operating = data[4];
               receivedStatus.compressorFrequency = data[3];
+              uint16_t power = data[5]<<8;
+              power += data[6];
+              receivedStatus.power = power;
+              // Serial.printf("Mystery val 2 : %d\n",mVal2);
 
               // callback for status change -- not triggered for compressor frequency at the moment
               if(statusChangedCallback && currentStatus.operating != receivedStatus.operating) {
@@ -698,6 +749,7 @@ int HeatPump::readPacket() {
               } else {
                 currentStatus.operating = receivedStatus.operating;
                 currentStatus.compressorFrequency = receivedStatus.compressorFrequency;
+                currentStatus.power = receivedStatus.power;
               }
 
               return RCVD_PKT_STATUS;

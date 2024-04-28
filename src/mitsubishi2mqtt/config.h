@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "2022.01.10 - magi's edition";
+const PROGMEM char* m2mqtt_version = "Mitsubishi2MQTT - magi's edition (2024.4.1)";
 
 //Define global variables for files
 #ifdef ESP32
@@ -25,18 +25,13 @@ const PROGMEM char* mqtt_conf = "/mqtt.json";
 const PROGMEM char* unit_conf = "/unit.json";
 const PROGMEM char* console_file = "/console.log";
 const PROGMEM char* others_conf = "/others.json";
-// pinouts
-const PROGMEM  uint8_t blueLedPin = 2;            // The ESP32 has an internal blue LED at D2 (GPIO 02)
 #else
 const PROGMEM char* wifi_conf = "wifi.json";
 const PROGMEM char* mqtt_conf = "mqtt.json";
 const PROGMEM char* unit_conf = "unit.json";
 const PROGMEM char* console_file = "console.log";
 const PROGMEM char* others_conf = "others.json";
-// pinouts
-const PROGMEM  uint8_t blueLedPin = 2; // Onboard LED = digital pin 2 
 #endif
-const PROGMEM  uint8_t redLedPin = 0;
 
 // Define global variables for network
 const PROGMEM char* hostnamePrefix = "HVAC_";
@@ -49,7 +44,11 @@ String ap_pwd;
 String ota_pwd;
 
 //CN105Kit Product version
+#ifdef ESP32
+const PROGMEM char* hardware_version = "WiFiKit Serial 1.2";
+#else
 const PROGMEM char* hardware_version = "CN105Kit V2 (WiFiSerial)";
+#endif
 
 // Define global variables for MQTT
 String mqtt_fn;
@@ -65,6 +64,7 @@ const PROGMEM char* mqtt_payload_unavailable = "offline";
 //icons
 const PROGMEM char* HA_AC_icon = "mdi:air-conditioner";
 const PROGMEM char* HA_thermometer_icon = "mdi:thermometer";
+const PROGMEM char* HA_lightning_bolt = "mdi:lightning-bolt-circle";
 const PROGMEM char* HA_vane_vertical_icon = "mdi:arrow-up-down";
 const PROGMEM char* HA_vane_horizontal_icon = "mdi:arrow-left-right";
 
@@ -87,6 +87,7 @@ String ha_debug_topic;
 String ha_debug_set_topic;
 String ha_climate_config_topic;
 String ha_sensor_room_temp_config_topic;
+String ha_sensor_power_config_topic;
 String ha_select_vane_vertical_config_topic;
 String ha_select_vane_horizontal_config_topic;
 String ha_discovery_topic;
@@ -122,3 +123,31 @@ uint32_t update_int                 = SEND_ROOM_TEMP_INTERVAL_MS;
 bool useFahrenheit = false;
 // support heat mode settings, some model do not support heat mode
 bool supportHeatMode = true;
+
+// Languages
+#include "languages/en-GB.h" // default language English
+
+//IOs
+#ifdef ESP32
+  #define LED_PWR 5
+  #define LED_ACT 6
+  #define BTN_1 0
+  #define BUZZER 14
+  #define BUZZER_FREQ 4000
+  #define LED_ON      HIGH
+  #define LED_OFF     LOW
+#endif
+
+#ifdef ESP8266
+  #define LED_ACT 2
+  #define LED_ON      LOW
+  #define LED_OFF     HIGH
+#endif
+
+//Buzzer settings
+enum Buzzer_preset{
+  ON,
+  SET,
+  OFF
+};
+bool beep = true;

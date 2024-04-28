@@ -1,0 +1,1 @@
+esptool.py --chip esp32s3 --port /dev/cu.usbmodem* --baud 460800 --after hard_reset write_flash 0x00 /Users/maxmac/Data/Projects/CN105KIT/mitsubishi2MQTT/bin\ release/m2mqtt_2024-4-1-ESP32S3_merged.bin

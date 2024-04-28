@@ -18,6 +18,7 @@
 const char txt_control[] PROGMEM = "Control";
 const char txt_setup[] PROGMEM = "Setup";
 const char txt_status[] PROGMEM = "Status";
+const char txt_logging[] PROGMEM = "Logging";
 const char txt_firmware_upgrade[] PROGMEM = "Firmware Upgrade";
 const char txt_reboot[] PROGMEM = "Reboot";
 
@@ -57,6 +58,8 @@ const char txt_f_15s[] PROGMEM = "15 seconds";
 const char txt_f_30s[] PROGMEM = "30 seconds";
 const char txt_f_45s[] PROGMEM = "45 seconds";
 const char txt_f_60s[] PROGMEM = "60 seconds";
+const char txt_f_beep_on[] PROGMEM = "ON";
+const char txt_f_beep_off[] PROGMEM = "OFF";
 
 //Page Reboot, save & Resseting
 const char txt_m_reboot[] PROGMEM = "Rebooting... Refresh in";
@@ -114,6 +117,8 @@ const char txt_unit_steptemp[] PROGMEM = "Temperature step";
 const char txt_unit_update_interval[] PROGMEM = "Update interval";
 const char txt_unit_modes[] PROGMEM = "Mode support";
 const char txt_unit_password[] PROGMEM = "Web password";
+const char txt_unit_beep[] PROGMEM = "Beep";
+
 
 //Page Login
 const char txt_login_title[] PROGMEM = "Authentication";
@@ -143,3 +148,6 @@ const char txt_upload_refresh[] PROGMEM = "Refresh in";
 const char txt_init_title[] PROGMEM = "Initial setup";
 const char txt_init_reboot_mes[] PROGMEM = "Rebooting and connecting to your WiFi network! You should see it listed in on your access point.";
 const char txt_init_reboot[] PROGMEM = "Rebooting...";
+
+//Page logging
+const char txt_logging_title[] PROGMEM = "Logging";
