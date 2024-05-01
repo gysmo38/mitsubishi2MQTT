@@ -21,6 +21,7 @@
 #include <ESPmDNS.h>          // mDNS for ESP32
 #include <WebServer.h>        // webServer for ESP32
 #include "SPIFFS.h"           // ESP32 SPIFFS for store config
+#include <USB.h>
 WebServer server(80);         //ESP32 web
 #else
 #include <ESP8266WiFi.h>      // WIFI for ESP8266
@@ -45,13 +46,37 @@ ESP8266WebServer server(80);  // ESP8266 web
 #include "html_pages.h"   // code html for pages
 #include "html_metrics.h" // prometheus metrics
 // Languages
+#define QUOTEME(x) QUOTEME_1(x)
+#define QUOTEME_1(x) #x
 #ifndef MY_LANGUAGE
   #include "languages/en-GB.h" // default language English
 #else
-  #define QUOTEME(x) QUOTEME_1(x)
-  #define QUOTEME_1(x) #x
   #define INCLUDE_FILE(x) QUOTEME(languages/x.h)
   #include INCLUDE_FILE(MY_LANGUAGE)
+#endif
+
+#ifndef HVAC_UART
+#define HVAC_UART 0
+#endif
+#ifndef HVAC_UART_TX
+#define HVAC_UART_TX -1
+#endif
+#ifndef HVAC_UART_RX
+#define HVAC_UART_RX -1
+#endif
+
+
+#define DEBUG_SERIAL_(x, x2) {if (SerialLog) {SerialLog->print(x); if (strlen(x2))SerialLog->print(x2);}}
+#define DEBUG_LOG(x) {DEBUG_SERIAL_(x, ""); mqttDebugLog(x);}
+#define DEBUG_LOG_LN(x) {DEBUG_SERIAL_(x, "\n"); mqttDebugLog(x);}
+
+HardwareSerial* SerialHvac = NULL;
+typeof(Serial)* SerialLog = &Serial;
+
+#ifndef CONFIG_TINYUSB_ENABLED
+// On usb native chips, Serial0 is uart0 while Serial is USBCDC.
+// On all other chips, Serial is uart0.
+#define Serial0 Serial
 #endif
 
 // wifi, mqtt and heatpump client instances
@@ -71,6 +96,7 @@ boolean remoteTempActive = false;
 
 //HVAC
 HeatPump hp;
+unsigned long lastUpdated = 0;
 unsigned long lastTempSend;
 unsigned long lastMqttRetry;
 unsigned long lastHpSync;
@@ -84,21 +110,63 @@ StaticJsonDocument<JSON_OBJECT_SIZE(12)> rootInfo;
 //Web OTA
 int uploaderror = 0;
 
+// Logging functions
+void mqttDebugLog(const char* msg) {
+  if (_debugModeLogs) {
+    mqtt_client.publish(ha_debug_logs_topic.c_str(), msg);
+  }
+}
+
+void mqttDebugLog(const String& msg) {
+  mqttDebugLog(msg.c_str());
+}
+
+void mqttDebugLog(const __FlashStringHelper* msg) {
+  if (_debugModeLogs) {
+    char buffer[200];
+    strncpy_P(buffer, (const char*)msg, sizeof(buffer));  // _P is the version to read from program space
+    mqttDebugLog(buffer);
+  }
+}
+
+
 void setup() {
   // Start serial for debug before HVAC connect to serial
-  Serial.begin(115200);
-  // Serial.println(F("Starting Mitsubishi2MQTT"));
+  switch(HVAC_UART) {
+    #ifdef Serial2
+    case 2:
+      SerialHvac = &Serial2;
+      break;
+    #endif
+    #ifdef Serial1
+    case 1:
+      SerialHvac = &Serial1;
+      break;
+    #endif
+    case 0:
+      SerialHvac = &Serial0;
+      if ((Stream*)SerialLog == (Stream*)&Serial0) {
+        SerialLog = NULL;
+      }
+      break;
+  }
+
+  if (SerialLog != NULL) {
+    SerialLog->begin(115200);
+  }
+
+  DEBUG_LOG_LN(F("Starting Mitsubishi2MQTT"));
   // Mount SPIFFS filesystem
   if (SPIFFS.begin())
   {
-    // Serial.println(F("Mounted file system"));
+    DEBUG_LOG_LN(F("Mounted file system"));
   }
   else
   {
-    // Serial.println(F("Failed to mount FS -> formating"));
+    DEBUG_LOG_LN(F("Failed to mount FS -> formating"));
     SPIFFS.format();
     // if (SPIFFS.begin())
-      // Serial.println(F("Mounted file system after formating"));
+      DEBUG_LOG_LN(F("Mounted file system after formating"));
   }
   //set led pin as output
   pinMode(blueLedPin, OUTPUT);
@@ -127,6 +195,7 @@ void setup() {
     //Web interface
     server.on("/", handleRoot);
     server.on("/control", handleControl);
+    server.on("/updated", handleUpdated);
     server.on("/setup", handleSetup);
     server.on("/mqtt", handleMqtt);
     server.on("/wifi", handleWifi);
@@ -179,7 +248,7 @@ void setup() {
     else {
       //write_log("Not found MQTT config go to configuration page");
     }
-    // Serial.println(F("Connection to HVAC. Stop serial log."));
+    DEBUG_LOG(F("Connecting to HVAC... "));
     //write_log("Connection to HVAC");
     hp.setSettingsChangedCallback(hpSettingsChanged);
     hp.setStatusChangedCallback(hpStatusChanged);
@@ -187,18 +256,22 @@ void setup() {
     // Allow Remote/Panel
     hp.enableExternalUpdate();
     hp.enableAutoUpdate();
-    hp.connect(&Serial);
-    heatpumpStatus currentStatus = hp.getStatus();
-    heatpumpSettings currentSettings = hp.getSettings();
-    rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
-    rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-    rootInfo["fan"]                 = currentSettings.fan;
-    rootInfo["vane"]                = currentSettings.vane;
-    rootInfo["wideVane"]            = currentSettings.wideVane;
-    rootInfo["mode"]                = hpGetMode(currentSettings);
-    rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
-    rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
-    lastTempSend = millis();
+    if (hp.connect(SerialHvac, HVAC_UART_RX, HVAC_UART_TX)) {
+      DEBUG_LOG_LN(F("Success"));
+      heatpumpStatus currentStatus = hp.getStatus();
+      heatpumpSettings currentSettings = hp.getSettings();
+      rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
+      rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
+      rootInfo["fan"]                 = currentSettings.fan;
+      rootInfo["vane"]                = currentSettings.vane;
+      rootInfo["wideVane"]            = currentSettings.wideVane;
+      rootInfo["mode"]                = hpGetMode(currentSettings);
+      rootInfo["action"]              = hpGetAction(currentStatus, currentSettings);
+      rootInfo["compressorFrequency"] = currentStatus.compressorFrequency;
+      lastTempSend = millis();
+    } else {
+      DEBUG_LOG_LN(F("Failed"));
+    }
   }
   else {
     dnsServer.start(DNS_PORT, "*", apIP);
@@ -211,17 +284,17 @@ bool loadWifi() {
   ap_ssid = "";
   ap_pwd  = "";
   if (!SPIFFS.exists(wifi_conf)) {
-    // Serial.println(F("Wifi config file not exist!"));
+    DEBUG_LOG_LN(F("Wifi config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(wifi_conf, "r");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi config file"));
+    DEBUG_LOG_LN(F("Failed to open wifi config file"));
     return false;
   }
   size_t size = configFile.size();
   if (size > 1024) {
-    // Serial.println(F("Wifi config file size is too large"));
+    DEBUG_LOG_LN(F("Wifi config file size is too large"));
     return false;
   }
 
@@ -244,7 +317,7 @@ bool loadWifi() {
 }
 bool loadMqtt() {
   if (!SPIFFS.exists(mqtt_conf)) {
-    Serial.println(F("MQTT config file not exist!"));
+    DEBUG_LOG_LN(F("MQTT config file not exist!"));
     return false;
   }
   //write_log("Loading MQTT configuration");
@@ -287,7 +360,7 @@ bool loadMqtt() {
 
 bool loadUnit() {
   if (!SPIFFS.exists(unit_conf)) {
-    // Serial.println(F("Unit config file not exist!"));
+    DEBUG_LOG_LN(F("Unit config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(unit_conf, "r");
@@ -325,7 +398,7 @@ bool loadUnit() {
 
 bool loadOthers() {
   if (!SPIFFS.exists(others_conf)) {
-    // Serial.println(F("Others config file not exist!"));
+    DEBUG_LOG_LN(F("Others config file not exist!"));
     return false;
   }
   File configFile = SPIFFS.open(others_conf, "r");
@@ -376,7 +449,7 @@ void saveMqtt(String mqttFn, String mqttHost, String mqttPort, String mqttUser,
   doc["mqtt_topic"] = mqttTopic;
   File configFile = SPIFFS.open(mqtt_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open config file for writing"));
+    DEBUG_LOG_LN(F("Failed to open config file for writing"));
   }
   serializeJson(doc, configFile);
   configFile.close();
@@ -406,7 +479,7 @@ void saveUnit(String tempUnit, String supportMode, String loginPassword, String 
   doc["login_password"]   = loginPassword;
   File configFile = SPIFFS.open(unit_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open config file for writing"));
+    DEBUG_LOG_LN(F("Failed to open config file for writing"));
   }
   serializeJson(doc, configFile);
   configFile.close();
@@ -421,7 +494,7 @@ void saveWifi(String apSsid, String apPwd, String hostName, String otaPwd) {
   doc["ota_pwd"] = otaPwd;
   File configFile = SPIFFS.open(wifi_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+    DEBUG_LOG_LN(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -437,7 +510,7 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
   doc["debugLogs"] = debugLogs;
   File configFile = SPIFFS.open(others_conf, "w");
   if (!configFile) {
-    // Serial.println(F("Failed to open wifi file for writing"));
+    DEBUG_LOG_LN(F("Failed to open wifi file for writing"));
   }
   serializeJson(doc, configFile);
   delay(10);
@@ -446,7 +519,7 @@ void saveOthers(String haa, String haat, String debugPckts, String debugLogs) {
 
 // Initialize captive portal page
 void initCaptivePortal() {
-  // Serial.println(F("Starting captive portal"));
+  DEBUG_LOG_LN(F("Starting captive portal"));
   server.on("/", handleInitSetup);
   server.on("/save", handleSaveWifi);
   server.on("/reboot", handleReboot);
@@ -479,11 +552,11 @@ void initOTA() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     //    write_log("Error[%u]: ", error);
-    // if (error == OTA_AUTH_ERROR) Serial.println(F("Auth Failed"));
-    // else if (error == OTA_BEGIN_ERROR) Serial.println(F("Begin Failed"));
-    // else if (error == OTA_CONNECT_ERROR) Serial.println(F("Connect Failed"));
-    // else if (error == OTA_RECEIVE_ERROR) Serial.println(F("Receive Failed"));
-    // else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
+    if (error == OTA_AUTH_ERROR) {DEBUG_LOG_LN(F("Auth Failed"));}
+    else if (error == OTA_BEGIN_ERROR) {DEBUG_LOG_LN(F("Begin Failed"));}
+    else if (error == OTA_CONNECT_ERROR) {DEBUG_LOG_LN(F("Connect Failed"));}
+    else if (error == OTA_RECEIVE_ERROR) {DEBUG_LOG_LN(F("Receive Failed"));}
+    else if (error == OTA_END_ERROR) {DEBUG_LOG_LN(F("End Failed"));}
   });
   ArduinoOTA.begin();
 }
@@ -510,7 +583,7 @@ boolean initWifi() {
     }
   }
 
-  // Serial.println(F("\n\r \n\rStarting in AP mode"));
+  DEBUG_LOG_LN(F("\n\r \n\rStarting in AP mode"));
   WiFi.mode(WIFI_AP);
   wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   WiFi.persistent(false); //fix crash esp32 https://github.com/espressif/arduino-esp32/issues/2025
@@ -525,8 +598,8 @@ boolean initWifi() {
   }
   delay(2000); // VERY IMPORTANT
 
-  // Serial.print(F("IP address: "));
-  // Serial.println(WiFi.softAPIP());
+  DEBUG_LOG_LN(F("IP address: "));
+  DEBUG_LOG_LN(WiFi.softAPIP().toString().c_str());
   //ticker.attach(0.2, tick); // Start LED to flash rapidly to indicate we are ready for setting up the wifi-connection (entered captive portal).
   wifi_config = false;
   return false;
@@ -568,7 +641,7 @@ void handleNotFound() {
 void handleSaveWifi() {
   if (!checkLogin()) return;
 
-  // Serial.println(F("Saving wifi config"));
+  DEBUG_LOG_LN(F("Saving wifi config"));
   if (server.method() == HTTP_POST) {
     saveWifi(server.arg("ssid"), server.arg("psk"), server.arg("hn"), server.arg("otapwd"));
   }
@@ -690,7 +763,7 @@ void handleOthers() {
     othersPage.replace("_TXT_OTHERS_HAAUTO_", FPSTR(txt_others_haauto));
     othersPage.replace("_TXT_OTHERS_HATOPIC_", FPSTR(txt_others_hatopic));
     othersPage.replace("_TXT_OTHERS_DEBUG_PCKTS_",FPSTR(txt_others_debug_packets));
-    othersPage.replace("_TXT_OTHERS_DEBUG_LOGS_",FPSTR(txt_others_debug_log));
+    othersPage.replace("_TXT_OTHERS_DEBUG_LOG_LNS_",FPSTR(txt_others_debug_log));
 
     othersPage.replace("_HAA_TOPIC_", others_haa_topic);
     if (others_haa) {
@@ -706,10 +779,10 @@ void handleOthers() {
       othersPage.replace("_DEBUG_PCKTS_OFF_", "selected");
     }
     if (_debugModeLogs) {
-      othersPage.replace("_DEBUG_LOGS_ON_", "selected");
+      othersPage.replace("_DEBUG_LOG_LNS_ON_", "selected");
     }
     else {
-      othersPage.replace("_DEBUG_LOGS_OFF_", "selected");
+      othersPage.replace("_DEBUG_LOG_LNS_OFF_", "selected");
     }
     sendWrappedHTML(othersPage);
   }
@@ -835,7 +908,7 @@ void handleStatus() {
   disconnected += FPSTR(txt_status_disconnect);
   disconnected += F("</b></span>");
 
-  if ((Serial) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
+  if ((SerialHvac) and hp.isConnected()) statusPage.replace(F("_HVAC_STATUS_"), connected);
   else  statusPage.replace(F("_HVAC_STATUS_"), disconnected);
   if (mqtt_client.connected()) statusPage.replace(F("_MQTT_STATUS_"), connected);
   else statusPage.replace(F("_MQTT_STATUS_"), disconnected);
@@ -844,8 +917,6 @@ void handleStatus() {
   statusPage.replace(F("_WIFI_STATUS_"), String(WiFi.RSSI()));
   sendWrappedHTML(statusPage);
 }
-
-
 
 void handleControl() {
   if (!checkLogin()) return;
@@ -857,8 +928,8 @@ void handleControl() {
     server.send(302);
     return;
   }
-  heatpumpSettings settings = hp.getSettings();
-  settings = change_states(settings);
+  
+  heatpumpSettings settings = change_states();
   String controlPage =  FPSTR(html_page_control);
   String headerContent = FPSTR(html_common_header);
   String footerContent = FPSTR(html_common_footer);
@@ -872,6 +943,7 @@ void handleControl() {
   controlPage.replace("_USE_FAHRENHEIT_", (String)useFahrenheit);
   controlPage.replace("_TEMP_SCALE_", getTemperatureScale());
   controlPage.replace("_HEAT_MODE_SUPPORT_", (String)supportHeatMode);
+  controlPage.replace("_LAST_UPDATED_", String(lastUpdated));
   controlPage.replace(F("_MIN_TEMP_"), String(convertCelsiusToLocalUnit(min_temp, useFahrenheit)));
   controlPage.replace(F("_MAX_TEMP_"), String(convertCelsiusToLocalUnit(max_temp, useFahrenheit)));
   controlPage.replace(F("_TEMP_STEP_"), String(temp_step));
@@ -996,13 +1068,20 @@ void handleControl() {
   //delay(100);
 }
 
+void handleUpdated() {
+  // Simply send the timestamp of the last settings update from the hvac
+  if (!checkLogin()) return;
+
+  server.send(200, "text/plain", String(lastUpdated));
+}
+
 void handleMetrics(){
   String metrics =    FPSTR(html_metrics);
 
   heatpumpSettings currentSettings = hp.getSettings();
   heatpumpStatus currentStatus = hp.getStatus();
 
-  String hppower = currentSettings.power == "ON" ? "1" : "0";
+  String hppower = String(currentSettings.power) == "ON" ? "1" : "0";
 
   String hpfan = currentSettings.fan;
   if(hpfan == "AUTO") hpfan = "-1";
@@ -1012,22 +1091,24 @@ void handleMetrics(){
   if(hpvane == "AUTO") hpvane = "-1";
   if(hpvane == "SWING") hpvane = "0";
 
-  String hpwidevane = "-2";
-  if(currentSettings.wideVane == "SWING") hpwidevane = "0";
-  if(currentSettings.wideVane == "<<") hpwidevane = "1";
-  if(currentSettings.wideVane == "<") hpwidevane = "2";
-  if(currentSettings.wideVane == "|") hpwidevane = "3";
-  if(currentSettings.wideVane == ">") hpwidevane = "4";
-  if(currentSettings.wideVane == ">>") hpwidevane = "5";
-  if(currentSettings.wideVane == "<>") hpwidevane = "6";
+  String hpwidevane = currentSettings.wideVane;
+  if(hpwidevane == "SWING") hpwidevane = "0";
+  else if(hpwidevane == "<<") hpwidevane = "1";
+  else if(hpwidevane == "<") hpwidevane = "2";
+  else if(hpwidevane == "|") hpwidevane = "3";
+  else if(hpwidevane == ">") hpwidevane = "4";
+  else if(hpwidevane == ">>") hpwidevane = "5";
+  else if(hpwidevane == "<>") hpwidevane = "6";
+  else hpwidevane = "-2";
 
-  String hpmode = "-2";
-  if(currentSettings.mode == "AUTO") hpmode = "-1";
-  if(currentSettings.mode == "COOL") hpmode = "1";
-  if(currentSettings.mode == "DRY") hpmode = "2";
-  if(currentSettings.mode == "HEAT") hpmode = "3";
-  if(currentSettings.mode == "FAN") hpmode = "4";
-  if(hppower == "0") hpmode = "0";
+  String hpmode = currentSettings.mode;
+  if(hpmode == "AUTO") hpmode = "-1";
+  else if(hpmode == "COOL") hpmode = "1";
+  else if(hpmode == "DRY") hpmode = "2";
+  else if(hpmode == "HEAT") hpmode = "3";
+  else if(hpmode == "FAN") hpmode = "4";
+  else if(hppower == "0") hpmode = "0";
+  else hpmode = "-2";
 
   metrics.replace("_UNIT_NAME_", hostname);
   metrics.replace("_VERSION_", m2mqtt_version);
@@ -1112,12 +1193,13 @@ void handleUpgrade() {
   upgradePage.replace("_TXT_UPGRADE_TITLE_",FPSTR(txt_upgrade_title));
   upgradePage.replace("_TXT_UPGRADE_INFO_",FPSTR(txt_upgrade_info));
   upgradePage.replace("_TXT_UPGRADE_START_",FPSTR(txt_upgrade_start));
+  upgradePage.replace("_TXT_UPGRADE_BOARD_",QUOTEME(PIO_BINARY));
 
   sendWrappedHTML(upgradePage);
 }
 
 void handleUploadDone() {
-  //Serial.printl(PSTR("HTTP: Firmware upload done"));
+  DEBUG_LOG_LN(F("HTTP: Firmware upload done"));
   bool restartflag = false;
   String uploadDonePage = FPSTR(html_page_upload);
   String content = F("<div style='text-align:center;'><b>Upload ");
@@ -1172,7 +1254,7 @@ void handleUploadLoop() {
   if (!checkLogin()) return;
 
   // Based on ESP8266HTTPUpdateServer.cpp uses ESP8266WebServer Parsing.cpp and Cores Updater.cpp (Update)
-  //char log[200];
+  char log[200];
   if (uploaderror) {
     Update.end();
     return;
@@ -1189,11 +1271,15 @@ void handleUploadLoop() {
       mqtt_client.disconnect();
       lastMqttRetry = millis();
     }
-    //snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
-    //Serial.printl(log);
+    snprintf_P(log, sizeof(log), PSTR("Upload: File %s ..."), upload.filename.c_str());
+    DEBUG_LOG_LN(log);
     uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(maxSketchSpace)) {         //start with max available size
-      //Update.printError(Serial);
+      #ifdef ESP32
+      DEBUG_LOG_LN(Update.errorString());
+      #else
+      DEBUG_LOG_LN(Update.getErrorString());
+      #endif
       uploaderror = 2;
       return;
     }
@@ -1201,7 +1287,7 @@ void handleUploadLoop() {
     if (upload.totalSize == 0)
     {
       if (upload.buf[0] != 0xE9) {
-        //Serial.println(PSTR("Upload: File magic header does not start with 0xE9"));
+        DEBUG_LOG_LN(F("Upload: File magic header does not start with 0xE9"));
         uploaderror = 3;
         return;
       }
@@ -1211,7 +1297,7 @@ void handleUploadLoop() {
 #else
       if (bin_flash_size > ESP.getFlashChipRealSize()) {
 #endif
-        //Serial.printl(PSTR("Upload: File flash size is larger than device flash size"));
+        DEBUG_LOG_LN(F("Upload: File flash size is larger than device flash size"));
         uploaderror = 4;
         return;
       }
@@ -1222,21 +1308,29 @@ void handleUploadLoop() {
       }
     }
     if (!uploaderror && (Update.write(upload.buf, upload.currentSize) != upload.currentSize)) {
-      //Update.printError(Serial);
+      #ifdef ESP32
+      DEBUG_LOG_LN(Update.errorString());
+      #else
+      DEBUG_LOG_LN(Update.getErrorString());
+      #endif      
       uploaderror = 5;
       return;
     }
   } else if (!uploaderror && (upload.status == UPLOAD_FILE_END)) {
     if (Update.end(true)) { // true to set the size to the current progress
-      //snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
-      //Serial.printl(log)
+      snprintf_P(log, sizeof(log), PSTR("Upload: Successful %u bytes. Restarting"), upload.totalSize);
+      DEBUG_LOG_LN(log)
     } else {
-      //Update.printError(Serial);
+      #ifdef ESP32
+      DEBUG_LOG_LN(Update.errorString());
+      #else
+      DEBUG_LOG_LN(Update.getErrorString());
+      #endif
       uploaderror = 6;
       return;
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
-    //Serial.println(PSTR("Upload: Update was aborted"));
+    DEBUG_LOG_LN(F("Upload: Update was aborted"));
     uploaderror = 7;
     Update.end();
   }
@@ -1249,41 +1343,70 @@ void write_log(String log) {
   logFile.close();
 }
 
-heatpumpSettings change_states(heatpumpSettings settings) {
+void debug_log_settings(heatpumpSettings settings) {
+  const size_t capacity = 512;
+  DynamicJsonDocument debuglog(capacity);
+  debuglog["Power"]       = settings.power;
+  debuglog["Mode"]        = settings.mode;
+  debuglog["Temperature"] = settings.temperature;
+  debuglog["Fan"]         = settings.fan;
+  debuglog["Vane"]        = settings.vane;
+  debuglog["Widevane"]    = settings.wideVane;
+
+  String mqttOutput;
+  serializeJson(debuglog, mqttOutput);
+  DEBUG_LOG(mqttOutput);
+}
+
+heatpumpSettings change_states() {
   if (server.hasArg("CONNECT")) {
-    hp.connect(&Serial);
+    hp.connect(SerialHvac, HVAC_UART_RX, HVAC_UART_TX);
   }
   else {
     bool update = false;
     if (server.hasArg("POWER")) {
-      settings.power = server.arg("POWER").c_str();
+      String arg = server.arg("POWER");
+      DEBUG_LOG(String("WEB: POWER = ") + arg);
+      hp.setPowerSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("MODE")) {
-      settings.mode = server.arg("MODE").c_str();
+      String arg = server.arg("MODE");
+      DEBUG_LOG(String("WEB: MODE = ") + arg);
+      hp.setModeSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toInt(), useFahrenheit);
+      String arg = server.arg("TEMP");
+      DEBUG_LOG(String("WEB: TEMP = ") + arg);
+      float temperature = convertLocalUnitToCelsius(arg.toInt(), useFahrenheit);
+      hp.setTemperature(temperature);
       update = true;
     }
     if (server.hasArg("FAN")) {
-      settings.fan = server.arg("FAN").c_str();
+      String arg = server.arg("FAN");
+      DEBUG_LOG(String("WEB: FAN = ") + arg);
+      hp.setFanSpeed(arg.c_str());
       update = true;
     }
     if (server.hasArg("VANE")) {
-      settings.vane = server.arg("VANE").c_str();
+      String arg = server.arg("VANE");
+      DEBUG_LOG(String("WEB: VANE = ") + arg);
+      hp.setVaneSetting(arg.c_str());
       update = true;
     }
     if (server.hasArg("WIDEVANE")) {
-      settings.wideVane = server.arg("WIDEVANE").c_str();
+      String arg = server.arg("WIDEVANE");
+      DEBUG_LOG(String("WEB: WIDEVANE = ") + arg);
+      hp.setWideVaneSetting(arg.c_str());
       update = true;
     }
     if (update) {
-      hp.setSettings(settings);
+      hp.update();
+      hp.update();
     }
   }
-  return settings;
+  return hp.getSettings();
 }
 
 void readHeatPumpSettings() {
@@ -1309,6 +1432,7 @@ void hpSettingsChanged() {
   }
 
   hpStatusChanged(hp.getStatus());
+  lastUpdated = millis();
 }
 
 String hpGetMode(heatpumpSettings hpSettings) {
@@ -1645,13 +1769,13 @@ void haConfig() {
   // For now, only compressorFrequency
   haConfig["json_attr_t"]                   = ha_state_topic;
   haConfig["json_attr_tpl"]                 = F("{{ {'compressorFrequency': value_json.compressorFrequency if (value_json is defined and value_json.compressorFrequency is defined) else '-1' } | tojson }}");
-  
-  
+
   String mqttOutput;
   serializeJson(haConfig, mqttOutput);
   mqtt_client.beginPublish(ha_config_topic.c_str(), mqttOutput.length(), true);
   mqtt_client.print(mqttOutput);
   mqtt_client.endPublish();
+  mqtt_client.publish(ha_debug_logs_topic.c_str(), "Send HA Autodiscovery message");
 }
 
 void mqttConnect() {
@@ -1709,11 +1833,11 @@ bool connectWifi() {
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
 #endif
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
-  // Serial.println("Connecting to " + ap_ssid);
+  DEBUG_LOG_LN("Connecting to " + ap_ssid);
   wifi_timeout = millis() + 30000;
   while (WiFi.status() != WL_CONNECTED && millis() < wifi_timeout) {
     Serial.write('.');
-    //Serial.print(WiFi.status());
+    DEBUG_LOG_LN(String(WiFi.status()));
     // wait 500ms, flashing the blue LED to indicate WiFi connecting...
     digitalWrite(blueLedPin, LOW);
     delay(250);
@@ -1721,22 +1845,22 @@ bool connectWifi() {
     delay(250);
   }
   if (WiFi.status() != WL_CONNECTED) {
-    // Serial.println(F("Failed to connect to wifi"));
+    DEBUG_LOG_LN(F("Failed to connect to wifi"));
     return false;
   }
-  // Serial.println(F("Connected to "));
-  // Serial.println(ap_ssid);
-  // Serial.println(F("Ready"));
-  // Serial.print("IP address: ");
-    while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
+  DEBUG_LOG(F("Wifi connected to: "));
+  DEBUG_LOG_LN(ap_ssid);
+  DEBUG_LOG_LN(F("Ready"));
+  while (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
     // Serial.write('.');
     delay(500);
   }
   if (WiFi.localIP().toString() == "0.0.0.0" || WiFi.localIP().toString() == "") {
-    // Serial.println(F("Failed to get IP address"));
+    DEBUG_LOG_LN(F("Failed to get IP address"));
     return false;
   }
-  // Serial.println(WiFi.localIP());
+  DEBUG_LOG("IP address: ");
+  DEBUG_LOG_LN(WiFi.localIP().toString().c_str());
   //ticker.detach(); // Stop blinking the LED because now we are connected:)
   //keep LED off (For Wemos D1-Mini)
   digitalWrite(blueLedPin, HIGH);
@@ -1826,7 +1950,9 @@ void loop() {
   if (WiFi.getMode() == WIFI_STA and WiFi.status() == WL_CONNECTED) {
 	  wifi_timeout = millis() + WIFI_RETRY_INTERVAL_MS;
   } else if (wifi_config_exists and millis() > wifi_timeout) {
-	  ESP.restart();
+    DEBUG_LOG_LN(F("Wifi Timeout, rebooting"));
+    delay(100);
+    ESP.restart();
   }
 
   if (!captive) {
@@ -1839,6 +1965,7 @@ void loop() {
         // If we've retried more than the max number of tries, keep retrying at that fixed interval, which is several minutes.
         hpConnectionRetries = min(hpConnectionRetries + 1u, HP_MAX_RETRIES);
         hpConnectionTotalRetries++;
+        DEBUG_LOG_LN(F("HVAC attempt reconnect"));
         hp.sync();
       }
     } else {
