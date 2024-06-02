@@ -2,8 +2,11 @@
 
 #include <Arduino.h>
 
-#define LOG_SIZE 50000 
-
+#ifdef ESP32
+    #define LOG_SIZE 50000
+#else 
+    #define LOG_SIZE 10000 
+#endif
 class Logging{
 
     private:

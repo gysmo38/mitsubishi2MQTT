@@ -16,7 +16,7 @@
 
 //#define MY_LANGUAGE fr-FR // define your language
 
-const PROGMEM char* m2mqtt_version = "Mitsubishi2MQTT - magi's edition (2024.4.1)";
+const PROGMEM char* m2mqtt_version = "Mitsubishi2MQTT - magi's edition (2024.5.1)";
 
 //Define global variables for files
 #ifdef ESP32
@@ -25,12 +25,14 @@ const PROGMEM char* mqtt_conf = "/mqtt.json";
 const PROGMEM char* unit_conf = "/unit.json";
 const PROGMEM char* console_file = "/console.log";
 const PROGMEM char* others_conf = "/others.json";
+const PROGMEM char* energy_file = "/energy.json";
 #else
 const PROGMEM char* wifi_conf = "wifi.json";
 const PROGMEM char* mqtt_conf = "mqtt.json";
 const PROGMEM char* unit_conf = "unit.json";
 const PROGMEM char* console_file = "console.log";
 const PROGMEM char* others_conf = "others.json";
+const PROGMEM char* energy_file = "energy.json";
 #endif
 
 // Define global variables for network
@@ -44,10 +46,13 @@ String ap_pwd;
 String ota_pwd;
 
 //CN105Kit Product version
-#ifdef ESP32
+#ifdef __ESP32S3__
 const PROGMEM char* hardware_version = "WiFiKit Serial 1.2";
-#else
-const PROGMEM char* hardware_version = "CN105Kit V2 (WiFiSerial)";
+#elif defined(__ESP07__) 
+const PROGMEM char* hardware_version = "CN105Kit V2 (ESP07)";
+#elif defined(__ESP12E__) 
+const PROGMEM char* hardware_version = "CN105Kit V1/V2.1 (ESP12E)";
+
 #endif
 
 // Define global variables for MQTT
@@ -65,6 +70,8 @@ const PROGMEM char* mqtt_payload_unavailable = "offline";
 const PROGMEM char* HA_AC_icon = "mdi:air-conditioner";
 const PROGMEM char* HA_thermometer_icon = "mdi:thermometer";
 const PROGMEM char* HA_lightning_bolt = "mdi:lightning-bolt-circle";
+const PROGMEM char* HA_counter = "mdi:counter";
+const PROGMEM char* HA_restart = "mdi:restart";
 const PROGMEM char* HA_vane_vertical_icon = "mdi:arrow-up-down";
 const PROGMEM char* HA_vane_horizontal_icon = "mdi:arrow-left-right";
 
@@ -88,8 +95,11 @@ String ha_debug_set_topic;
 String ha_climate_config_topic;
 String ha_sensor_room_temp_config_topic;
 String ha_sensor_power_config_topic;
+String ha_sensor_energy_config_topic;
 String ha_select_vane_vertical_config_topic;
 String ha_select_vane_horizontal_config_topic;
+String ha_button_reset_energy_config_topic;
+String ha_button_energy_set_topic;
 String ha_discovery_topic;
 String ha_custom_packet;
 String ha_availability_topic;
@@ -117,6 +127,10 @@ uint8_t min_temp                    = 16; // Minimum temperature, check value fr
 uint8_t max_temp                    = 31; // Maximum temperature, check value from heatpump remote control
 String temp_step                    = "1"; // Temperature setting step, check value from heatpump remote control
 uint32_t update_int                 = SEND_ROOM_TEMP_INTERVAL_MS;
+
+//Energy
+#define ENERGY_SAVE_THRESHOLD 0.1 //Save energy only if the value differentiate from previous value X kWh.
+#define ENERGY_SAVE_INTERVAL 10 //Save energy every 10 minutes
 
 
 // temp settings

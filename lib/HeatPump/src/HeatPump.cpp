@@ -535,7 +535,10 @@ void HeatPump::createInfoPacket(byte *packet, byte packetType) {
 
 void HeatPump::writePacket(byte *packet, int length) {
 
-  Serial.println("CN105 >> " + getHEXformatted(packet, length));
+  #ifdef ESP32
+    Serial.println("CN105 >> " + getHEXformatted(packet, length));
+  #endif
+
   for (int i = 0; i < length; i++) {
      _HardSerial->write((uint8_t)packet[i]);
   }
@@ -598,9 +601,10 @@ int HeatPump::readPacket() {
       }
       
       
+      #ifdef ESP32
+        Serial.println("CN105 << " + getHEXformatted(header, INFOHEADER_LEN) + "|" + getHEXformatted(data, dataLength));
+      #endif
 
-      Serial.println("CN105 << " + getHEXformatted(header, INFOHEADER_LEN) + "|" + getHEXformatted(data, dataLength));
-  
       // calculate checksum
       checksum = (0xfc - dataSum) & 0xff;
 
