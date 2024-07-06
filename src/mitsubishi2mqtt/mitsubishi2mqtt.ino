@@ -747,7 +747,7 @@ void handleUnit() {
   if (!checkLogin()) return;
 
   if (server.method() == HTTP_POST) {
-    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toInt(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toInt(), useFahrenheit), server.arg("temp_step"));
+    saveUnit(server.arg("tu"), server.arg("md"), server.arg("lpw"), (String)convertLocalUnitToCelsius(server.arg("min_temp").toFloat(), useFahrenheit), (String)convertLocalUnitToCelsius(server.arg("max_temp").toFloat(), useFahrenheit), server.arg("temp_step"));
     rebootAndSendPage();
   }
   else {
@@ -1264,7 +1264,7 @@ heatpumpSettings change_states(heatpumpSettings settings) {
       update = true;
     }
     if (server.hasArg("TEMP")) {
-      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toInt(), useFahrenheit);
+      settings.temperature = convertLocalUnitToCelsius(server.arg("TEMP").toFloat(), useFahrenheit);
       update = true;
     }
     if (server.hasArg("FAN")) {
