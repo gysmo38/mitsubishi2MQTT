@@ -33,6 +33,8 @@ ESP8266WebServer server(80);  // ESP8266 web
 #include <PubSubClient.h>     // MQTT: PubSubClient 2.8.0
 #include <DNSServer.h>        // DNS for captive portal
 #include <math.h>             // for rounding to Fahrenheit values
+#include <map>
+#include <cmath>              // For roundf function
 
 #include <ArduinoOTA.h>   // for OTA
 #include <HeatPump.h>     // SwiCago library: https://github.com/SwiCago/HeatPump
