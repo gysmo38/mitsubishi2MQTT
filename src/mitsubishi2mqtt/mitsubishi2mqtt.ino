@@ -192,7 +192,7 @@ void setup() {
     heatpumpSettings currentSettings = hp.getSettings();
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
     rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-    rootInfo["fan"]                 = currentSettings.fan;
+    rootInfo["fan"]                 = hpGetFan(currentSettings);
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
     rootInfo["mode"]                = hpGetMode(currentSettings);
@@ -1291,7 +1291,7 @@ void readHeatPumpSettings() {
 
   rootInfo.clear();
   rootInfo["temperature"]     = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-  rootInfo["fan"]             = currentSettings.fan;
+  rootInfo["fan"]             = hpGetFan(currentSettings);
   rootInfo["vane"]            = currentSettings.vane;
   rootInfo["wideVane"]        = currentSettings.wideVane;
   rootInfo["mode"]            = hpGetMode(currentSettings);
@@ -1313,7 +1313,7 @@ void hpSettingsChanged() {
 
 String hpGetMode(heatpumpSettings hpSettings) {
   // Map the heat pump state to one of HA's HVAC_MODE_* values.
-  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L3-L23
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L17-L37
 
   String hppower = String(hpSettings.power);
   if (hppower.equalsIgnoreCase("off")){
@@ -1326,6 +1326,21 @@ String hpGetMode(heatpumpSettings hpSettings) {
   if (hpmode == "fan")       return "fan_only";
   else if (hpmode == "auto") return "heat_cool";
   else                       return hpmode; // cool, heat, dry
+}
+
+String hpGetFan(heatpumpSettings hpSettings) {
+  // Map the fan speed to one of HA's FAN_* values.
+  // https://github.com/home-assistant/core/blob/master/homeassistant/components/climate/const.py#L75-L85
+
+  String hpfan = String(hpSettings.fan);
+  hpfan.toLowerCase();
+
+  if (hpfan == "quiet")  return "diffuse";
+  else if (hpfan == "1") return "low";
+  else if (hpfan == "2") return "middle";
+  else if (hpfan == "3") return "medium";
+  else if (hpfan == "4") return "high";
+  else                   return hpfan; // auto
 }
 
 String hpGetAction(heatpumpStatus hpStatus, heatpumpSettings hpSettings) {
@@ -1361,7 +1376,7 @@ void hpStatusChanged(heatpumpStatus currentStatus) {
     rootInfo.clear();
     rootInfo["roomTemperature"]     = convertCelsiusToLocalUnit(currentStatus.roomTemperature, useFahrenheit);
     rootInfo["temperature"]         = convertCelsiusToLocalUnit(currentSettings.temperature, useFahrenheit);
-    rootInfo["fan"]                 = currentSettings.fan;
+    rootInfo["fan"]                 = hpGetFan(currentSettings);
     rootInfo["vane"]                = currentSettings.vane;
     rootInfo["wideVane"]            = currentSettings.wideVane;
     rootInfo["mode"]                = hpGetMode(currentSettings);
@@ -1483,9 +1498,23 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     hp.setTemperature(temperature_c);
   }
   else if (strcmp(topic, ha_fan_set_topic.c_str()) == 0) {
+    String fanUpper = message;
+    fanUpper.toUpperCase();
+    String fanSpeed = fanUpper;
+    if (fanUpper == "DIFFUSE") {
+      fanSpeed = "QUIET";
+    } else if (fanUpper == "LOW") {
+      fanSpeed = "1";
+    } else if (fanUpper == "MIDDLE") {
+      fanSpeed = "2";
+    } else if (fanUpper == "MEDIUM") {
+      fanSpeed = "3";
+    } else if (fanUpper == "HIGH") {
+      fanSpeed = "4";
+    }
     rootInfo["fan"] = (String) message;
     hpSendLocalState();
-    hp.setFanSpeed(message);
+    hp.setFanSpeed(fanSpeed.c_str());
   }
   else if (strcmp(topic, ha_vane_set_topic.c_str()) == 0) {
     rootInfo["vane"] = (String) message;
@@ -1606,12 +1635,12 @@ void haConfig() {
   haConfig["temperature_unit"]              = useFahrenheit ? "F" : "C";
 
   JsonArray haConfigFan_modes = haConfig.createNestedArray("fan_modes");
-  haConfigFan_modes.add("AUTO");
-  haConfigFan_modes.add("QUIET");
-  haConfigFan_modes.add("1");
-  haConfigFan_modes.add("2");
-  haConfigFan_modes.add("3");
-  haConfigFan_modes.add("4");
+  haConfigFan_modes.add("auto");
+  haConfigFan_modes.add("diffuse");
+  haConfigFan_modes.add("low");
+  haConfigFan_modes.add("middle");
+  haConfigFan_modes.add("medium");
+  haConfigFan_modes.add("high");
 
   haConfig["fan_mode_cmd_t"]                = ha_fan_set_topic;
   haConfig["fan_mode_stat_t"]               = ha_state_topic;
