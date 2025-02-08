@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
@@ -38,19 +38,19 @@ jobs:
           mv .pio/build/ESP32DEV/firmware.bin mitsubishi2MQTT_ESP32DEV.bin
 
       - name: Upload esp8266 artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mitsubishi2MQTT_ESP8266-ESP01.bin
           path: mitsubishi2MQTT_ESP8266-ESP01.bin
 
       - name: Upload esp32dev artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mitsubishi2MQTT_ESP32DEV.bin
           path: mitsubishi2MQTT_ESP32DEV.bin
 
       - name: Upload WEMOS_D1_Mini artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mitsubishi2MQTT_WEMOS_D1_Mini.bin
           path: mitsubishi2MQTT_WEMOS_D1_Mini.bin
