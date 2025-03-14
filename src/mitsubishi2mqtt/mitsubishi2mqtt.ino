@@ -1408,6 +1408,7 @@ void hpCheckRemoteTemp(){
 void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirection) {
   if (_debugModePckts) {
     String message;
+    String topic = ha_debug_pckts_topic + "/" + packetDirection + "/" + String(packet[5], HEX); // packet 5 is message type
     for (unsigned int idx = 0; idx < length; idx++) {
       if (packet[idx] < 16) {
         message += "0"; // pad single hex digits with a 0
@@ -1421,7 +1422,7 @@ void hpPacketDebug(byte* packet, unsigned int length, const char* packetDirectio
     root[packetDirection] = message;
     String mqttOutput;
     serializeJson(root, mqttOutput);
-    if (!mqtt_client.publish(ha_debug_pckts_topic.c_str(), mqttOutput.c_str())) {
+    if (!mqtt_client.publish(topic.c_str(), mqttOutput.c_str())) {
       mqtt_client.publish(ha_debug_logs_topic.c_str(), (char*)("Failed to publish to heatpump/debug topic"));
     }
   }
