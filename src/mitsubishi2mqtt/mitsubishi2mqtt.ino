@@ -1742,6 +1742,8 @@ bool connectWifi() {
   WiFi.begin(ap_ssid.c_str(), ap_pwd.c_str());
   // Serial.println("Connecting to " + ap_ssid);
   wifi_timeout = millis() + 30000;
+  int timeout_counter = 0;
+
   while (WiFi.status() != WL_CONNECTED && millis() < wifi_timeout) {
     Serial.write('.');
     //Serial.print(WiFi.status());
@@ -1750,6 +1752,13 @@ bool connectWifi() {
     delay(250);
     digitalWrite(blueLedPin, HIGH);
     delay(250);
+    //reboot ESP32 if fails to connect after retries
+#ifdef ESP32
+    timeout_counter++;
+    if(timeout_counter >= CONNECTION_TIMEOUT * 5){
+      ESP.restart();
+    }
+#endif
   }
   if (WiFi.status() != WL_CONNECTED) {
     // Serial.println(F("Failed to connect to wifi"));
